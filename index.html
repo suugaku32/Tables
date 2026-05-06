@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Tables de multiplication ×</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent; user-select: none; }
+
+    html, body { width: 100%; height: 100%; overflow: hidden;
+      font-family: 'Arial Rounded MT Bold', 'Nunito', Arial, sans-serif;
+      background: #0d1b2a; }
+
+    /* ── HUD ── */
+    #hud {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 22px 8px;
+      background: rgba(255,255,255,0.05);
+      flex-shrink: 0;
+    }
+    .hud-item { color: white; font-size: clamp(1rem, 3.5vw, 1.4rem); font-weight: bold; }
+    #hud-score  { color: #ffd700; }
+    #hud-level  { color: #a0c4ff; }
+    #hud-streak { color: #ff9f43; }
+
+    #mute-btn {
+      background: none; border: 2px solid rgba(255,255,255,0.2);
+      cursor: pointer; border-radius: 50%;
+      width: 42px; height: 42px; min-width: 42px;
+      font-size: 1.15rem; color: white;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.2s, opacity 0.2s; opacity: 0.75;
+    }
+    #mute-btn:active { opacity: 1; transform: scale(0.88); }
+
+    /* ── Timer ── */
+    #timer-wrap { padding: 4px 22px 6px; flex-shrink: 0; }
+    #timer-bg   { height: 16px; border-radius: 8px;
+                  background: rgba(255,255,255,0.1); overflow: hidden; }
+    #timer-fill { height: 100%; border-radius: 8px; width: 100%;
+                  background: linear-gradient(90deg, #4facfe, #00f2fe);
+                  transition: background 0.5s; }
+
+    /* ── Question ── */
+    #question-zone { text-align: center; padding: 10px 20px; flex-shrink: 0; }
+    #question-text {
+      font-size: clamp(2.4rem, 9vw, 4.2rem);
+      font-weight: bold; color: white;
+      text-shadow: 0 0 30px rgba(255,255,255,0.35);
+      letter-spacing: 2px;
+    }
+
+    /* ── Arena ── */
+    #game { width: 100%; height: 100vh; display: flex; flex-direction: column; }
+    #arena { flex: 1; position: relative; overflow: hidden; }
+
+    /* ── Bubbles ── */
+    .bubble {
+      position: absolute; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; touch-action: none;
+      font-weight: bold; color: white;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.45);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.35),
+                  inset 0 -6px 16px rgba(0,0,0,0.25),
+                  inset 0 6px 14px rgba(255,255,255,0.35);
+    }
+    .bubble.pop-ok  { animation: pop-ok  0.35s ease-out forwards; pointer-events: none; }
+    .bubble.pop-bad { animation: pop-bad 0.5s  ease-in-out; }
+
+    @keyframes pop-ok {
+      0%   { transform: scale(1);    opacity: 1; }
+      40%  { transform: scale(1.55); opacity: 1; }
+      100% { transform: scale(0.05); opacity: 0; }
+    }
+    @keyframes pop-bad {
+      0%   { transform: scale(1)    rotate(0deg);  }
+      20%  { transform: scale(1.08) rotate(-9deg); }
+      40%  { transform: scale(1.08) rotate(9deg);  }
+      60%  { transform: scale(1.04) rotate(-6deg); }
+      80%  { transform: scale(1.04) rotate(6deg);  }
+      100% { transform: scale(1)    rotate(0deg);  }
+    }
+
+    /* ── Overlays ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(8,16,35,0.93);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 36px; z-index: 200;
+    }
+    .overlay h1 { color: #ffd700; font-size: clamp(2.2rem, 8vw, 3.5rem); margin-bottom: 18px; }
+    .overlay p  { color: rgba(255,255,255,0.82);
+                  font-size: clamp(0.95rem, 3vw, 1.25rem); line-height: 1.7; margin-bottom: 10px; }
+    .big-num  { font-size: clamp(3.5rem, 13vw, 5.5rem); font-weight: bold; color: #ffd700; margin: 6px 0; }
+    .sub-info { color: #a0c4ff; font-size: clamp(0.85rem, 2.5vw, 1.05rem); margin-top: 8px; }
+
+    .btn-play {
+      margin-top: 28px; padding: 20px 60px;
+      font-size: clamp(1.2rem, 4.5vw, 1.9rem); font-weight: bold;
+      border: none; border-radius: 50px;
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: white; cursor: pointer;
+      box-shadow: 0 8px 26px rgba(240,87,108,0.45);
+      transition: transform 0.1s;
+    }
+    .btn-play:active { transform: scale(0.93); }
+
+    /* ── FX ── */
+    .fx-center {
+      position: fixed; pointer-events: none; z-index: 150;
+      font-size: clamp(2.5rem, 8vw, 4rem); top: 50%; left: 50%;
+      animation: fx-rise 0.75s ease-out forwards;
+    }
+    .fx-bonus {
+      position: fixed; pointer-events: none; z-index: 150;
+      color: #00ff88; font-weight: bold; font-size: clamp(1.1rem, 3vw, 1.6rem);
+      animation: fx-rise 0.9s ease-out forwards;
+    }
+    .fx-star {
+      position: fixed; pointer-events: none; z-index: 150;
+      font-size: 1.6rem; animation: fx-star 0.9s ease-out forwards;
+    }
+
+    @keyframes fx-rise {
+      0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.7); }
+      45%  { opacity: 1; transform: translate(-50%, -85%) scale(1.25); }
+      100% { opacity: 0; transform: translate(-50%, -140%) scale(1); }
+    }
+    @keyframes fx-star {
+      0%   { opacity: 1; transform: translate(0,0) scale(1) rotate(0deg); }
+      100% { opacity: 0; transform: translate(var(--dx),var(--dy)) scale(0.3) rotate(360deg); }
+    }
+
+    /* ── Background stars ── */
+    #bg-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .bg-star {
+      position: absolute; border-radius: 50%; background: white;
+      animation: twinkle var(--dur) infinite alternate; animation-delay: var(--del);
+    }
+    @keyframes twinkle {
+      from { opacity: 0.07; }
+      to   { opacity: 0.28; transform: scale(1.3); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="bg-stars"></div>
+
+<!-- ── Start ── -->
+<div class="overlay" id="screen-start">
+  <h1>🌟 Tables ×</h1>
+  <p>Touche la bonne bulle<br>avant que le temps s'épuise !</p>
+  <p style="font-size:clamp(0.85rem,2.5vw,1.05rem); color:rgba(255,255,255,0.5); margin-top:6px;">
+    ✅ Bonne réponse → bonus de temps<br>
+    ❌ Mauvaise → −2 secondes<br>
+    🔥 Plus tu avances, plus c'est rapide !
+  </p>
+  <button class="btn-play" onclick="startGame()">Jouer !</button>
+</div>
+
+<!-- ── Game Over ── -->
+<div class="overlay" id="screen-over" style="display:none">
+  <h1>⏰ Temps écoulé !</h1>
+  <div class="big-num" id="over-score">0</div>
+  <p>bonne<span id="plural-s"></span> réponse<span id="plural-s2"></span></p>
+  <div class="sub-info" id="over-best"></div>
+  <button class="btn-play" onclick="startGame()">Rejouer !</button>
+</div>
+
+<!-- ── Game ── -->
+<div id="game">
+  <div id="hud">
+    <div class="hud-item" id="hud-score">⭐ 0</div>
+    <div class="hud-item" id="hud-level">Niveau 1</div>
+    <div class="hud-item" id="hud-streak">× 0</div>
+    <button id="mute-btn" onclick="toggleMusic()">🔊</button>
+  </div>
+  <div id="timer-wrap">
+    <div id="timer-bg"><div id="timer-fill"></div></div>
+  </div>
+  <div id="question-zone">
+    <div id="question-text">? × ? = ?</div>
+  </div>
+  <div id="arena"></div>
+</div>
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────
+const START_TIME = 25;
+const MAX_TIME   = 38;
+const BASE_BONUS = 5;
+const WRONG_COST = 2;
+const BUBBLE_N   = 4;
+
+const COLORS = [
+  ['#f093fb','#f5576c'], ['#4facfe','#00f2fe'],
+  ['#43e97b','#38f9d7'], ['#fa709a','#fee140'],
+  ['#a18cd1','#fbc2eb'], ['#fda085','#f6d365'],
+  ['#30cfd0','#667eea'], ['#89f7fe','#66a6ff'],
+];
+
+// ── Audio ─────────────────────────────────────────────────────────────────
+let _actx = null;
+let musicOn = true;
+let _mStep = 0, _mTimer = null;
+let _lastCollide = 0;
+
+const _BPM  = 115;
+const _BEAT = 60 / _BPM;
+
+// Mélodie pentatonique en do majeur [fréquence Hz, durée en temps]
+const _MEL = [
+  [659.25,.5],[783.99,.5],[880,1],
+  [783.99,.5],[659.25,.5],[523.25,1],
+  [587.33,.5],[659.25,.5],[783.99,1],
+  [659.25,.5],[587.33,.5],[523.25,1],
+  [440,.5],[523.25,.5],[659.25,1],
+  [783.99,.5],[659.25,.5],[523.25,1],
+  [587.33,.5],[440,.5],[392,1],
+  [523.25, 4],
+];
+
+function _ac() {
+  try {
+    if (!_actx) _actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_actx.state === 'suspended') _actx.resume();
+    return _actx;
+  } catch(e) { return null; }
+}
+
+function _tone(freq, dur, vol, type, when) {
+  const ctx = _ac();
+  if (!ctx) return;
+  const t   = when ?? ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const g   = ctx.createGain();
+  osc.connect(g); g.connect(ctx.destination);
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.01, dur * 0.85));
+  osc.start(t); osc.stop(t + dur);
+}
+
+function sfxCorrect() {
+  const t = _ac()?.currentTime ?? 0;
+  [[523.25,0],[659.25,.07],[783.99,.14],[1046.5,.21]].forEach(([f,d]) =>
+    _tone(f, 0.25, 0.18, 'sine', t + d));
+}
+
+function sfxWrong() {
+  const ctx = _ac();
+  if (!ctx) return;
+  const t   = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const g   = ctx.createGain();
+  osc.connect(g); g.connect(ctx.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(220, t);
+  osc.frequency.exponentialRampToValueAtTime(80, t + 0.4);
+  g.gain.setValueAtTime(0.15, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+  osc.start(t); osc.stop(t + 0.45);
+}
+
+function sfxLevelUp() {
+  const t = _ac()?.currentTime ?? 0;
+  [[523.25,0],[659.25,.1],[783.99,.2],[1046.5,.3],[1318.5,.4]].forEach(([f,d]) =>
+    _tone(f, 0.3, 0.18, 'triangle', t + d));
+}
+
+function sfxCollide() {
+  const now = performance.now();
+  if (now - _lastCollide < 120) return;
+  _lastCollide = now;
+  _tone(260 + Math.random() * 80, 0.07, 0.032, 'sine');
+}
+
+function _playMelody() {
+  if (!musicOn || !running) return;
+  const [freq, beats] = _MEL[_mStep % _MEL.length];
+  _tone(freq, beats * _BEAT * 0.78, 0.045, 'triangle');
+  _mStep++;
+  _mTimer = setTimeout(_playMelody, beats * _BEAT * 1000);
+}
+
+function startMusic() {
+  stopMusic();
+  _mStep = 0;
+  _mTimer = setTimeout(_playMelody, 350);
+}
+
+function stopMusic() {
+  if (_mTimer) { clearTimeout(_mTimer); _mTimer = null; }
+}
+
+function toggleMusic() {
+  musicOn = !musicOn;
+  document.getElementById('mute-btn').textContent = musicOn ? '🔊' : '🔇';
+  if (musicOn && running) { _mStep = 0; _playMelody(); }
+  else stopMusic();
+}
+
+// ── Question generation ───────────────────────────────────────────────────
+function buildPairs() {
+  const list = [];
+  for (let a = 2; a <= 9; a++) {          // pas de table du 10
+    for (let b = a; b <= 9; b++) {
+      if (a === 2 && b === 5) continue;   // exclu explicitement
+      let w = (a - 1) * (b - 1);
+      if      (a >= 7 && b >= 7) w *= 4.5;
+      else if (a >= 6 && b >= 6) w *= 3;
+      else if (a >= 6 || b >= 6) w *= 2;
+      else if (a >= 5 || b >= 5) w *= 1.3;
+      if (a <= 3 && b <= 4)      w *= 0.3;
+      list.push({ a, b, w });
+    }
+  }
+  return list;
+}
+
+const PAIRS   = buildPairs();
+const TOTAL_W = PAIRS.reduce((s, p) => s + p.w, 0);
+
+function pickQuestion() {
+  let r = Math.random() * TOTAL_W;
+  for (const p of PAIRS) {
+    r -= p.w;
+    if (r <= 0) {
+      const [a, b] = Math.random() < 0.5 ? [p.a, p.b] : [p.b, p.a];
+      return { a, b, ans: p.a * p.b };
+    }
+  }
+  const p = PAIRS[PAIRS.length - 1];
+  return { a: p.a, b: p.b, ans: p.a * p.b };
+}
+
+function makeTraps({ a, b, ans }) {
+  const pool = new Set();
+  const cands = [
+    ans+1, ans-1, ans+2, ans-2,
+    a*(b+1), a*(b-1), (a+1)*b, (a-1)*b,
+    a*(b+2), (a+2)*b,
+    ans+a, ans-a, ans+b, ans-b,
+    (a+1)*(b+1), (a-1)*(b+1),
+  ].filter(v => v > 0 && v !== ans);
+  for (const c of cands.sort(() => Math.random() - 0.5)) {
+    if (!pool.has(c)) pool.add(c);
+    if (pool.size === BUBBLE_N - 1) break;
+  }
+  for (let i = 1; pool.size < BUBBLE_N - 1; i++) {
+    const v = ans + 10 + i;
+    if (!pool.has(v)) pool.add(v);
+  }
+  return [...pool];
+}
+
+// ── Bubble physics ─────────────────────────────────────────────────────────
+let bubbles = [];
+let rafId   = null;
+
+function spawnBubbles(values, level) {
+  const arena = document.getElementById('arena');
+  arena.innerHTML = '';
+  bubbles = [];
+
+  const R       = arena.getBoundingClientRect();
+  const size    = Math.max(95, Math.min(R.width, R.height) * 0.21);
+  const elapsed = (performance.now() - gameStartTime) / 1000;
+  const tBoost  = Math.min(2.0, 1 + elapsed * 0.009); // +0.9%/s, plafond ×2 (~110s)
+  const speed   = (2.2 + level * 0.3) * tBoost;
+
+  // Une bulle par quadrant pour les espacer au départ
+  const quad = [
+    [0,           R.width/2-size, 0,            R.height/2-size],
+    [R.width/2,   R.width-size,   0,            R.height/2-size],
+    [0,           R.width/2-size, R.height/2,   R.height-size  ],
+    [R.width/2,   R.width-size,   R.height/2,   R.height-size  ],
+  ];
+
+  values.forEach((val, i) => {
+    const [xMin, xMax, yMin, yMax] = quad[i % 4];
+    const color = COLORS[i % COLORS.length];
+    const el = document.createElement('div');
+    el.className = 'bubble';
+    el.style.cssText =
+      `width:${size}px; height:${size}px; font-size:${size*0.33}px;` +
+      `background:radial-gradient(circle at 35% 35%,${color[0]},${color[1]});`;
+    el.textContent = val;
+
+    const x = xMin + Math.random() * Math.max(1, xMax - xMin);
+    const y = yMin + Math.random() * Math.max(1, yMax - yMin);
+    const a = Math.random() * Math.PI * 2;
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+    arena.appendChild(el);
+
+    el.addEventListener('pointerdown', e => { e.preventDefault(); handleTap(+val, el); });
+
+    bubbles.push({ el, x, y, vx: Math.cos(a)*speed, vy: Math.sin(a)*speed, size, popped: false });
+  });
+}
+
+function tickBubbles() {
+  if (!running) return;
+  const R  = document.getElementById('arena').getBoundingClientRect();
+  const W  = R.width, H = R.height;
+  const n  = bubbles.length;
+
+  // 1. Déplacement + rebond + accélération continue
+  const elapsed2 = (performance.now() - gameStartTime) / 1000;
+  const maxSpd   = 3.5 + level * 0.4 + elapsed2 * 0.025; // plafond qui monte doucement
+  for (const b of bubbles) {
+    if (b.popped) continue;
+    // Légère accélération à chaque frame (~+0.9%/s à 60fps)
+    b.vx *= 1.00015;  b.vy *= 1.00015;
+    const spd = Math.hypot(b.vx, b.vy);
+    if (spd > maxSpd) { b.vx = b.vx/spd * maxSpd; b.vy = b.vy/spd * maxSpd; }
+
+    b.x += b.vx;  b.y += b.vy;
+    if (b.x < 0)          { b.x = 0;          b.vx =  Math.abs(b.vx); }
+    if (b.x > W - b.size) { b.x = W - b.size; b.vx = -Math.abs(b.vx); }
+    if (b.y < 0)          { b.y = 0;          b.vy =  Math.abs(b.vy); }
+    if (b.y > H - b.size) { b.y = H - b.size; b.vy = -Math.abs(b.vy); }
+    b.el.style.left = b.x + 'px';
+    b.el.style.top  = b.y + 'px';
+  }
+
+  // 2. Collisions bulle-bulle (choc élastique, masses égales)
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const a = bubbles[i], b = bubbles[j];
+      if (a.popped || b.popped) continue;
+
+      const minDist = a.size;                        // r1 + r2 = size/2 + size/2
+      const dx = (b.x + b.size/2) - (a.x + a.size/2);
+      const dy = (b.y + b.size/2) - (a.y + a.size/2);
+      const d2 = dx*dx + dy*dy;
+      if (d2 >= minDist * minDist || d2 === 0) continue;
+
+      const dist = Math.sqrt(d2);
+      const nx = dx/dist, ny = dy/dist;
+
+      // Séparation (évite l'interpénétration)
+      const overlap = (minDist - dist) * 0.5;
+      a.x -= nx * overlap;  a.y -= ny * overlap;
+      b.x += nx * overlap;  b.y += ny * overlap;
+      a.x = Math.max(0, Math.min(W - a.size, a.x));
+      a.y = Math.max(0, Math.min(H - a.size, a.y));
+      b.x = Math.max(0, Math.min(W - b.size, b.x));
+      b.y = Math.max(0, Math.min(H - b.size, b.y));
+
+      // Échange des vitesses le long de la normale (choc élastique)
+      const dvn = (b.vx - a.vx)*nx + (b.vy - a.vy)*ny;
+      if (dvn < 0) {    // seulement si les bulles se rapprochent
+        a.vx += dvn * nx;  a.vy += dvn * ny;
+        b.vx -= dvn * nx;  b.vy -= dvn * ny;
+        sfxCollide();
+      }
+    }
+  }
+
+  rafId = requestAnimationFrame(tickBubbles);
+}
+
+// ── Game state ─────────────────────────────────────────────────────────────
+let running  = false;
+let score    = 0;
+let streak   = 0;
+let level    = 1;
+let timeLeft = START_TIME;
+let best     = +localStorage.getItem('tables_best') || 0;
+let tickInt  = null;
+let currentQ     = null;
+let busy         = false;
+let gameStartTime = 0;
+
+function startGame() {
+  _ac();   // initialise l'AudioContext sur geste utilisateur
+  document.getElementById('screen-start').style.display = 'none';
+  document.getElementById('screen-over').style.display  = 'none';
+  score = 0; streak = 0; level = 1; busy = false;
+  gameStartTime = performance.now();
+  timeLeft = START_TIME;
+  running  = true;
+  updateHUD();
+  if (tickInt) clearInterval(tickInt);
+  tickInt = setInterval(timerTick, 50);
+  startMusic();
+  nextQuestion();
+}
+
+function nextQuestion() {
+  currentQ = pickQuestion();
+  document.getElementById('question-text').textContent =
+    `${currentQ.a} × ${currentQ.b} = ?`;
+  const vals = [currentQ.ans, ...makeTraps(currentQ)].sort(() => Math.random() - 0.5);
+  if (rafId) cancelAnimationFrame(rafId);
+  spawnBubbles(vals, level);
+  rafId = requestAnimationFrame(tickBubbles);
+}
+
+function timerTick() {
+  if (!running) return;
+  const drain = 1 + (level - 1) * 0.04;   // 4% plus rapide par niveau
+  timeLeft -= 0.05 * drain;
+  const pct  = Math.max(0, timeLeft / START_TIME * 100);
+  const fill = document.getElementById('timer-fill');
+  fill.style.width = pct + '%';
+  fill.style.background =
+    pct > 55 ? 'linear-gradient(90deg,#4facfe,#00f2fe)' :
+    pct > 25 ? 'linear-gradient(90deg,#f7971e,#ffd200)' :
+               'linear-gradient(90deg,#ff416c,#ff4b2b)';
+  if (timeLeft <= 0) endGame();
+}
+
+function handleTap(val, el) {
+  if (!running || busy) return;
+  busy = true;
+
+  if (val === currentQ.ans) {
+    el.classList.add('pop-ok');
+    const bub = bubbles.find(b => b.el === el);
+    if (bub) bub.popped = true;
+
+    score++;  streak++;
+    const bonus = Math.max(2, BASE_BONUS - Math.floor(level / 3));
+    timeLeft = Math.min(MAX_TIME, timeLeft + bonus);
+
+    const newLevel = Math.floor(score / 5) + 1;
+    if (newLevel > level) { level = newLevel; spawnFX('🎉 Niveau ' + level + ' !', '#ffd700'); sfxLevelUp(); }
+    else sfxCorrect();
+
+    showBonusFX('+' + bonus + 's', el);
+    showStars(el);
+    updateHUD();
+    setTimeout(() => { busy = false; nextQuestion(); }, 360);
+
+  } else {
+    el.classList.add('pop-bad');
+    streak   = 0;
+    timeLeft = Math.max(0, timeLeft - WRONG_COST);
+    sfxWrong();
+    spawnFX('💥', '#ff6b6b');
+    updateHUD();
+    setTimeout(() => {
+      if (!running) return;
+      busy = false;
+      el.classList.remove('pop-bad');
+      void el.offsetWidth;
+      el.style.pointerEvents = '';
+    }, 510);
+  }
+}
+
+function endGame() {
+  running = false;
+  clearInterval(tickInt);
+  if (rafId) cancelAnimationFrame(rafId);
+  stopMusic();
+  if (score > best) { best = score; localStorage.setItem('tables_best', best); }
+  document.getElementById('over-score').textContent = score;
+  document.getElementById('plural-s').textContent   = score > 1 ? 's' : '';
+  document.getElementById('plural-s2').textContent  = score > 1 ? 's' : '';
+  document.getElementById('over-best').textContent  =
+    score > 0 && score >= best ? '🏆 Nouveau record !' : `Record : ${best}`;
+  document.getElementById('screen-over').style.display = 'flex';
+}
+
+function updateHUD() {
+  document.getElementById('hud-score').textContent  = '⭐ ' + score;
+  document.getElementById('hud-level').textContent  = 'Niveau ' + level;
+  document.getElementById('hud-streak').textContent = streak >= 3 ? '🔥 ' + streak : '× ' + streak;
+}
+
+// ── Visual effects ─────────────────────────────────────────────────────────
+function spawnFX(text, color) {
+  const el = document.createElement('div');
+  el.className = 'fx-center'; el.style.color = color; el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 760);
+}
+
+function showBonusFX(text, bubbleEl) {
+  const r  = bubbleEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'fx-bonus';
+  el.style.left = (r.left + r.width  / 2) + 'px';
+  el.style.top  = (r.top  + r.height / 2) + 'px';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 920);
+}
+
+function showStars(bubbleEl) {
+  const r  = bubbleEl.getBoundingClientRect();
+  const cx = r.left + r.width  / 2;
+  const cy = r.top  + r.height / 2;
+  ['⭐','✨','💫','🌟','⭐','✨'].forEach((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'fx-star'; el.textContent = s;
+    el.style.left = cx + 'px'; el.style.top = cy + 'px';
+    const a = (i / 6) * Math.PI * 2;
+    el.style.setProperty('--dx', (Math.cos(a) * 95) + 'px');
+    el.style.setProperty('--dy', (Math.sin(a) * 95) + 'px');
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 920);
+  });
+}
+
+// ── Background starfield ───────────────────────────────────────────────────
+(function () {
+  const c = document.getElementById('bg-stars');
+  for (let i = 0; i < 65; i++) {
+    const s  = document.createElement('div');
+    s.className = 'bg-star';
+    const sz = 1 + Math.random() * 2.5;
+    s.style.cssText =
+      `width:${sz}px; height:${sz}px;` +
+      `left:${Math.random()*100}%; top:${Math.random()*100}%;` +
+      `--dur:${2 + Math.random()*4}s; --del:${Math.random()*5}s;`;
+    c.appendChild(s);
+  }
+})();
+</script>
+</body>
+</html>
