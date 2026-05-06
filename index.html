@@ -452,13 +452,23 @@ function show(id) { document.getElementById(id).style.display = 'flex'; }
 function hide(id) { document.getElementById(id).style.display = 'none'; }
 
 // ── Timer mode ────────────────────────────────────────────────────────────
-let noTimer    = false;
-let tableMode  = 'normal'; // 'normal' | 'missing' | 'decomp'
+let noTimer           = false;
+let selectedTableModes = new Set(['normal']); // multi-sélection possible
 
 function setTableMode(mode) {
-  tableMode = mode;
+  if (selectedTableModes.has(mode)) {
+    if (selectedTableModes.size === 1) return; // au moins 1 mode obligatoire
+    selectedTableModes.delete(mode);
+  } else {
+    selectedTableModes.add(mode);
+  }
   ['normal','missing','decomp'].forEach(m =>
-    document.getElementById('btn-tbl-'+m).classList.toggle('active', m === mode));
+    document.getElementById('btn-tbl-'+m).classList.toggle('active', selectedTableModes.has(m)));
+}
+
+function pickTableMode() {
+  const modes = [...selectedTableModes];
+  return modes[Math.floor(Math.random() * modes.length)];
 }
 
 function setMode(withTimer) {
@@ -907,9 +917,11 @@ function nextQuestion() {
   if (rafId) cancelAnimationFrame(rafId);
   const n = getBubbleCount();
 
-  if (gameMode === 'tables' && tableMode === 'decomp') {
+  const tMode = gameMode === 'tables' ? pickTableMode() : null;
+
+  if (gameMode === 'tables' && tMode === 'decomp') {
     const dq = genDecompositions();
-    if (!dq) { setTableMode('missing'); } // fallback si pas assez de paires
+    if (!dq) { /* fallback ci-dessous */ }
     else {
       // Affiche toutes les paires valides + pièges
       const correctLabels = dq.pairs.map(p =>
@@ -927,7 +939,7 @@ function nextQuestion() {
     }
   }
 
-  if (gameMode === 'tables' && tableMode === 'missing') {
+  if (gameMode === 'tables' && (tMode === 'missing' || tMode === 'decomp')) {
     const q = pickTablesQuestion();
     const hideFst = Math.random() < 0.5;
     const hidden = hideFst ? q.a : q.b;
