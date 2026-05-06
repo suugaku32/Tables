@@ -586,6 +586,17 @@ buildTableGrid();
 
 // ── Question generation — Tables ──────────────────────────────────────────
 let currentPairs = [], currentTotalW = 0;
+const COOLDOWN_SIZE = 4;   // nb de dernières paires à pénaliser
+const COOLDOWN_FACTOR = 0.05; // poids réduit à 5% de la normale
+let recentPairs = [];      // file FIFO des paires récemment réussies
+
+function markRecentPair(a, b) {
+  const key = Math.min(a,b) + 'x' + Math.max(a,b);
+  const idx = recentPairs.indexOf(key);
+  if (idx !== -1) recentPairs.splice(idx, 1);
+  recentPairs.push(key);
+  if (recentPairs.length > COOLDOWN_SIZE) recentPairs.shift();
+}
 
 function buildPairs() {
   const sel = selectedTables.size > 0 ? selectedTables : new Set([2,3,4,5,6,7,8,9,10,11,12]);
@@ -606,9 +617,14 @@ function buildPairs() {
 }
 
 function pickTablesQuestion() {
-  let r = Math.random() * currentTotalW;
+  const w = p => {
+    const key = Math.min(p.a,p.b) + 'x' + Math.max(p.a,p.b);
+    return recentPairs.includes(key) ? p.w * COOLDOWN_FACTOR : p.w;
+  };
+  const total = currentPairs.reduce((s,p) => s + w(p), 0);
+  let r = Math.random() * total;
   for (const p of currentPairs) {
-    r -= p.w;
+    r -= w(p);
     if (r <= 0) {
       const [a,b] = Math.random()<.5 ? [p.a,p.b] : [p.b,p.a];
       return { a, b, ans: p.a*p.b };
@@ -806,7 +822,7 @@ function replayGame() {
 function _startGame() {
   _ac();
   hide('screen-over');
-  score=0; streak=0; level=1; busy=false;
+  score=0; streak=0; level=1; busy=false; recentPairs=[];
   gameStartTime = performance.now();
   timeLeft = START_TIME;
   running  = true;
@@ -864,6 +880,7 @@ function handleTap(val, el) {
     const bub = bubbles.find(b=>b.el===el);
     if (bub) bub.popped = true;
     score++; streak++;
+    if (gameMode === 'tables') markRecentPair(currentQ._q.a, currentQ._q.b);
 
     const newLevel = Math.floor(score/5)+1;
     if (newLevel>level) { level=newLevel; spawnFX('🎉 Niveau '+level+' !','#ffd700'); sfxLevelUp(); }
