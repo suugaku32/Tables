@@ -904,7 +904,7 @@ function _startGame() {
   running  = true;
 
   document.getElementById('timer-wrap').style.display = noTimer ? 'none'  : 'block';
-  document.getElementById('stop-btn').style.display   = noTimer ? 'flex'  : 'none';
+  document.getElementById('stop-btn').style.display   = 'flex';
 
   updateHUD();
   if (tickInt) clearInterval(tickInt);
