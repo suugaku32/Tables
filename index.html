@@ -593,14 +593,9 @@ function buildPairs() {
   for (let a = 2; a <= 12; a++) {
     for (let b = a; b <= 12; b++) {
       if (!sel.has(a) && !sel.has(b)) continue;
-      let w = (a-1)*(b-1);
-      if      (a>=10 && b>=10) w *= 5.5;
-      else if (a>=9  && b>=9 ) w *= 5;
-      else if (a>=7  && b>=7 ) w *= 4.5;
-      else if (a>=6  && b>=6 ) w *= 3;
-      else if (a>=6  || b>=6 ) w *= 2;
-      else if (a>=5  || b>=5 ) w *= 1.3;
-      if (a<=3 && b<=4)        w *= 0.3;
+      // Tables > 5 : poids élevé et UNIFORME entre elles (aucune ne favorise 6 vs 12)
+      // Tables ≤ 5 : poids réduit (plus faciles, moins prioritaires)
+      const w = (a > 5 || b > 5) ? 3.0 : 1.0;
       list.push({ a, b, w });
     }
   }
@@ -689,7 +684,7 @@ function makeMentalTraps(ans, count) {
 }
 
 // ── Bubble physics ────────────────────────────────────────────────────────
-let bubbles = [], rafId = null;
+let bubbles = [], rafId = null, speedScale = 1;
 
 function spawnBubbles(values) {
   const arena = document.getElementById('arena');
@@ -700,7 +695,9 @@ function spawnBubbles(values) {
   const size   = Math.max(80, refDim*0.22);
   const elapsed = (performance.now()-gameStartTime)/1000;
   const tBoost  = Math.min(2.0, 1+elapsed*0.009);
-  const speed   = (2.2+level*0.3)*tBoost;
+  // Scaling par taille d'écran : référence 360px (téléphone standard)
+  speedScale = Math.min(R.width, R.height) / 360;
+  const speed   = (2.2+level*0.3)*tBoost*speedScale;
 
   const quad = [
     [0,          R.width/2-size, 0,           R.height/2-size],
@@ -735,7 +732,7 @@ function tickBubbles() {
   const R = document.getElementById('arena').getBoundingClientRect();
   const W = R.width, H = R.height, n = bubbles.length;
   const elapsed2 = (performance.now()-gameStartTime)/1000;
-  const maxSpd   = 3.5+level*0.4+elapsed2*0.025;
+  const maxSpd   = (3.5+level*0.4+elapsed2*0.025)*speedScale;
 
   for (const b of bubbles) {
     if (b.popped) continue;
