@@ -273,6 +273,12 @@
       to   { opacity: 0.28; transform: scale(1.3); }
     }
 
+    /* ── Toggle à 3 options (police réduite pour tenir sur mobile) ── */
+    .mode-toggle-3 .mode-btn {
+      padding: 9px 12px;
+      font-size: clamp(0.68rem, 2vw, 0.88rem);
+    }
+
     /* ── Portrait phone adjustments ── */
     @media (orientation: portrait) and (max-width: 600px) {
       #hud { padding: 8px 12px 6px; }
@@ -313,6 +319,11 @@
   <div class="mode-toggle">
     <button class="mode-btn active" id="btn-chrono" onclick="setMode(true)">⏱ Avec chrono</button>
     <button class="mode-btn"        id="btn-libre"  onclick="setMode(false)">∞ Sans chrono</button>
+  </div>
+  <div class="mode-toggle mode-toggle-3" style="margin-top:6px">
+    <button class="mode-btn active" id="btn-tbl-normal"  onclick="setTableMode('normal')">× Direct</button>
+    <button class="mode-btn"        id="btn-tbl-missing" onclick="setTableMode('missing')">÷ Inversé</button>
+    <button class="mode-btn"        id="btn-tbl-decomp"  onclick="setTableMode('decomp')">= Décompo</button>
   </div>
 
   <div class="tbl-section">
@@ -441,7 +452,14 @@ function show(id) { document.getElementById(id).style.display = 'flex'; }
 function hide(id) { document.getElementById(id).style.display = 'none'; }
 
 // ── Timer mode ────────────────────────────────────────────────────────────
-let noTimer = false;
+let noTimer    = false;
+let tableMode  = 'normal'; // 'normal' | 'missing' | 'decomp'
+
+function setTableMode(mode) {
+  tableMode = mode;
+  ['normal','missing','decomp'].forEach(m =>
+    document.getElementById('btn-tbl-'+m).classList.toggle('active', m === mode));
+}
 
 function setMode(withTimer) {
   noTimer = !withTimer;
@@ -647,6 +665,55 @@ function makeTablesTraps({ a, b, ans }, count) {
   return [...pool];
 }
 
+// ── Mode Inversé : trouver le facteur manquant ────────────────────────────
+function makeMissingTraps(ans, count) {
+  // Candidats : entiers 2-12 hors la bonne réponse, mélangés
+  const pool = [];
+  for (let n = 2; n <= 12; n++) { if (n !== ans) pool.push(n); }
+  pool.sort(() => Math.random() - 0.5);
+  return pool.slice(0, count - 1);
+}
+
+// ── Mode Décompositions : trouver toutes les paires d'un produit ──────────
+function genDecompositions() {
+  // Construit une map produit → paires valides depuis currentPairs
+  const map = {};
+  for (const p of currentPairs) {
+    const k = p.a * p.b;
+    if (!map[k]) map[k] = [];
+    map[k].push(p);
+  }
+  // Garde seulement les produits avec ≥ 2 paires
+  const candidates = Object.values(map).filter(pairs => pairs.length >= 2);
+  if (candidates.length === 0) return null;
+  // Sélection pondérée par score moyen des paires
+  const weighted = candidates.map(pairs => ({
+    pairs,
+    product: pairs[0].a * pairs[0].b,
+    w: pairs.reduce((s, p) => s + (pairScores[pairKey(p.a,p.b)] || 1), 0) / pairs.length,
+  }));
+  const total = weighted.reduce((s, c) => s + c.w, 0);
+  let r = Math.random() * total;
+  for (const c of weighted) { r -= c.w; if (r <= 0) return c; }
+  return weighted[weighted.length - 1];
+}
+
+function makeDecompTraps(product, validPairs, need) {
+  const validSet = new Set(
+    validPairs.flatMap(p => [`${p.a}×${p.b}`, `${p.b}×${p.a}`])
+  );
+  const traps = [], seen = new Set();
+  // Génère des paires (a,b) dont le produit ≠ notre produit
+  for (let tries = 0; traps.length < need && tries < 200; tries++) {
+    const a = Math.floor(Math.random() * 11) + 2;
+    const b = Math.floor(Math.random() * 11) + 2;
+    if (a * b === product) continue;
+    const lbl = `${a}×${b}`;
+    if (!validSet.has(lbl) && !seen.has(lbl)) { seen.add(lbl); traps.push(lbl); }
+  }
+  return traps;
+}
+
 // ── Question generation — Calcul Mental ──────────────────────────────────
 function randInt(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
 
@@ -726,18 +793,21 @@ function spawnBubbles(values) {
     const color = COLORS[i%COLORS.length];
     const el = document.createElement('div');
     el.className = 'bubble';
-    // Shrink font for 3-digit numbers
-    const fs = String(val).length >= 3 ? size*0.28 : size*0.33;
+    const label = String(val);
+    const fs = label.length >= 5 ? size*0.19
+             : label.length >= 4 ? size*0.23
+             : label.length >= 3 ? size*0.27
+             : size*0.33;
     el.style.cssText =
       `width:${size}px;height:${size}px;font-size:${fs}px;` +
       `background:radial-gradient(circle at 35% 35%,${color[0]},${color[1]});`;
-    el.textContent = val;
+    el.textContent = label;
     const x = xMin+Math.random()*Math.max(1,xMax-xMin);
     const y = yMin+Math.random()*Math.max(1,yMax-yMin);
     const a = Math.random()*Math.PI*2;
     el.style.left = x+'px'; el.style.top = y+'px';
     arena.appendChild(el);
-    el.addEventListener('pointerdown', e => { e.preventDefault(); handleTap(+val,el); });
+    el.addEventListener('pointerdown', e => { e.preventDefault(); handleTap(val, el); });
     bubbles.push({ el, x, y, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, size, popped:false });
   });
 }
@@ -834,8 +904,45 @@ function _startGame() {
 }
 
 function nextQuestion() {
-  let q, traps;
+  if (rafId) cancelAnimationFrame(rafId);
   const n = getBubbleCount();
+
+  if (gameMode === 'tables' && tableMode === 'decomp') {
+    const dq = genDecompositions();
+    if (!dq) { setTableMode('missing'); } // fallback si pas assez de paires
+    else {
+      // Affiche toutes les paires valides + pièges
+      const correctLabels = dq.pairs.map(p =>
+        Math.random() < 0.5 ? `${p.a}×${p.b}` : `${p.b}×${p.a}`
+      );
+      const wrongCount = Math.max(2, n - correctLabels.length);
+      const wrongLabels = makeDecompTraps(dq.product, dq.pairs, wrongCount);
+      const remaining   = new Set(correctLabels);
+      currentQ = { product: dq.product, pairs: dq.pairs, remainingCorrect: remaining, _decomp: true };
+      document.getElementById('question-text').textContent = `${dq.product} = ? × ?`;
+      const vals = [...correctLabels, ...wrongLabels].sort(() => Math.random() - 0.5);
+      spawnBubbles(vals);
+      rafId = requestAnimationFrame(tickBubbles);
+      return;
+    }
+  }
+
+  if (gameMode === 'tables' && tableMode === 'missing') {
+    const q = pickTablesQuestion();
+    const hideFst = Math.random() < 0.5;
+    const hidden = hideFst ? q.a : q.b;
+    const shown  = hideFst ? q.b : q.a;
+    currentQ = { ans: hidden, _q: q };
+    document.getElementById('question-text').textContent =
+      hideFst ? `? × ${shown} = ${q.ans}` : `${shown} × ? = ${q.ans}`;
+    const vals = [hidden, ...makeMissingTraps(hidden, n)].sort(() => Math.random() - 0.5);
+    spawnBubbles(vals);
+    rafId = requestAnimationFrame(tickBubbles);
+    return;
+  }
+
+  // ── Normal (tables direct ou calcul mental) ──
+  let q, traps;
   if (gameMode === 'tables') {
     q = pickTablesQuestion();
     currentQ = { ans: q.ans, _q: q };
@@ -847,8 +954,7 @@ function nextQuestion() {
     document.getElementById('question-text').textContent = `${q.label} = ?`;
     traps = makeMentalTraps(q.ans, n);
   }
-  const vals = [q.ans, ...traps].sort(()=>Math.random()-.5);
-  if (rafId) cancelAnimationFrame(rafId);
+  const vals = [q.ans, ...traps].sort(() => Math.random() - 0.5);
   spawnBubbles(vals);
   rafId = requestAnimationFrame(tickBubbles);
 }
@@ -868,10 +974,59 @@ function timerTick() {
 }
 
 function handleTap(val, el) {
-  if (!running||busy) return;
+  if (!running) return;
+
+  // ── Mode Décompositions : pas de verrou global, plusieurs bonnes réponses ──
+  if (currentQ && currentQ._decomp) {
+    if (el.classList.contains('pop-ok') || el.classList.contains('pop-bad')) return;
+    const lbl = String(val);
+    if (currentQ.remainingCorrect.has(lbl)) {
+      // Bonne paire trouvée
+      el.classList.add('pop-ok');
+      const bub = bubbles.find(b => b.el === el);
+      if (bub) bub.popped = true;
+      currentQ.remainingCorrect.delete(lbl);
+      score++; streak++;
+      // Decay du score de la paire correspondante
+      const foundPair = currentQ.pairs.find(p =>
+        `${p.a}×${p.b}` === lbl || `${p.b}×${p.a}` === lbl);
+      if (foundPair) {
+        const k = pairKey(foundPair.a, foundPair.b);
+        pairScores[k] = Math.max(SCORE_MIN, pairScores[k] * SCORE_DECAY);
+      }
+      const newLevel = Math.floor(score/5)+1;
+      if (newLevel > level) { level=newLevel; spawnFX('🎉 Niveau '+level+' !','#ffd700'); sfxLevelUp(); }
+      else sfxCorrect();
+      if (!noTimer) {
+        const bonus = Math.max(2, BASE_BONUS - Math.floor(level/3));
+        timeLeft = Math.min(MAX_TIME, timeLeft + bonus);
+        showBonusFX('+'+bonus+'s', el);
+      } else showBonusFX('+1', el);
+      showStars(el); updateHUD();
+      if (currentQ.remainingCorrect.size === 0) {
+        // Toutes les paires trouvées → question suivante
+        setTimeout(() => nextQuestion(), 420);
+      }
+    } else {
+      // Mauvaise paire
+      el.classList.add('pop-bad');
+      streak = 0;
+      if (!noTimer) timeLeft = Math.max(0, timeLeft - WRONG_COST);
+      sfxWrong(); spawnFX('💥','#ff6b6b'); updateHUD();
+      setTimeout(() => {
+        if (!running) return;
+        el.classList.remove('pop-bad');
+        void el.offsetWidth; el.style.pointerEvents = '';
+      }, 510);
+    }
+    return;
+  }
+
+  // ── Modes Normal et Inversé ──
+  if (busy) return;
   busy = true;
 
-  if (val===currentQ.ans) {
+  if (+val === currentQ.ans) {
     el.classList.add('pop-ok');
     const bub = bubbles.find(b=>b.el===el);
     if (bub) bub.popped = true;
@@ -880,11 +1035,9 @@ function handleTap(val, el) {
       const k = pairKey(currentQ._q.a, currentQ._q.b);
       pairScores[k] = Math.max(SCORE_MIN, pairScores[k] * SCORE_DECAY);
     }
-
     const newLevel = Math.floor(score/5)+1;
     if (newLevel>level) { level=newLevel; spawnFX('🎉 Niveau '+level+' !','#ffd700'); sfxLevelUp(); }
     else sfxCorrect();
-
     if (noTimer) {
       showBonusFX('+1', el);
     } else {
@@ -892,7 +1045,6 @@ function handleTap(val, el) {
       timeLeft = Math.min(MAX_TIME, timeLeft+bonus);
       showBonusFX('+'+bonus+'s', el);
     }
-
     showStars(el); updateHUD();
     setTimeout(()=>{ busy=false; nextQuestion(); }, 360);
 
@@ -902,7 +1054,8 @@ function handleTap(val, el) {
     if (!noTimer) timeLeft = Math.max(0,timeLeft-WRONG_COST);
     if (gameMode === 'tables') {
       const k = pairKey(currentQ._q.a, currentQ._q.b);
-      pairScores[k] = Math.min(pairScores[k] * SCORE_GROW, currentPairs.find(p=>pairKey(p.a,p.b)===k).w * 2);
+      const p = currentPairs.find(p => pairKey(p.a,p.b) === k);
+      if (p) pairScores[k] = Math.min(pairScores[k] * SCORE_GROW, p.w * 2);
     }
     sfxWrong(); spawnFX('💥','#ff6b6b'); updateHUD();
     setTimeout(()=>{
