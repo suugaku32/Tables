@@ -585,46 +585,42 @@ function selectNone() {
 buildTableGrid();
 
 // ── Question generation — Tables ──────────────────────────────────────────
-let currentPairs = [], currentTotalW = 0;
-const COOLDOWN_SIZE = 4;   // nb de dernières paires à pénaliser
-const COOLDOWN_FACTOR = 0.05; // poids réduit à 5% de la normale
-let recentPairs = [];      // file FIFO des paires récemment réussies
+const HARD_TABLES   = new Set([6,7,8,9,11,12]);
+const SCORE_BASE_HARD = 3.0;  // tables 6-9, 11, 12
+const SCORE_BASE_EASY = 1.0;  // tables 2-5, 10
+const SCORE_DECAY   = 0.5;    // ×0.5 après une réponse correcte
+const SCORE_GROW    = 1.4;    // ×1.4 après une erreur
+const SCORE_MIN     = 0.10;   // plancher (paire ne disparaît jamais)
 
-function markRecentPair(a, b) {
-  const key = Math.min(a,b) + 'x' + Math.max(a,b);
-  const idx = recentPairs.indexOf(key);
-  if (idx !== -1) recentPairs.splice(idx, 1);
-  recentPairs.push(key);
-  if (recentPairs.length > COOLDOWN_SIZE) recentPairs.shift();
-}
+let currentPairs = [];
+let pairScores   = {};  // key "AxB" → score flottant courant
+
+function pairKey(a, b) { return Math.min(a,b) + 'x' + Math.max(a,b); }
 
 function buildPairs() {
   const sel = selectedTables.size > 0 ? selectedTables : new Set([2,3,4,5,6,7,8,9,10,11,12]);
-  // Si 11 ET 12 sont tous les deux désactivés, on plafonne les facteurs à 10
   const maxFactor = (!sel.has(11) && !sel.has(12)) ? 10 : 12;
   const list = [];
   for (let a = 2; a <= maxFactor; a++) {
     for (let b = a; b <= maxFactor; b++) {
       if (!sel.has(a) && !sel.has(b)) continue;
-      // Tables 6-9, 11, 12 : fréquence élevée et uniforme
-      // Tables 2-5 et 10 : fréquence réduite (plus faciles)
-      const HARD = new Set([6,7,8,9,11,12]);
-      const w = (HARD.has(a) || HARD.has(b)) ? 3.0 : 1.0;
+      const w = (HARD_TABLES.has(a) || HARD_TABLES.has(b)) ? SCORE_BASE_HARD : SCORE_BASE_EASY;
       list.push({ a, b, w });
     }
   }
   return list;
 }
 
+function initPairScores() {
+  pairScores = {};
+  for (const p of currentPairs) pairScores[pairKey(p.a, p.b)] = p.w;
+}
+
 function pickTablesQuestion() {
-  const w = p => {
-    const key = Math.min(p.a,p.b) + 'x' + Math.max(p.a,p.b);
-    return recentPairs.includes(key) ? p.w * COOLDOWN_FACTOR : p.w;
-  };
-  const total = currentPairs.reduce((s,p) => s + w(p), 0);
+  const total = currentPairs.reduce((s,p) => s + pairScores[pairKey(p.a,p.b)], 0);
   let r = Math.random() * total;
   for (const p of currentPairs) {
-    r -= w(p);
+    r -= pairScores[pairKey(p.a,p.b)];
     if (r <= 0) {
       const [a,b] = Math.random()<.5 ? [p.a,p.b] : [p.b,p.a];
       return { a, b, ans: p.a*p.b };
@@ -801,8 +797,8 @@ function startTablesGame() {
     document.getElementById('tbl-warn').style.display='block'; return;
   }
   gameMode = 'tables';
-  currentPairs  = buildPairs();
-  currentTotalW = currentPairs.reduce((s,p)=>s+p.w,0);
+  currentPairs = buildPairs();
+  initPairScores();
   hide('screen-tables');
   _startGame();
 }
@@ -822,7 +818,7 @@ function replayGame() {
 function _startGame() {
   _ac();
   hide('screen-over');
-  score=0; streak=0; level=1; busy=false; recentPairs=[];
+  score=0; streak=0; level=1; busy=false;
   gameStartTime = performance.now();
   timeLeft = START_TIME;
   running  = true;
@@ -880,7 +876,10 @@ function handleTap(val, el) {
     const bub = bubbles.find(b=>b.el===el);
     if (bub) bub.popped = true;
     score++; streak++;
-    if (gameMode === 'tables') markRecentPair(currentQ._q.a, currentQ._q.b);
+    if (gameMode === 'tables') {
+      const k = pairKey(currentQ._q.a, currentQ._q.b);
+      pairScores[k] = Math.max(SCORE_MIN, pairScores[k] * SCORE_DECAY);
+    }
 
     const newLevel = Math.floor(score/5)+1;
     if (newLevel>level) { level=newLevel; spawnFX('🎉 Niveau '+level+' !','#ffd700'); sfxLevelUp(); }
@@ -901,6 +900,10 @@ function handleTap(val, el) {
     el.classList.add('pop-bad');
     streak = 0;
     if (!noTimer) timeLeft = Math.max(0,timeLeft-WRONG_COST);
+    if (gameMode === 'tables') {
+      const k = pairKey(currentQ._q.a, currentQ._q.b);
+      pairScores[k] = Math.min(pairScores[k] * SCORE_GROW, currentPairs.find(p=>pairKey(p.a,p.b)===k).w * 2);
+    }
     sfxWrong(); spawnFX('💥','#ff6b6b'); updateHUD();
     setTimeout(()=>{
       if (!running) return;
