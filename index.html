@@ -416,7 +416,7 @@
 const START_TIME = 25;
 const MAX_TIME   = 38;
 const BASE_BONUS = 5;
-const WRONG_COST = 2;
+const WRONG_COST = 5;
 const BUBBLE_MIN = 4;
 const BUBBLE_MAX = 8;
 
@@ -594,7 +594,7 @@ function sfxCollide() {
   const now = performance.now();
   if (now - _lastCollide < 120) return;
   _lastCollide = now;
-  _tone(260 + Math.random()*80, .07, .032, 'sine');
+  _tone(260 + Math.random()*80, .07, .09, 'sine');
 }
 function _playMelody() {
   if (!musicOn || !running) return;
