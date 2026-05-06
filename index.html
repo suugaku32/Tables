@@ -338,7 +338,7 @@
 
   <p class="start-desc" id="tables-desc">
     ✅ Bonne réponse → bonus de temps<br>
-    ❌ Mauvaise → −2 secondes<br>
+    ❌ Mauvaise → −5 secondes<br>
     🔥 Plus tu avances, plus c'est rapide !
   </p>
   <button class="btn-play" onclick="startTablesGame()">Jouer !</button>
@@ -484,7 +484,7 @@ function setMode(withTimer) {
   const desc = document.getElementById('tables-desc');
   if (desc) {
     desc.innerHTML = withTimer
-      ? '✅ Bonne réponse → bonus de temps<br>❌ Mauvaise → −2 secondes<br>🔥 Plus tu avances, plus c\'est rapide !'
+      ? '✅ Bonne réponse → bonus de temps<br>❌ Mauvaise → −5 secondes<br>🔥 Plus tu avances, plus c\'est rapide !'
       : '✅ Réponds à autant de questions que tu veux<br>🔥 Pas de limite de temps — à ton rythme !<br>⏹ Appuie sur <b>Fin</b> pour arrêter';
   }
 }
