@@ -336,11 +336,7 @@
     <div id="tbl-warn">Sélectionne au moins une table !</div>
   </div>
 
-  <p class="start-desc" id="tables-desc">
-    ✅ Bonne réponse → bonus de temps<br>
-    ❌ Mauvaise → −5 secondes<br>
-    🔥 Plus tu avances, plus c'est rapide !
-  </p>
+  <p class="start-desc" id="tables-desc"></p>
   <button class="btn-play" onclick="startTablesGame()">Jouer !</button>
   <button class="btn-back" onclick="showMain()">← Menu principal</button>
 </div>
@@ -481,12 +477,6 @@ function setMode(withTimer) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('active', !withTimer);
   });
-  const desc = document.getElementById('tables-desc');
-  if (desc) {
-    desc.innerHTML = withTimer
-      ? '✅ Bonne réponse → bonus de temps<br>❌ Mauvaise → −5 secondes<br>🔥 Plus tu avances, plus c\'est rapide !'
-      : '✅ Réponds à autant de questions que tu veux<br>🔥 Pas de limite de temps — à ton rythme !<br>⏹ Appuie sur <b>Fin</b> pour arrêter';
-  }
 }
 
 // ── Calcul mental mode ────────────────────────────────────────────────────
