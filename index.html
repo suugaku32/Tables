@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Tables de multiplication ×</title>
+  <title>Jeux de calcul ×</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box;
         -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -56,7 +56,7 @@
     /* ── Question ── */
     #question-zone { text-align: center; padding: 8px 20px; flex-shrink: 0; }
     #question-text {
-      font-size: clamp(2.2rem, 8vw, 4.2rem);
+      font-size: clamp(1.9rem, 7vw, 3.8rem);
       font-weight: bold; color: white;
       text-shadow: 0 0 30px rgba(255,255,255,0.35);
       letter-spacing: 2px;
@@ -97,20 +97,21 @@
     /* ── Overlays ── */
     .overlay {
       position: fixed; inset: 0;
-      background: rgba(8,16,35,0.93);
+      background: rgba(8,16,35,0.96);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      text-align: center; padding: 28px 36px; z-index: 200;
+      text-align: center; padding: 24px 28px; z-index: 200;
+      overflow-y: auto;
     }
-    .overlay h1 { color: #ffd700; font-size: clamp(2rem, 8vw, 3.5rem); margin-bottom: 16px; }
+    .overlay h1 { color: #ffd700; font-size: clamp(1.8rem, 7vw, 3rem); margin-bottom: 14px; }
     .overlay p  { color: rgba(255,255,255,0.82);
                   font-size: clamp(0.9rem, 3vw, 1.2rem); line-height: 1.7; margin-bottom: 10px; }
     .big-num  { font-size: clamp(3.5rem, 13vw, 5.5rem); font-weight: bold; color: #ffd700; margin: 6px 0; }
     .sub-info { color: #a0c4ff; font-size: clamp(0.85rem, 2.5vw, 1.05rem); margin-top: 8px; }
 
     .btn-play {
-      margin-top: 22px; padding: 18px 52px;
-      font-size: clamp(1.1rem, 4.5vw, 1.8rem); font-weight: bold;
+      margin-top: 18px; padding: 16px 48px;
+      font-size: clamp(1.05rem, 4vw, 1.7rem); font-weight: bold;
       border: none; border-radius: 50px;
       background: linear-gradient(135deg, #f093fb, #f5576c);
       color: white; cursor: pointer;
@@ -119,14 +120,52 @@
     }
     .btn-play:active { transform: scale(0.93); }
 
-    /* ── Mode toggle (start screen) ── */
+    .btn-back {
+      margin-top: 12px; padding: 10px 28px;
+      font-size: clamp(0.85rem, 2.8vw, 1rem); font-weight: bold;
+      border: 2px solid rgba(255,255,255,0.2); border-radius: 50px;
+      background: transparent; color: rgba(255,255,255,0.55); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-back:active { background: rgba(255,255,255,0.08); }
+
+    .btn-menu {
+      margin-top: 10px; padding: 12px 32px;
+      font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: bold;
+      border: 2px solid rgba(255,255,255,0.2); border-radius: 50px;
+      background: transparent; color: rgba(255,255,255,0.6); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-menu:active { background: rgba(255,255,255,0.08); }
+
+    /* ── Main menu cards ── */
+    .menu-cards {
+      display: flex; gap: 16px; margin: 20px 0;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .menu-card {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 22px 28px; border-radius: 20px; cursor: pointer;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      transition: transform 0.15s, background 0.15s;
+      min-width: 130px;
+    }
+    .menu-card:active { transform: scale(0.95); background: rgba(255,255,255,0.12); }
+    .menu-card-icon { font-size: 2.8rem; margin-bottom: 8px; }
+    .menu-card-title { color: white; font-size: clamp(1rem, 3.5vw, 1.3rem); font-weight: bold; }
+    .menu-card-desc  { color: rgba(255,255,255,0.45); font-size: clamp(0.72rem,2vw,0.85rem); margin-top: 5px; }
+    .menu-card.tables-card { border-color: rgba(79,172,254,0.4); }
+    .menu-card.mental-card { border-color: rgba(240,147,251,0.4); }
+
+    /* ── Mode toggle ── */
     .mode-toggle {
-      display: flex; gap: 0; margin: 18px 0 6px;
+      display: flex; gap: 0; margin: 14px 0 4px;
       border: 2px solid rgba(255,255,255,0.2); border-radius: 50px;
       overflow: hidden;
     }
     .mode-btn {
-      padding: 10px 22px; font-size: clamp(0.85rem, 2.8vw, 1.05rem);
+      padding: 10px 20px; font-size: clamp(0.82rem, 2.8vw, 1rem);
       font-weight: bold; border: none; cursor: pointer;
       background: transparent; color: rgba(255,255,255,0.5);
       transition: background 0.2s, color 0.2s; white-space: nowrap;
@@ -134,6 +173,67 @@
     .mode-btn.active {
       background: linear-gradient(135deg, #4facfe, #00f2fe);
       color: white;
+    }
+
+    /* ── Table selector ── */
+    .tbl-section { margin: 12px 0 4px; width: 100%; max-width: 400px; }
+    .tbl-section-label {
+      color: rgba(255,255,255,0.45); font-size: clamp(0.72rem,2vw,0.88rem);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+    }
+    .tbl-grid { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+    .tbl-btn {
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.45); font-size: 0.95rem; font-weight: bold;
+      cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .tbl-btn.on {
+      background: linear-gradient(135deg,#4facfe,#00f2fe);
+      border-color: #4facfe; color: white;
+      box-shadow: 0 0 12px rgba(79,172,254,0.45);
+    }
+    .tbl-btn:active { transform: scale(0.88); }
+    .tbl-shortcuts { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+    .tbl-shortcut {
+      padding: 5px 16px; border-radius: 20px; border: none; cursor: pointer;
+      font-size: 0.8rem; font-weight: bold;
+      background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);
+      transition: background 0.15s;
+    }
+    .tbl-shortcut:active { background: rgba(255,255,255,0.2); }
+    #tbl-warn { color: #ff6b6b; font-size: 0.82rem; margin-top: 6px; display: none; }
+
+    /* ── Mental math mode selector ── */
+    .mental-modes {
+      display: flex; flex-direction: column; gap: 8px;
+      width: 100%; max-width: 360px; margin: 14px 0 6px;
+    }
+    .mmode-btn {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 18px; border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.55); cursor: pointer;
+      text-align: left; transition: all 0.15s;
+    }
+    .mmode-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .mmode-text { display: flex; flex-direction: column; gap: 2px; }
+    .mmode-title { font-size: clamp(0.9rem,3vw,1.05rem); font-weight: bold; color: inherit; }
+    .mmode-hint  { font-size: 0.75rem; opacity: 0.6; }
+    .mmode-btn.active {
+      border-color: #f093fb;
+      background: rgba(240,147,251,0.12);
+      color: white;
+    }
+    .mmode-btn:active { transform: scale(0.98); }
+
+    /* ── Start-desc ── */
+    .start-desc {
+      font-size: clamp(0.78rem,2.4vw,0.95rem); color: rgba(255,255,255,0.45);
+      margin-top: 8px; line-height: 1.6;
     }
 
     /* ── FX ── */
@@ -173,44 +273,6 @@
       to   { opacity: 0.28; transform: scale(1.3); }
     }
 
-    /* ── Table selector ── */
-    .tbl-section { margin: 14px 0 4px; width: 100%; max-width: 420px; }
-    .tbl-section-label {
-      color: rgba(255,255,255,0.45); font-size: clamp(0.72rem,2vw,0.88rem);
-      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
-    }
-    .tbl-grid {
-      display: flex; flex-wrap: wrap; gap: 7px; justify-content: center;
-    }
-    .tbl-btn {
-      width: 44px; height: 44px; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.45); font-size: 1rem; font-weight: bold;
-      cursor: pointer; transition: all 0.15s;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .tbl-btn.on {
-      background: linear-gradient(135deg,#4facfe,#00f2fe);
-      border-color: #4facfe; color: white;
-      box-shadow: 0 0 12px rgba(79,172,254,0.45);
-    }
-    .tbl-btn:active { transform: scale(0.88); }
-    .tbl-shortcuts {
-      display: flex; gap: 8px; justify-content: center; margin-top: 8px;
-    }
-    .tbl-shortcut {
-      padding: 5px 16px; border-radius: 20px; border: none; cursor: pointer;
-      font-size: 0.8rem; font-weight: bold;
-      background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);
-      transition: background 0.15s;
-    }
-    .tbl-shortcut:active { background: rgba(255,255,255,0.2); }
-    #tbl-warn {
-      color: #ff6b6b; font-size: 0.82rem; margin-top: 6px;
-      display: none;
-    }
-
     /* ── Portrait phone adjustments ── */
     @media (orientation: portrait) and (max-width: 600px) {
       #hud { padding: 8px 12px 6px; }
@@ -218,7 +280,9 @@
       #question-zone { padding: 6px 14px; }
       #timer-wrap { padding: 3px 12px 4px; }
       #timer-bg { height: 12px; }
-      .mode-btn { padding: 9px 16px; }
+      .mode-btn { padding: 9px 14px; }
+      .menu-card { padding: 18px 22px; min-width: 120px; }
+      .menu-card-icon { font-size: 2.2rem; }
     }
   </style>
 </head>
@@ -226,13 +290,31 @@
 
 <div id="bg-stars"></div>
 
-<!-- ── Start ── -->
-<div class="overlay" id="screen-start">
-  <h1>🌟 Tables ×</h1>
+<!-- ══ MENU PRINCIPAL ══ -->
+<div class="overlay" id="screen-main">
+  <h1>🌟 Jeux de calcul</h1>
+  <div class="menu-cards">
+    <div class="menu-card tables-card" onclick="showTables()">
+      <div class="menu-card-icon">✖️</div>
+      <div class="menu-card-title">Tables</div>
+      <div class="menu-card-desc">de × 2 à × 12</div>
+    </div>
+    <div class="menu-card mental-card" onclick="showMental()">
+      <div class="menu-card-icon">🧮</div>
+      <div class="menu-card-title">Calcul mental</div>
+      <div class="menu-card-desc">+  −  ×</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MENU TABLES ══ -->
+<div class="overlay" id="screen-tables" style="display:none">
+  <h1>✖️ Tables</h1>
   <div class="mode-toggle">
     <button class="mode-btn active" id="btn-chrono" onclick="setMode(true)">⏱ Avec chrono</button>
     <button class="mode-btn"        id="btn-libre"  onclick="setMode(false)">∞ Sans chrono</button>
   </div>
+
   <div class="tbl-section">
     <div class="tbl-section-label">Tables à pratiquer</div>
     <div class="tbl-grid" id="tbl-grid"></div>
@@ -242,32 +324,72 @@
     </div>
     <div id="tbl-warn">Sélectionne au moins une table !</div>
   </div>
-  <p id="start-desc" style="margin-top:10px; font-size:clamp(0.82rem,2.5vw,1rem); color:rgba(255,255,255,0.5);">
+
+  <p class="start-desc" id="tables-desc">
     ✅ Bonne réponse → bonus de temps<br>
     ❌ Mauvaise → −2 secondes<br>
     🔥 Plus tu avances, plus c'est rapide !
   </p>
-  <button class="btn-play" onclick="startGame()">Jouer !</button>
+  <button class="btn-play" onclick="startTablesGame()">Jouer !</button>
+  <button class="btn-back" onclick="showMain()">← Menu principal</button>
 </div>
 
-<!-- ── Game Over ── -->
+<!-- ══ MENU CALCUL MENTAL ══ -->
+<div class="overlay" id="screen-mental" style="display:none">
+  <h1>🧮 Calcul Mental</h1>
+
+  <div class="mental-modes">
+    <button class="mmode-btn active" id="btn-add" onclick="setMentalMode('addition')">
+      <span class="mmode-icon">➕</span>
+      <span class="mmode-text">
+        <span class="mmode-title">Addition</span>
+        <span class="mmode-hint">ex : 47 + 83 ou 125 + 267</span>
+      </span>
+    </button>
+    <button class="mmode-btn" id="btn-sub" onclick="setMentalMode('soustraction')">
+      <span class="mmode-icon">➖</span>
+      <span class="mmode-text">
+        <span class="mmode-title">Soustraction</span>
+        <span class="mmode-hint">ex : 84 − 37 (résultat toujours positif)</span>
+      </span>
+    </button>
+    <button class="mmode-btn" id="btn-mul" onclick="setMentalMode('mult1x2')">
+      <span class="mmode-icon">✖</span>
+      <span class="mmode-text">
+        <span class="mmode-title">Multiplication</span>
+        <span class="mmode-hint">ex : 7 × 34 (1 chiffre × 2 chiffres)</span>
+      </span>
+    </button>
+  </div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-chrono2" onclick="setMode(true)">⏱ Avec chrono</button>
+    <button class="mode-btn"        id="btn-libre2"  onclick="setMode(false)">∞ Sans chrono</button>
+  </div>
+
+  <button class="btn-play" onclick="startMentalGame()">Jouer !</button>
+  <button class="btn-back" onclick="showMain()">← Menu principal</button>
+</div>
+
+<!-- ══ GAME OVER ══ -->
 <div class="overlay" id="screen-over" style="display:none">
   <h1 id="over-title">⏰ Temps écoulé !</h1>
   <div class="big-num" id="over-score">0</div>
   <p>bonne<span id="plural-s"></span> réponse<span id="plural-s2"></span></p>
   <div class="sub-info" id="over-best"></div>
-  <button class="btn-play" onclick="startGame()">Rejouer !</button>
+  <button class="btn-play" onclick="replayGame()">Rejouer !</button>
+  <button class="btn-menu" onclick="showMain()">Menu principal</button>
 </div>
 
-<!-- ── Game ── -->
+<!-- ══ JEU ══ -->
 <div id="game">
   <div id="hud">
     <div class="hud-item" id="hud-score">⭐ 0</div>
     <div class="hud-item" id="hud-level">Niveau 1</div>
     <div class="hud-item" id="hud-streak">× 0</div>
-    <button id="stop-btn"      class="hud-btn" onclick="endGame()">Fin</button>
-    <button id="mute-btn"      class="hud-btn" onclick="toggleMusic()">🔊</button>
-    <button id="fullscreen-btn" class="hud-btn" onclick="toggleFullscreen()" title="Plein écran">⛶</button>
+    <button id="stop-btn"       class="hud-btn" onclick="endGame()">Fin</button>
+    <button id="mute-btn"       class="hud-btn" onclick="toggleMusic()">🔊</button>
+    <button id="fullscreen-btn" class="hud-btn" onclick="toggleFullscreen()">⛶</button>
   </div>
   <div id="timer-wrap">
     <div id="timer-bg"><div id="timer-fill"></div></div>
@@ -279,7 +401,7 @@
 </div>
 
 <script>
-// ── Config ───────────────────────────────────────────────────────────────
+// ── Config ────────────────────────────────────────────────────────────────
 const START_TIME = 25;
 const MAX_TIME   = 38;
 const BASE_BONUS = 5;
@@ -298,32 +420,61 @@ const COLORS = [
   ['#30cfd0','#667eea'], ['#89f7fe','#66a6ff'],
 ];
 
-// ── Mode ──────────────────────────────────────────────────────────────────
+// ── Navigation ────────────────────────────────────────────────────────────
+let gameMode   = 'tables';   // 'tables' | 'addition' | 'soustraction' | 'mult1x2'
+let mentalMode = 'addition';
+
+function showMain() {
+  hide('screen-tables'); hide('screen-mental'); hide('screen-over');
+  show('screen-main');
+}
+function showTables() {
+  gameMode = 'tables';
+  hide('screen-main');
+  show('screen-tables');
+}
+function showMental() {
+  hide('screen-main');
+  show('screen-mental');
+}
+function show(id) { document.getElementById(id).style.display = 'flex'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+// ── Timer mode ────────────────────────────────────────────────────────────
 let noTimer = false;
 
 function setMode(withTimer) {
   noTimer = !withTimer;
-  document.getElementById('btn-chrono').classList.toggle('active',  withTimer);
-  document.getElementById('btn-libre').classList.toggle('active',  !withTimer);
-  const desc = document.getElementById('start-desc');
-  if (withTimer) {
-    desc.innerHTML =
-      '✅ Bonne réponse → bonus de temps<br>❌ Mauvaise → −2 secondes<br>🔥 Plus tu avances, plus c\'est rapide !';
-  } else {
-    desc.innerHTML =
-      '✅ Réponds à autant de questions que tu veux<br>🔥 Pas de limite de temps — à ton rythme !<br>⏹ Appuie sur <b>Fin</b> pour arrêter';
+  ['btn-chrono','btn-chrono2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', withTimer);
+  });
+  ['btn-libre','btn-libre2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', !withTimer);
+  });
+  const desc = document.getElementById('tables-desc');
+  if (desc) {
+    desc.innerHTML = withTimer
+      ? '✅ Bonne réponse → bonus de temps<br>❌ Mauvaise → −2 secondes<br>🔥 Plus tu avances, plus c\'est rapide !'
+      : '✅ Réponds à autant de questions que tu veux<br>🔥 Pas de limite de temps — à ton rythme !<br>⏹ Appuie sur <b>Fin</b> pour arrêter';
   }
+}
+
+// ── Calcul mental mode ────────────────────────────────────────────────────
+function setMentalMode(mode) {
+  mentalMode = mode;
+  ['btn-add','btn-sub','btn-mul'].forEach(id => document.getElementById(id).classList.remove('active'));
+  const map = { addition:'btn-add', soustraction:'btn-sub', mult1x2:'btn-mul' };
+  document.getElementById(map[mode]).classList.add('active');
 }
 
 // ── Fullscreen ────────────────────────────────────────────────────────────
 function toggleFullscreen() {
-  const btn = document.getElementById('fullscreen-btn');
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(() => {});
-    btn.textContent = '⊡';
   } else {
     document.exitFullscreen();
-    btn.textContent = '⛶';
   }
 }
 document.addEventListener('fullscreenchange', () => {
@@ -332,28 +483,19 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 // ── Audio ─────────────────────────────────────────────────────────────────
-let _actx = null;
-let musicOn = true;
-let _mStep = 0, _mTimer = null;
-let _lastCollide = 0;
+let _actx = null, musicOn = true;
+let _mStep = 0, _mTimer = null, _lastCollide = 0;
 
-const _BPM_BASE = 115;
-const _BPM_MAX  = 175;
-
+const _BPM_BASE = 115, _BPM_MAX = 175;
 function _currentBeat() {
-  const bpm = Math.min(_BPM_MAX, _BPM_BASE + (level - 1) * 6);
-  return 60 / bpm;
+  return 60 / Math.min(_BPM_MAX, _BPM_BASE + (level - 1) * 6);
 }
 
 const _MEL = [
-  [659.25,.5],[783.99,.5],[880,1],
-  [783.99,.5],[659.25,.5],[523.25,1],
-  [587.33,.5],[659.25,.5],[783.99,1],
-  [659.25,.5],[587.33,.5],[523.25,1],
-  [440,.5],[523.25,.5],[659.25,1],
-  [783.99,.5],[659.25,.5],[523.25,1],
-  [587.33,.5],[440,.5],[392,1],
-  [523.25, 4],
+  [659.25,.5],[783.99,.5],[880,1],[783.99,.5],[659.25,.5],[523.25,1],
+  [587.33,.5],[659.25,.5],[783.99,1],[659.25,.5],[587.33,.5],[523.25,1],
+  [440,.5],[523.25,.5],[659.25,1],[783.99,.5],[659.25,.5],[523.25,1],
+  [587.33,.5],[440,.5],[392,1],[523.25,4],
 ];
 
 function _ac() {
@@ -363,79 +505,52 @@ function _ac() {
     return _actx;
   } catch(e) { return null; }
 }
-
 function _tone(freq, dur, vol, type, when) {
-  const ctx = _ac();
-  if (!ctx) return;
-  const t   = when ?? ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const g   = ctx.createGain();
+  const ctx = _ac(); if (!ctx) return;
+  const t = when ?? ctx.currentTime;
+  const osc = ctx.createOscillator(), g = ctx.createGain();
   osc.connect(g); g.connect(ctx.destination);
-  osc.type = type || 'sine';
-  osc.frequency.value = freq;
+  osc.type = type || 'sine'; osc.frequency.value = freq;
   g.gain.setValueAtTime(vol, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.01, dur * 0.85));
   osc.start(t); osc.stop(t + dur);
 }
-
 function sfxCorrect() {
   const t = _ac()?.currentTime ?? 0;
-  [[523.25,0],[659.25,.07],[783.99,.14],[1046.5,.21]].forEach(([f,d]) =>
-    _tone(f, 0.25, 0.18, 'sine', t + d));
+  [[523.25,0],[659.25,.07],[783.99,.14],[1046.5,.21]].forEach(([f,d]) => _tone(f,.25,.18,'sine',t+d));
 }
-
 function sfxWrong() {
-  const ctx = _ac();
-  if (!ctx) return;
-  const t   = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const g   = ctx.createGain();
-  osc.connect(g); g.connect(ctx.destination);
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(220, t);
-  osc.frequency.exponentialRampToValueAtTime(80, t + 0.4);
-  g.gain.setValueAtTime(0.15, t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
-  osc.start(t); osc.stop(t + 0.45);
+  const ctx = _ac(); if (!ctx) return;
+  const t = ctx.currentTime, osc = ctx.createOscillator(), g = ctx.createGain();
+  osc.connect(g); g.connect(ctx.destination); osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(220,t); osc.frequency.exponentialRampToValueAtTime(80,t+.4);
+  g.gain.setValueAtTime(.15,t); g.gain.exponentialRampToValueAtTime(.0001,t+.42);
+  osc.start(t); osc.stop(t+.45);
 }
-
 function sfxLevelUp() {
   const t = _ac()?.currentTime ?? 0;
-  [[523.25,0],[659.25,.1],[783.99,.2],[1046.5,.3],[1318.5,.4]].forEach(([f,d]) =>
-    _tone(f, 0.3, 0.18, 'triangle', t + d));
+  [[523.25,0],[659.25,.1],[783.99,.2],[1046.5,.3],[1318.5,.4]].forEach(([f,d]) => _tone(f,.3,.18,'triangle',t+d));
 }
-
 function sfxCollide() {
   const now = performance.now();
   if (now - _lastCollide < 120) return;
   _lastCollide = now;
-  _tone(260 + Math.random() * 80, 0.07, 0.032, 'sine');
+  _tone(260 + Math.random()*80, .07, .032, 'sine');
 }
-
 function _playMelody() {
   if (!musicOn || !running) return;
   const [freq, beats] = _MEL[_mStep % _MEL.length];
   const beat = _currentBeat();
-  _tone(freq, beats * beat * 0.78, 0.045, 'triangle');
+  _tone(freq, beats*beat*.78, .045, 'triangle');
   _mStep++;
-  _mTimer = setTimeout(_playMelody, beats * beat * 1000);
+  _mTimer = setTimeout(_playMelody, beats*beat*1000);
 }
-
-function startMusic() {
-  stopMusic();
-  _mStep = 0;
-  _mTimer = setTimeout(_playMelody, 350);
-}
-
-function stopMusic() {
-  if (_mTimer) { clearTimeout(_mTimer); _mTimer = null; }
-}
-
+function startMusic() { stopMusic(); _mStep = 0; _mTimer = setTimeout(_playMelody, 350); }
+function stopMusic()  { if (_mTimer) { clearTimeout(_mTimer); _mTimer = null; } }
 function toggleMusic() {
   musicOn = !musicOn;
   document.getElementById('mute-btn').textContent = musicOn ? '🔊' : '🔇';
-  if (musicOn && running) { _mStep = 0; _playMelody(); }
-  else stopMusic();
+  if (musicOn && running) { _mStep = 0; _playMelody(); } else stopMusic();
 }
 
 // ── Table selection ───────────────────────────────────────────────────────
@@ -447,42 +562,30 @@ function buildTableGrid() {
   for (let n = 2; n <= 12; n++) {
     const btn = document.createElement('button');
     btn.className = 'tbl-btn' + (selectedTables.has(n) ? ' on' : '');
-    btn.textContent = n;
-    btn.dataset.n = n;
+    btn.textContent = n; btn.dataset.n = n;
     btn.onclick = () => toggleTable(n, btn);
     grid.appendChild(btn);
   }
 }
-
 function toggleTable(n, btn) {
-  if (selectedTables.has(n)) {
-    selectedTables.delete(n);
-    btn.classList.remove('on');
-  } else {
-    selectedTables.add(n);
-    btn.classList.add('on');
-  }
-  document.getElementById('tbl-warn').style.display =
-    selectedTables.size === 0 ? 'block' : 'none';
+  if (selectedTables.has(n)) { selectedTables.delete(n); btn.classList.remove('on'); }
+  else                        { selectedTables.add(n);    btn.classList.add('on');    }
+  document.getElementById('tbl-warn').style.display = selectedTables.size === 0 ? 'block' : 'none';
 }
-
-function selectAll() {
-  for (let n = 2; n <= 12; n++) selectedTables.add(n);
+function selectAll()  {
+  for (let n=2;n<=12;n++) selectedTables.add(n);
   document.querySelectorAll('.tbl-btn').forEach(b => b.classList.add('on'));
   document.getElementById('tbl-warn').style.display = 'none';
 }
-
 function selectNone() {
   selectedTables.clear();
   document.querySelectorAll('.tbl-btn').forEach(b => b.classList.remove('on'));
   document.getElementById('tbl-warn').style.display = 'block';
 }
-
 buildTableGrid();
 
-// ── Question generation ───────────────────────────────────────────────────
-let currentPairs = [];
-let currentTotalW = 0;
+// ── Question generation — Tables ──────────────────────────────────────────
+let currentPairs = [], currentTotalW = 0;
 
 function buildPairs() {
   const sel = selectedTables.size > 0 ? selectedTables : new Set([2,3,4,5,6,7,8,9,10,11,12]);
@@ -490,193 +593,226 @@ function buildPairs() {
   for (let a = 2; a <= 12; a++) {
     for (let b = a; b <= 12; b++) {
       if (!sel.has(a) && !sel.has(b)) continue;
-      let w = (a - 1) * (b - 1);
-      if      (a >= 10 && b >= 10) w *= 5.5;
-      else if (a >= 9  && b >= 9 ) w *= 5;
-      else if (a >= 7  && b >= 7 ) w *= 4.5;
-      else if (a >= 6  && b >= 6 ) w *= 3;
-      else if (a >= 6  || b >= 6 ) w *= 2;
-      else if (a >= 5  || b >= 5 ) w *= 1.3;
-      if (a <= 3 && b <= 4)        w *= 0.3;
+      let w = (a-1)*(b-1);
+      if      (a>=10 && b>=10) w *= 5.5;
+      else if (a>=9  && b>=9 ) w *= 5;
+      else if (a>=7  && b>=7 ) w *= 4.5;
+      else if (a>=6  && b>=6 ) w *= 3;
+      else if (a>=6  || b>=6 ) w *= 2;
+      else if (a>=5  || b>=5 ) w *= 1.3;
+      if (a<=3 && b<=4)        w *= 0.3;
       list.push({ a, b, w });
     }
   }
   return list;
 }
 
-function pickQuestion() {
+function pickTablesQuestion() {
   let r = Math.random() * currentTotalW;
   for (const p of currentPairs) {
     r -= p.w;
     if (r <= 0) {
-      const [a, b] = Math.random() < 0.5 ? [p.a, p.b] : [p.b, p.a];
-      return { a, b, ans: p.a * p.b };
+      const [a,b] = Math.random()<.5 ? [p.a,p.b] : [p.b,p.a];
+      return { a, b, ans: p.a*p.b };
     }
   }
-  const p = currentPairs[currentPairs.length - 1];
-  return { a: p.a, b: p.b, ans: p.a * p.b };
+  const p = currentPairs[currentPairs.length-1];
+  return { a:p.a, b:p.b, ans:p.a*p.b };
 }
 
-function makeTraps({ a, b, ans }, count) {
-  const need = count - 1;
-  const pool = new Set();
+function makeTablesTraps({ a, b, ans }, count) {
+  const need = count - 1, pool = new Set();
   const cands = [
-    ans+1, ans-1, ans+2, ans-2,
-    a*(b+1), a*(b-1), (a+1)*b, (a-1)*b,
-    a*(b+2), (a+2)*b, a*(b+3), (a+3)*b,
-    ans+a, ans-a, ans+b, ans-b,
-    (a+1)*(b+1), (a-1)*(b+1), (a+2)*(b+1), (a+1)*(b+2),
-  ].filter(v => v > 0 && v !== ans);
-  for (const c of cands.sort(() => Math.random() - 0.5)) {
+    ans+1,ans-1,ans+2,ans-2,
+    a*(b+1),a*(b-1),(a+1)*b,(a-1)*b,
+    a*(b+2),(a+2)*b,a*(b+3),(a+3)*b,
+    ans+a,ans-a,ans+b,ans-b,
+    (a+1)*(b+1),(a-1)*(b+1),(a+2)*(b+1),(a+1)*(b+2),
+  ].filter(v => v>0 && v!==ans);
+  for (const c of cands.sort(()=>Math.random()-.5)) {
     if (!pool.has(c)) pool.add(c);
-    if (pool.size === need) break;
+    if (pool.size===need) break;
   }
-  for (let i = 1; pool.size < need; i++) {
-    const v = ans + 10 + i;
-    if (!pool.has(v)) pool.add(v);
-  }
+  for (let i=1; pool.size<need; i++) { const v=ans+10+i; if (!pool.has(v)) pool.add(v); }
   return [...pool];
 }
 
-// ── Bubble physics ─────────────────────────────────────────────────────────
-let bubbles = [];
-let rafId   = null;
+// ── Question generation — Calcul Mental ──────────────────────────────────
+function randInt(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
 
-function spawnBubbles(values, level) {
+function genAddition() {
+  if (level <= 3) {
+    const a = randInt(15, 89), b = randInt(11, 89);
+    return { label: `${a} + ${b}`, ans: a+b };
+  } else {
+    const a = randInt(100, 499), b = randInt(50, 299);
+    return { label: `${a} + ${b}`, ans: a+b };
+  }
+}
+
+function genSoustraction() {
+  // Easier: smaller numbers, result always clearly positive
+  const bMax = level<=2 ? 18 : level<=4 ? 32 : 55;
+  const b = randInt(5, bMax);
+  const gap = level<=2 ? 30 : level<=4 ? 60 : 90;
+  const a = randInt(b+5, b+gap);
+  return { label: `${a} − ${b}`, ans: a-b };
+}
+
+function genMult1x2() {
+  const a = randInt(2, 9);
+  const bMax = level<=2 ? 29 : level<=4 ? 59 : 99;
+  const b = randInt(11, bMax);
+  return { label: `${a} × ${b}`, ans: a*b };
+}
+
+function genMentalQuestion() {
+  if (mentalMode === 'addition')     return genAddition();
+  if (mentalMode === 'soustraction') return genSoustraction();
+  return genMult1x2();
+}
+
+function makeMentalTraps(ans, count) {
+  const need = count - 1, pool = new Set();
+  const step = ans<30 ? 1 : ans<100 ? 5 : ans<500 ? 10 : 25;
+  const cands = [];
+  for (let d=step; d<=step*14; d+=step) {
+    cands.push(ans+d);
+    if (ans-d > 0) cands.push(ans-d);
+  }
+  cands.sort(()=>Math.random()-.5);
+  for (const c of cands) {
+    if (c!==ans && !pool.has(c)) pool.add(c);
+    if (pool.size>=need) break;
+  }
+  return [...pool].slice(0,need);
+}
+
+// ── Bubble physics ────────────────────────────────────────────────────────
+let bubbles = [], rafId = null;
+
+function spawnBubbles(values) {
   const arena = document.getElementById('arena');
-  arena.innerHTML = '';
-  bubbles = [];
-
-  const R       = arena.getBoundingClientRect();
-  // In portrait, give bubbles a bit more room by weighting width more
+  arena.innerHTML = ''; bubbles = [];
+  const R = arena.getBoundingClientRect();
   const isPortrait = R.height > R.width;
-  const refDim  = isPortrait
-    ? R.width * 0.9
-    : Math.min(R.width, R.height);
-  const size    = Math.max(85, refDim * 0.22);
-  const elapsed = (performance.now() - gameStartTime) / 1000;
-  const tBoost  = Math.min(2.0, 1 + elapsed * 0.009);
-  const speed   = (2.2 + level * 0.3) * tBoost;
+  const refDim = isPortrait ? R.width*0.9 : Math.min(R.width,R.height);
+  const size   = Math.max(80, refDim*0.22);
+  const elapsed = (performance.now()-gameStartTime)/1000;
+  const tBoost  = Math.min(2.0, 1+elapsed*0.009);
+  const speed   = (2.2+level*0.3)*tBoost;
 
   const quad = [
-    [0,           R.width/2-size, 0,            R.height/2-size],
-    [R.width/2,   R.width-size,   0,            R.height/2-size],
-    [0,           R.width/2-size, R.height/2,   R.height-size  ],
-    [R.width/2,   R.width-size,   R.height/2,   R.height-size  ],
+    [0,          R.width/2-size, 0,           R.height/2-size],
+    [R.width/2,  R.width-size,   0,           R.height/2-size],
+    [0,          R.width/2-size, R.height/2,  R.height-size  ],
+    [R.width/2,  R.width-size,   R.height/2,  R.height-size  ],
   ];
 
   values.forEach((val, i) => {
-    const [xMin, xMax, yMin, yMax] = quad[i % 4];
-    const color = COLORS[i % COLORS.length];
+    const [xMin,xMax,yMin,yMax] = quad[i%4];
+    const color = COLORS[i%COLORS.length];
     const el = document.createElement('div');
     el.className = 'bubble';
+    // Shrink font for 3-digit numbers
+    const fs = String(val).length >= 3 ? size*0.28 : size*0.33;
     el.style.cssText =
-      `width:${size}px; height:${size}px; font-size:${size*0.33}px;` +
+      `width:${size}px;height:${size}px;font-size:${fs}px;` +
       `background:radial-gradient(circle at 35% 35%,${color[0]},${color[1]});`;
     el.textContent = val;
-
-    const x = xMin + Math.random() * Math.max(1, xMax - xMin);
-    const y = yMin + Math.random() * Math.max(1, yMax - yMin);
-    const a = Math.random() * Math.PI * 2;
-    el.style.left = x + 'px';
-    el.style.top  = y + 'px';
+    const x = xMin+Math.random()*Math.max(1,xMax-xMin);
+    const y = yMin+Math.random()*Math.max(1,yMax-yMin);
+    const a = Math.random()*Math.PI*2;
+    el.style.left = x+'px'; el.style.top = y+'px';
     arena.appendChild(el);
-
-    el.addEventListener('pointerdown', e => { e.preventDefault(); handleTap(+val, el); });
-
-    bubbles.push({ el, x, y, vx: Math.cos(a)*speed, vy: Math.sin(a)*speed, size, popped: false });
+    el.addEventListener('pointerdown', e => { e.preventDefault(); handleTap(+val,el); });
+    bubbles.push({ el, x, y, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, size, popped:false });
   });
 }
 
 function tickBubbles() {
   if (!running) return;
-  const R  = document.getElementById('arena').getBoundingClientRect();
-  const W  = R.width, H = R.height;
-  const n  = bubbles.length;
+  const R = document.getElementById('arena').getBoundingClientRect();
+  const W = R.width, H = R.height, n = bubbles.length;
+  const elapsed2 = (performance.now()-gameStartTime)/1000;
+  const maxSpd   = 3.5+level*0.4+elapsed2*0.025;
 
-  const elapsed2 = (performance.now() - gameStartTime) / 1000;
-  const maxSpd   = 3.5 + level * 0.4 + elapsed2 * 0.025;
   for (const b of bubbles) {
     if (b.popped) continue;
-    b.vx *= 1.00015;  b.vy *= 1.00015;
-    const spd = Math.hypot(b.vx, b.vy);
-    if (spd > maxSpd) { b.vx = b.vx/spd * maxSpd; b.vy = b.vy/spd * maxSpd; }
-
-    b.x += b.vx;  b.y += b.vy;
-    if (b.x < 0)          { b.x = 0;          b.vx =  Math.abs(b.vx); }
-    if (b.x > W - b.size) { b.x = W - b.size; b.vx = -Math.abs(b.vx); }
-    if (b.y < 0)          { b.y = 0;          b.vy =  Math.abs(b.vy); }
-    if (b.y > H - b.size) { b.y = H - b.size; b.vy = -Math.abs(b.vy); }
-    b.el.style.left = b.x + 'px';
-    b.el.style.top  = b.y + 'px';
+    b.vx *= 1.00015; b.vy *= 1.00015;
+    const spd = Math.hypot(b.vx,b.vy);
+    if (spd>maxSpd) { b.vx=b.vx/spd*maxSpd; b.vy=b.vy/spd*maxSpd; }
+    b.x+=b.vx; b.y+=b.vy;
+    if (b.x<0)          { b.x=0;          b.vx= Math.abs(b.vx); }
+    if (b.x>W-b.size)   { b.x=W-b.size;   b.vx=-Math.abs(b.vx); }
+    if (b.y<0)          { b.y=0;          b.vy= Math.abs(b.vy); }
+    if (b.y>H-b.size)   { b.y=H-b.size;   b.vy=-Math.abs(b.vy); }
+    b.el.style.left=b.x+'px'; b.el.style.top=b.y+'px';
   }
 
-  for (let i = 0; i < n - 1; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const a = bubbles[i], b = bubbles[j];
-      if (a.popped || b.popped) continue;
-
-      const minDist = a.size;
-      const dx = (b.x + b.size/2) - (a.x + a.size/2);
-      const dy = (b.y + b.size/2) - (a.y + a.size/2);
-      const d2 = dx*dx + dy*dy;
-      if (d2 >= minDist * minDist || d2 === 0) continue;
-
-      const dist = Math.sqrt(d2);
-      const nx = dx/dist, ny = dy/dist;
-
-      const overlap = (minDist - dist) * 0.5;
-      a.x -= nx * overlap;  a.y -= ny * overlap;
-      b.x += nx * overlap;  b.y += ny * overlap;
-      a.x = Math.max(0, Math.min(W - a.size, a.x));
-      a.y = Math.max(0, Math.min(H - a.size, a.y));
-      b.x = Math.max(0, Math.min(W - b.size, b.x));
-      b.y = Math.max(0, Math.min(H - b.size, b.y));
-
-      const dvn = (b.vx - a.vx)*nx + (b.vy - a.vy)*ny;
-      if (dvn < 0) {
-        a.vx += dvn * nx;  a.vy += dvn * ny;
-        b.vx -= dvn * nx;  b.vy -= dvn * ny;
-        sfxCollide();
-      }
+  for (let i=0;i<n-1;i++) {
+    for (let j=i+1;j<n;j++) {
+      const a=bubbles[i], b=bubbles[j];
+      if (a.popped||b.popped) continue;
+      const dx=(b.x+b.size/2)-(a.x+a.size/2), dy=(b.y+b.size/2)-(a.y+a.size/2);
+      const d2=dx*dx+dy*dy, min=a.size;
+      if (d2>=min*min||d2===0) continue;
+      const dist=Math.sqrt(d2), nx=dx/dist, ny=dy/dist;
+      const ov=(min-dist)*.5;
+      a.x-=nx*ov; a.y-=ny*ov; b.x+=nx*ov; b.y+=ny*ov;
+      a.x=Math.max(0,Math.min(W-a.size,a.x)); a.y=Math.max(0,Math.min(H-a.size,a.y));
+      b.x=Math.max(0,Math.min(W-b.size,b.x)); b.y=Math.max(0,Math.min(H-b.size,b.y));
+      const dvn=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
+      if (dvn<0) { a.vx+=dvn*nx; a.vy+=dvn*ny; b.vx-=dvn*nx; b.vy-=dvn*ny; sfxCollide(); }
     }
   }
-
   rafId = requestAnimationFrame(tickBubbles);
 }
 
-// ── Game state ─────────────────────────────────────────────────────────────
-let running  = false;
-let score    = 0;
-let streak   = 0;
-let level    = 1;
-let timeLeft = START_TIME;
-let best     = +localStorage.getItem('tables_best') || 0;
-let bestFree = +localStorage.getItem('tables_best_free') || 0;
-let tickInt  = null;
-let currentQ     = null;
-let busy         = false;
-let gameStartTime = 0;
+// ── Game state ────────────────────────────────────────────────────────────
+let running=false, score=0, streak=0, level=1, timeLeft=START_TIME;
+let tickInt=null, currentQ=null, busy=false, gameStartTime=0;
 
-function startGame() {
-  if (selectedTables.size === 0) {
-    document.getElementById('tbl-warn').style.display = 'block';
-    return;
+function getBestKey() {
+  const k = gameMode==='tables' ? 'tables' :
+            gameMode==='addition' ? 'mental_add' :
+            gameMode==='soustraction' ? 'mental_sub' : 'mental_mul';
+  return noTimer ? k+'_free' : k+'_timed';
+}
+
+function startTablesGame() {
+  if (selectedTables.size===0) {
+    document.getElementById('tbl-warn').style.display='block'; return;
   }
+  gameMode = 'tables';
   currentPairs  = buildPairs();
-  currentTotalW = currentPairs.reduce((s, p) => s + p.w, 0);
+  currentTotalW = currentPairs.reduce((s,p)=>s+p.w,0);
+  hide('screen-tables');
+  _startGame();
+}
+
+function startMentalGame() {
+  gameMode = mentalMode;
+  hide('screen-mental');
+  _startGame();
+}
+
+function replayGame() {
+  hide('screen-over');
+  if (gameMode==='tables') startTablesGame();
+  else startMentalGame();
+}
+
+function _startGame() {
   _ac();
-  document.getElementById('screen-start').style.display = 'none';
-  document.getElementById('screen-over').style.display  = 'none';
-  score = 0; streak = 0; level = 1; busy = false;
+  hide('screen-over');
+  score=0; streak=0; level=1; busy=false;
   gameStartTime = performance.now();
   timeLeft = START_TIME;
   running  = true;
 
-  const timerWrap = document.getElementById('timer-wrap');
-  const stopBtn   = document.getElementById('stop-btn');
-  timerWrap.style.display = noTimer ? 'none' : 'block';
-  stopBtn.style.display   = noTimer ? 'flex'  : 'none';
+  document.getElementById('timer-wrap').style.display = noTimer ? 'none'  : 'block';
+  document.getElementById('stop-btn').style.display   = noTimer ? 'flex'  : 'none';
 
   updateHUD();
   if (tickInt) clearInterval(tickInt);
@@ -686,162 +822,141 @@ function startGame() {
 }
 
 function nextQuestion() {
-  currentQ = pickQuestion();
-  document.getElementById('question-text').textContent =
-    `${currentQ.a} × ${currentQ.b} = ?`;
-  const n    = getBubbleCount();
-  const vals = [currentQ.ans, ...makeTraps(currentQ, n)].sort(() => Math.random() - 0.5);
+  let q, traps;
+  const n = getBubbleCount();
+  if (gameMode === 'tables') {
+    q = pickTablesQuestion();
+    currentQ = { ans: q.ans, _q: q };
+    document.getElementById('question-text').textContent = `${q.a} × ${q.b} = ?`;
+    traps = makeTablesTraps(q, n);
+  } else {
+    q = genMentalQuestion();
+    currentQ = { ans: q.ans };
+    document.getElementById('question-text').textContent = `${q.label} = ?`;
+    traps = makeMentalTraps(q.ans, n);
+  }
+  const vals = [q.ans, ...traps].sort(()=>Math.random()-.5);
   if (rafId) cancelAnimationFrame(rafId);
-  spawnBubbles(vals, level);
+  spawnBubbles(vals);
   rafId = requestAnimationFrame(tickBubbles);
 }
 
 function timerTick() {
   if (!running) return;
-  const drain = 1 + (level - 1) * 0.04;
-  timeLeft -= 0.05 * drain;
-  const pct  = Math.max(0, timeLeft / START_TIME * 100);
+  const drain = 1+(level-1)*0.04;
+  timeLeft -= 0.05*drain;
+  const pct  = Math.max(0,timeLeft/START_TIME*100);
   const fill = document.getElementById('timer-fill');
-  fill.style.width = pct + '%';
+  fill.style.width = pct+'%';
   fill.style.background =
-    pct > 55 ? 'linear-gradient(90deg,#4facfe,#00f2fe)' :
-    pct > 25 ? 'linear-gradient(90deg,#f7971e,#ffd200)' :
-               'linear-gradient(90deg,#ff416c,#ff4b2b)';
-  if (timeLeft <= 0) endGame();
+    pct>55 ? 'linear-gradient(90deg,#4facfe,#00f2fe)' :
+    pct>25 ? 'linear-gradient(90deg,#f7971e,#ffd200)' :
+             'linear-gradient(90deg,#ff416c,#ff4b2b)';
+  if (timeLeft<=0) endGame();
 }
 
 function handleTap(val, el) {
-  if (!running || busy) return;
+  if (!running||busy) return;
   busy = true;
 
-  if (val === currentQ.ans) {
+  if (val===currentQ.ans) {
     el.classList.add('pop-ok');
-    const bub = bubbles.find(b => b.el === el);
+    const bub = bubbles.find(b=>b.el===el);
     if (bub) bub.popped = true;
+    score++; streak++;
 
-    score++;  streak++;
+    const newLevel = Math.floor(score/5)+1;
+    if (newLevel>level) { level=newLevel; spawnFX('🎉 Niveau '+level+' !','#ffd700'); sfxLevelUp(); }
+    else sfxCorrect();
 
     if (noTimer) {
-      // Mode sans chrono : pas de bonus temps, juste le score
-      const newLevel = Math.floor(score / 5) + 1;
-      if (newLevel > level) { level = newLevel; spawnFX('🎉 Niveau ' + level + ' !', '#ffd700'); sfxLevelUp(); }
-      else sfxCorrect();
       showBonusFX('+1', el);
     } else {
-      const bonus = Math.max(2, BASE_BONUS - Math.floor(level / 3));
-      timeLeft = Math.min(MAX_TIME, timeLeft + bonus);
-      const newLevel = Math.floor(score / 5) + 1;
-      if (newLevel > level) { level = newLevel; spawnFX('🎉 Niveau ' + level + ' !', '#ffd700'); sfxLevelUp(); }
-      else sfxCorrect();
-      showBonusFX('+' + bonus + 's', el);
+      const bonus = Math.max(2, BASE_BONUS-Math.floor(level/3));
+      timeLeft = Math.min(MAX_TIME, timeLeft+bonus);
+      showBonusFX('+'+bonus+'s', el);
     }
 
-    showStars(el);
-    updateHUD();
-    setTimeout(() => { busy = false; nextQuestion(); }, 360);
+    showStars(el); updateHUD();
+    setTimeout(()=>{ busy=false; nextQuestion(); }, 360);
 
   } else {
     el.classList.add('pop-bad');
     streak = 0;
-    if (!noTimer) timeLeft = Math.max(0, timeLeft - WRONG_COST);
-    sfxWrong();
-    spawnFX('💥', '#ff6b6b');
-    updateHUD();
-    setTimeout(() => {
+    if (!noTimer) timeLeft = Math.max(0,timeLeft-WRONG_COST);
+    sfxWrong(); spawnFX('💥','#ff6b6b'); updateHUD();
+    setTimeout(()=>{
       if (!running) return;
-      busy = false;
-      el.classList.remove('pop-bad');
-      void el.offsetWidth;
-      el.style.pointerEvents = '';
+      busy=false; el.classList.remove('pop-bad');
+      void el.offsetWidth; el.style.pointerEvents='';
     }, 510);
   }
 }
 
 function endGame() {
-  running = false;
-  clearInterval(tickInt);
+  running=false; clearInterval(tickInt);
   if (rafId) cancelAnimationFrame(rafId);
   stopMusic();
 
-  if (noTimer) {
-    if (score > bestFree) { bestFree = score; localStorage.setItem('tables_best_free', bestFree); }
-    document.getElementById('over-title').textContent = '🏁 Partie terminée !';
-    document.getElementById('over-best').textContent  =
-      score > 0 && score >= bestFree ? '🏆 Nouveau record !' : `Record : ${bestFree}`;
-  } else {
-    if (score > best) { best = score; localStorage.setItem('tables_best', best); }
-    document.getElementById('over-title').textContent = '⏰ Temps écoulé !';
-    document.getElementById('over-best').textContent  =
-      score > 0 && score >= best ? '🏆 Nouveau record !' : `Record : ${best}`;
-  }
+  const key  = getBestKey();
+  const prev = +localStorage.getItem(key)||0;
+  if (score>prev) localStorage.setItem(key,score);
+  const best = Math.max(score,prev);
 
+  document.getElementById('over-title').textContent =
+    noTimer ? '🏁 Partie terminée !' : '⏰ Temps écoulé !';
   document.getElementById('over-score').textContent = score;
-  document.getElementById('plural-s').textContent   = score > 1 ? 's' : '';
-  document.getElementById('plural-s2').textContent  = score > 1 ? 's' : '';
-  document.getElementById('screen-over').style.display = 'flex';
+  document.getElementById('plural-s').textContent   = score>1?'s':'';
+  document.getElementById('plural-s2').textContent  = score>1?'s':'';
+  document.getElementById('over-best').textContent  =
+    score>0 && score>=best ? '🏆 Nouveau record !' : `Record : ${best}`;
+  show('screen-over');
 }
 
 function updateHUD() {
-  document.getElementById('hud-score').textContent  = '⭐ ' + score;
-  document.getElementById('hud-level').textContent  = 'Niveau ' + level;
-  document.getElementById('hud-streak').textContent = streak >= 3 ? '🔥 ' + streak : '× ' + streak;
+  document.getElementById('hud-score').textContent  = '⭐ '+score;
+  document.getElementById('hud-level').textContent  = 'Niveau '+level;
+  document.getElementById('hud-streak').textContent = streak>=3 ? '🔥 '+streak : '× '+streak;
 }
 
-// ── Visual effects ─────────────────────────────────────────────────────────
-function spawnFX(text, color) {
-  const el = document.createElement('div');
-  el.className = 'fx-center'; el.style.color = color; el.textContent = text;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 760);
+// ── Visual effects ────────────────────────────────────────────────────────
+function spawnFX(text,color) {
+  const el=document.createElement('div');
+  el.className='fx-center'; el.style.color=color; el.textContent=text;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),760);
 }
-
-function showBonusFX(text, bubbleEl) {
-  const r  = bubbleEl.getBoundingClientRect();
-  const el = document.createElement('div');
-  el.className = 'fx-bonus';
-  el.style.left = (r.left + r.width  / 2) + 'px';
-  el.style.top  = (r.top  + r.height / 2) + 'px';
-  el.textContent = text;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 920);
+function showBonusFX(text,bubbleEl) {
+  const r=bubbleEl.getBoundingClientRect();
+  const el=document.createElement('div');
+  el.className='fx-bonus';
+  el.style.left=(r.left+r.width/2)+'px'; el.style.top=(r.top+r.height/2)+'px';
+  el.textContent=text; document.body.appendChild(el); setTimeout(()=>el.remove(),920);
 }
-
 function showStars(bubbleEl) {
-  const r  = bubbleEl.getBoundingClientRect();
-  const cx = r.left + r.width  / 2;
-  const cy = r.top  + r.height / 2;
-  ['⭐','✨','💫','🌟','⭐','✨'].forEach((s, i) => {
-    const el = document.createElement('div');
-    el.className = 'fx-star'; el.textContent = s;
-    el.style.left = cx + 'px'; el.style.top = cy + 'px';
-    const a = (i / 6) * Math.PI * 2;
-    el.style.setProperty('--dx', (Math.cos(a) * 95) + 'px');
-    el.style.setProperty('--dy', (Math.sin(a) * 95) + 'px');
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 920);
+  const r=bubbleEl.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  ['⭐','✨','💫','🌟','⭐','✨'].forEach((s,i)=>{
+    const el=document.createElement('div');
+    el.className='fx-star'; el.textContent=s;
+    el.style.left=cx+'px'; el.style.top=cy+'px';
+    const a=(i/6)*Math.PI*2;
+    el.style.setProperty('--dx',(Math.cos(a)*95)+'px');
+    el.style.setProperty('--dy',(Math.sin(a)*95)+'px');
+    document.body.appendChild(el); setTimeout(()=>el.remove(),920);
   });
 }
 
-// ── Hauteur réelle sur mobile (corrige le débordement sous la barre du navigateur) ──
-function fixHeight() {
-  document.getElementById('game').style.height = window.innerHeight + 'px';
-}
-if (!CSS.supports('height', '100dvh')) {
-  fixHeight();
-  window.addEventListener('resize', fixHeight);
-}
+// ── Mobile height fix ─────────────────────────────────────────────────────
+function fixHeight() { document.getElementById('game').style.height=window.innerHeight+'px'; }
+if (!CSS.supports('height','100dvh')) { fixHeight(); window.addEventListener('resize',fixHeight); }
 
-// ── Background starfield ───────────────────────────────────────────────────
-(function () {
-  const c = document.getElementById('bg-stars');
-  for (let i = 0; i < 65; i++) {
-    const s  = document.createElement('div');
-    s.className = 'bg-star';
-    const sz = 1 + Math.random() * 2.5;
-    s.style.cssText =
-      `width:${sz}px; height:${sz}px;` +
-      `left:${Math.random()*100}%; top:${Math.random()*100}%;` +
-      `--dur:${2 + Math.random()*4}s; --del:${Math.random()*5}s;`;
+// ── Background starfield ──────────────────────────────────────────────────
+(function(){
+  const c=document.getElementById('bg-stars');
+  for(let i=0;i<65;i++){
+    const s=document.createElement('div'); s.className='bg-star';
+    const sz=1+Math.random()*2.5;
+    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--del:${Math.random()*5}s;`;
     c.appendChild(s);
   }
 })();
