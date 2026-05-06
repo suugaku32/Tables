@@ -589,9 +589,11 @@ let currentPairs = [], currentTotalW = 0;
 
 function buildPairs() {
   const sel = selectedTables.size > 0 ? selectedTables : new Set([2,3,4,5,6,7,8,9,10,11,12]);
+  // Si 11 ET 12 sont tous les deux désactivés, on plafonne les facteurs à 10
+  const maxFactor = (!sel.has(11) && !sel.has(12)) ? 10 : 12;
   const list = [];
-  for (let a = 2; a <= 12; a++) {
-    for (let b = a; b <= 12; b++) {
+  for (let a = 2; a <= maxFactor; a++) {
+    for (let b = a; b <= maxFactor; b++) {
       if (!sel.has(a) && !sel.has(b)) continue;
       // Tables > 5 : poids élevé et UNIFORME entre elles (aucune ne favorise 6 vs 12)
       // Tables ≤ 5 : poids réduit (plus faciles, moins prioritaires)
