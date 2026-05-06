@@ -595,9 +595,10 @@ function buildPairs() {
   for (let a = 2; a <= maxFactor; a++) {
     for (let b = a; b <= maxFactor; b++) {
       if (!sel.has(a) && !sel.has(b)) continue;
-      // Tables > 5 : poids élevé et UNIFORME entre elles (aucune ne favorise 6 vs 12)
-      // Tables ≤ 5 : poids réduit (plus faciles, moins prioritaires)
-      const w = (a > 5 || b > 5) ? 3.0 : 1.0;
+      // Tables 6-9, 11, 12 : fréquence élevée et uniforme
+      // Tables 2-5 et 10 : fréquence réduite (plus faciles)
+      const HARD = new Set([6,7,8,9,11,12]);
+      const w = (HARD.has(a) || HARD.has(b)) ? 3.0 : 1.0;
       list.push({ a, b, w });
     }
   }
