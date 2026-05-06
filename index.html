@@ -696,7 +696,7 @@ function spawnBubbles(values) {
   const elapsed = (performance.now()-gameStartTime)/1000;
   const tBoost  = Math.min(2.0, 1+elapsed*0.009);
   // Scaling par taille d'écran : référence 360px (téléphone standard)
-  speedScale = Math.min(R.width, R.height) / 360;
+  speedScale = Math.min(R.width, R.height) / 450;
   const speed   = (2.2+level*0.3)*tBoost*speedScale;
 
   const quad = [
