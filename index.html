@@ -63,8 +63,8 @@
     }
 
     /* ── Arena ── */
-    #game { width: 100%; height: 100vh; display: flex; flex-direction: column; }
-    #arena { flex: 1; position: relative; overflow: hidden; }
+    #game { width: 100%; height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+    #arena { flex: 1; position: relative; overflow: hidden; min-height: 0; }
 
     /* ── Bubbles ── */
     .bubble {
@@ -722,6 +722,15 @@ function showStars(bubbleEl) {
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 920);
   });
+}
+
+// ── Hauteur réelle sur mobile (corrige le débordement sous la barre du navigateur) ──
+function fixHeight() {
+  document.getElementById('game').style.height = window.innerHeight + 'px';
+}
+if (!CSS.supports('height', '100dvh')) {
+  fixHeight();
+  window.addEventListener('resize', fixHeight);
 }
 
 // ── Background starfield ───────────────────────────────────────────────────
