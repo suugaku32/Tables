@@ -279,6 +279,77 @@
       font-size: clamp(0.68rem, 2vw, 0.88rem);
     }
 
+    /* ── Memory game ── */
+    .menu-card.memory-card { border-color: rgba(67,233,123,0.4); }
+
+    #memory-game {
+      display: none; position: fixed; inset: 0;
+      background: #0d1b2a;
+      flex-direction: column; align-items: center;
+      z-index: 200;
+    }
+    #mem-hud {
+      width: 100%; padding: 10px 16px;
+      background: rgba(255,255,255,0.05);
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 8px; flex-shrink: 0;
+    }
+    #mem-score { color: #ffd700; font-size: clamp(.82rem,3vw,1.05rem); font-weight: bold; }
+    #mem-turn  { color: #a0c4ff; font-size: clamp(.78rem,2.5vw,.95rem); }
+    #mem-grid {
+      flex: 1; display: grid; gap: 8px; padding: 10px;
+      width: 100%; max-width: 800px; align-content: center;
+    }
+    .mc { perspective: 700px; cursor: pointer; aspect-ratio: 3/2; }
+    .mc-inner {
+      width: 100%; height: 100%; position: relative;
+      transform-style: preserve-3d;
+      transition: transform .3s ease; border-radius: 10px;
+    }
+    .mc.flipped .mc-inner { transform: rotateY(180deg); }
+    .mc-back, .mc-front {
+      position: absolute; inset: 0; border-radius: 10px;
+      backface-visibility: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 1rem;
+    }
+    .mc-back {
+      background: linear-gradient(135deg, #1a2a4a, #0d1a30);
+      border: 2px solid #1e3a5e; color: #152840;
+    }
+    .mc.q-card .mc-front {
+      background: linear-gradient(135deg, #0f1a35, #0a1225);
+      border: 2px solid #4facfe; color: #4facfe;
+      transform: rotateY(180deg);
+    }
+    .mc.a-card .mc-front {
+      background: linear-gradient(135deg, #0a1f0a, #071508);
+      border: 2px solid #43e97b; color: #43e97b;
+      transform: rotateY(180deg);
+    }
+    .mc.flash-ok .mc-front {
+      border-color: #ffd700; color: #ffd700;
+      background: linear-gradient(135deg, #2a2010, #1a1508);
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .mc.flash-bad .mc-front {
+      border-color: #e74c3c; color: #e74c3c;
+      background: linear-gradient(135deg, #2e0c09, #1f0806);
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .mc.gone { opacity: 0; pointer-events: none; transition: opacity .35s; }
+    .mem-size-btn {
+      padding: 7px 14px; border-radius: 20px;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: transparent; color: rgba(255,255,255,0.5);
+      font-size: .88rem; font-weight: bold; cursor: pointer; transition: all .15s;
+    }
+    .mem-size-btn.active {
+      border-color: rgba(67,233,123,0.6); background: rgba(67,233,123,0.1);
+      color: #43e97b;
+    }
+    .mem-size-btn:active { transform: scale(.94); }
+
     /* ── Portrait phone adjustments ── */
     @media (orientation: portrait) and (max-width: 600px) {
       #hud { padding: 8px 12px 6px; }
@@ -309,6 +380,11 @@
       <div class="menu-card-icon">🧮</div>
       <div class="menu-card-title">Calcul mental</div>
       <div class="menu-card-desc">+  −  ×</div>
+    </div>
+    <div class="menu-card memory-card" onclick="showMemory()">
+      <div class="menu-card-icon">🃏</div>
+      <div class="menu-card-title">Memory</div>
+      <div class="menu-card-desc">paires × tables</div>
     </div>
   </div>
 </div>
@@ -378,6 +454,38 @@
   <button class="btn-back" onclick="showMain()">← Menu principal</button>
 </div>
 
+<!-- ══ MENU MEMORY ══ -->
+<div class="overlay" id="screen-memory" style="display:none">
+  <h1>🃏 Memory ×</h1>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="mbtn-solo" onclick="memSetMode('solo')">Solo</button>
+    <button class="mode-btn"        id="mbtn-duo"  onclick="memSetMode('duo')">2 joueurs</button>
+  </div>
+
+  <div class="tbl-section">
+    <div class="tbl-section-label">Nombre de paires</div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px" id="mem-size-wrap"></div>
+  </div>
+
+  <div class="tbl-section">
+    <div class="tbl-section-label">Tables à inclure</div>
+    <div class="tbl-grid" id="mem-tbl-grid"></div>
+  </div>
+
+  <button class="btn-play" onclick="memStart()">Jouer !</button>
+  <button class="btn-back" onclick="showMain()">← Menu principal</button>
+</div>
+
+<!-- ══ FIN MEMORY ══ -->
+<div class="overlay" id="screen-memory-end" style="display:none">
+  <h1 id="mend-title">🎉 Terminé !</h1>
+  <div class="big-num" id="mend-score"></div>
+  <div class="sub-info" id="mend-detail"></div>
+  <button class="btn-play" onclick="memStart()">Rejouer !</button>
+  <button class="btn-menu" onclick="showMain()">Menu principal</button>
+</div>
+
 <!-- ══ GAME OVER ══ -->
 <div class="overlay" id="screen-over" style="display:none">
   <h1 id="over-title">⏰ Temps écoulé !</h1>
@@ -386,6 +494,16 @@
   <div class="sub-info" id="over-best"></div>
   <button class="btn-play" onclick="replayGame()">Rejouer !</button>
   <button class="btn-menu" onclick="showMain()">Menu principal</button>
+</div>
+
+<!-- ══ JEU MEMORY ══ -->
+<div id="memory-game">
+  <div id="mem-hud">
+    <div id="mem-score">✓ 0 / 0</div>
+    <div id="mem-turn"></div>
+    <button class="hud-btn" style="width:auto;padding:0 12px;border-radius:20px;font-size:.75rem;color:#ff6b6b;border-color:rgba(255,80,80,0.5);background:rgba(255,80,80,0.25)" onclick="memStop()">Fin</button>
+  </div>
+  <div id="mem-grid"></div>
 </div>
 
 <!-- ══ JEU ══ -->
@@ -433,6 +551,8 @@ let mentalMode = 'addition';
 
 function showMain() {
   hide('screen-tables'); hide('screen-mental'); hide('screen-over');
+  hide('screen-memory'); hide('screen-memory-end');
+  document.getElementById('memory-game').style.display = 'none';
   show('screen-main');
 }
 function showTables() {
@@ -1150,6 +1270,213 @@ function showStars(bubbleEl) {
     el.style.setProperty('--dy',(Math.sin(a)*95)+'px');
     document.body.appendChild(el); setTimeout(()=>el.remove(),920);
   });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MEMORY GAME
+// ════════════════════════════════════════════════════════════════
+let memMode     = 'solo';
+let memPairs    = 8;
+let memTables   = new Set([2,3,4,5,6,7,8,9,10]);
+let memCards    = [];
+let memFlipped  = [];
+let memLocked   = false;
+let memFound    = 0;
+let memAttempts = 0;
+let memScores   = [0,0];
+let memPlayer   = 0;
+
+function showMemory() {
+  hide('screen-main');
+  buildMemoryUI();
+  show('screen-memory');
+}
+
+function memSetMode(m) {
+  memMode = m;
+  document.getElementById('mbtn-solo').classList.toggle('active', m==='solo');
+  document.getElementById('mbtn-duo').classList.toggle('active',  m==='duo');
+}
+
+function buildMemoryUI() {
+  // Taille
+  const sw = document.getElementById('mem-size-wrap');
+  sw.innerHTML = '';
+  [6,8,10,12].forEach(n => {
+    const btn = document.createElement('button');
+    btn.className = 'mem-size-btn' + (n===memPairs ? ' active' : '');
+    btn.textContent = n + ' paires';
+    btn.onclick = () => {
+      memPairs = n;
+      sw.querySelectorAll('.mem-size-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+    sw.appendChild(btn);
+  });
+  // Tables
+  const tg = document.getElementById('mem-tbl-grid');
+  tg.innerHTML = '';
+  for (let t=2; t<=12; t++) {
+    const btn = document.createElement('div');
+    btn.className = 'tbl-btn' + (memTables.has(t) ? ' on' : '');
+    btn.textContent = t;
+    btn.onclick = () => {
+      if (memTables.has(t)) {
+        if (memTables.size > 2) { memTables.delete(t); btn.classList.remove('on'); }
+      } else { memTables.add(t); btn.classList.add('on'); }
+    };
+    tg.appendChild(btn);
+  }
+}
+
+function memGenerate() {
+  const tbl = [...memTables].sort((a,b)=>a-b);
+  const pool = [];
+  for (let i=0; i<tbl.length; i++)
+    for (let j=i; j<tbl.length; j++)
+      pool.push({a:tbl[i], b:tbl[j]});
+  for (let i=pool.length-1; i>0; i--) {
+    const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]];
+  }
+  const chosen = pool.slice(0, Math.min(memPairs, pool.length));
+  let uid=0;
+  const raw=[];
+  chosen.forEach((p,pid) => {
+    raw.push({id:uid++, pairId:pid, type:'q', label:`${p.a} × ${p.b}`, flipped:false, gone:false});
+    raw.push({id:uid++, pairId:pid, type:'a', label:String(p.a*p.b),   flipped:false, gone:false});
+  });
+  for (let i=raw.length-1; i>0; i--) {
+    const j=Math.floor(Math.random()*(i+1)); [raw[i],raw[j]]=[raw[j],raw[i]];
+  }
+  memCards = raw;
+}
+
+function memStart() {
+  memGenerate();
+  memFlipped=[]; memLocked=false; memFound=0; memAttempts=0; memScores=[0,0]; memPlayer=0;
+  hide('screen-memory'); hide('screen-memory-end');
+  memRenderGrid();
+  memUpdateHud();
+  document.getElementById('memory-game').style.display = 'flex';
+}
+
+function memStop() {
+  document.getElementById('memory-game').style.display = 'none';
+  memShowEnd();
+}
+
+function memCols() {
+  const W = window.innerWidth;
+  const n = memCards.length;
+  if (W < 500) return n<=12 ? 3 : 4;
+  if (W < 700) return n<=16 ? 4 : 5;
+  return n<=12 ? 4 : 5;
+}
+
+function memRenderGrid() {
+  const grid = document.getElementById('mem-grid');
+  const c = memCols();
+  grid.style.gridTemplateColumns = `repeat(${c}, 1fr)`;
+  grid.innerHTML = '';
+  for (const card of memCards) {
+    const el = document.createElement('div');
+    el.className = `mc ${card.type}-card`;
+    el.dataset.id = card.id;
+    el.innerHTML = `<div class="mc-inner">
+      <div class="mc-back">✦</div>
+      <div class="mc-front">${card.label}</div>
+    </div>`;
+    el.addEventListener('click', () => memClick(card.id));
+    grid.appendChild(el);
+  }
+  memSetFontSize(c);
+}
+
+function memSetFontSize(c) {
+  const W   = Math.min(window.innerWidth, 800);
+  const gap = (c-1)*8 + 20;
+  const cw  = (W-gap)/c;
+  // 3/2 aspect → height = cw*2/3; font ~25% of width
+  const fs  = Math.max(0.65, Math.min(1.5, cw*0.24));
+  document.querySelectorAll('.mc-front').forEach(el => el.style.fontSize = fs+'rem');
+}
+
+function memCardEl(id) { return document.querySelector(`.mc[data-id="${id}"]`); }
+
+function memClick(id) {
+  if (memLocked) return;
+  const card = memCards.find(c=>c.id===id);
+  if (!card || card.flipped || card.gone) return;
+  if (memFlipped.includes(id)) return;
+  card.flipped = true;
+  memCardEl(id).classList.add('flipped');
+  memFlipped.push(id);
+  if (memFlipped.length===2) { memLocked=true; memAttempts++; setTimeout(memEvaluate, 700); }
+}
+
+function memEvaluate() {
+  const [id1,id2] = memFlipped;
+  const c1=memCards.find(c=>c.id===id1), c2=memCards.find(c=>c.id===id2);
+  if (c1.pairId===c2.pairId) {
+    [id1,id2].forEach(id => memCardEl(id).classList.add('flash-ok'));
+    setTimeout(()=>{
+      [id1,id2].forEach(id=>{
+        memCards.find(c=>c.id===id).gone=true;
+        const el=memCardEl(id);
+        el.classList.add('gone'); el.classList.remove('flash-ok');
+      });
+      memFound++;
+      if (memMode==='duo') memScores[memPlayer]++;
+      memFlipped=[]; memLocked=false;
+      memUpdateHud();
+      if (memFound===memCards.length/2) setTimeout(memShowEnd,500);
+    }, 500);
+  } else {
+    [id1,id2].forEach(id => memCardEl(id).classList.add('flash-bad'));
+    setTimeout(()=>{
+      [id1,id2].forEach(id=>{
+        memCards.find(c=>c.id===id).flipped=false;
+        const el=memCardEl(id);
+        el.classList.remove('flipped','flash-bad');
+      });
+      if (memMode==='duo') memPlayer=1-memPlayer;
+      memFlipped=[]; memLocked=false;
+      memUpdateHud();
+    }, 900);
+  }
+}
+
+function memUpdateHud() {
+  const n=memCards.length/2;
+  if (memMode==='solo') {
+    document.getElementById('mem-score').textContent=`✓ ${memFound}/${n}  •  ${memAttempts} essais`;
+    document.getElementById('mem-turn').textContent='';
+  } else {
+    document.getElementById('mem-score').innerHTML=
+      `<span style="color:#4facfe">J1 : ${memScores[0]}</span>  •  <span style="color:#f093fb">J2 : ${memScores[1]}</span>`;
+    document.getElementById('mem-turn').textContent=`Tour : Joueur ${memPlayer+1}`;
+  }
+}
+
+function memShowEnd() {
+  document.getElementById('memory-game').style.display='none';
+  const n=memCards.length/2;
+  if (memMode==='solo') {
+    const key=`mem_best_${n}`, prev=parseInt(localStorage.getItem(key))||Infinity;
+    const record=memAttempts<prev;
+    if (record) localStorage.setItem(key, memAttempts);
+    document.getElementById('mend-title').textContent='🎉 Terminé !';
+    document.getElementById('mend-score').textContent=memAttempts+' essais';
+    document.getElementById('mend-detail').innerHTML=
+      `${n} paires trouvées` + (record ? '<br>🌟 Nouveau record !' : `<br>Ton record : ${prev} essais`);
+  } else {
+    const w=memScores[0]>memScores[1]?'Joueur 1':memScores[1]>memScores[0]?'Joueur 2':null;
+    document.getElementById('mend-title').textContent=w?`🏆 ${w} gagne !`:'🤝 Égalité !';
+    document.getElementById('mend-score').innerHTML=
+      `<span style="color:#4facfe">${memScores[0]}</span> – <span style="color:#f093fb">${memScores[1]}</span>`;
+    document.getElementById('mend-detail').textContent=`${n} paires en ${memAttempts} essais.`;
+  }
+  show('screen-memory-end');
 }
 
 // ── Mobile height fix ─────────────────────────────────────────────────────
