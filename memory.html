@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Memory × Tables</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0f0f1a;
+  color: #fff;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── SCREENS ── */
+.screen { display: none; width: 100%; max-width: 560px; padding: 20px 16px; }
+.screen.active { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+h1 { font-size: 2.4rem; color: #f0c040; text-align: center; letter-spacing: -1px; }
+h2 { font-size: 1.1rem; color: #888; text-align: center; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 13px 28px; border: none; border-radius: 12px;
+  font-size: 1.05rem; font-weight: 700; cursor: pointer;
+  transition: transform .1s, opacity .15s; width: 100%; max-width: 300px;
+}
+.btn:active { transform: scale(.96); }
+.btn-primary  { background: #f0c040; color: #111; }
+.btn-secondary{ background: #1e1e2e; color: #aaa; border: 1px solid #333; }
+
+/* ── TOGGLE GROUPS ── */
+.group-label { font-size: .8rem; color: #666; text-transform: uppercase;
+               letter-spacing: .08em; align-self: flex-start; padding-left: 2px; }
+.toggle-row { display: flex; gap: 8px; width: 100%; max-width: 300px; }
+.toggle-btn {
+  flex: 1; padding: 10px 6px; border-radius: 10px; border: 2px solid #333;
+  background: #1a1a2a; color: #888; font-size: .95rem; font-weight: 700;
+  cursor: pointer; text-align: center; transition: all .15s;
+}
+.toggle-btn.on { border-color: #f0c040; background: #261f04; color: #f0c040; }
+
+/* ── TABLE BUTTONS ── */
+.tables-wrap { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 300px; }
+.tbl-btn {
+  width: 46px; height: 46px; border-radius: 10px; border: 2px solid #333;
+  background: #1a1a2a; color: #888; font-size: 1rem; font-weight: 700;
+  cursor: pointer; transition: all .15s;
+}
+.tbl-btn.on { border-color: #f0c040; background: #261f04; color: #f0c040; }
+
+/* ── SIZE BUTTONS ── */
+.size-wrap { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 300px; }
+.size-btn {
+  padding: 8px 14px; border-radius: 10px; border: 2px solid #333;
+  background: #1a1a2a; color: #888; font-size: .85rem; font-weight: 700;
+  cursor: pointer; transition: all .15s;
+}
+.size-btn.on { border-color: #f0c040; background: #261f04; color: #f0c040; }
+
+/* ── GAME SCREEN ── */
+#game-screen { max-width: 100%; padding: 10px 8px; gap: 8px; }
+
+#game-header {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; max-width: 760px; gap: 8px; flex-wrap: wrap;
+}
+
+#score-info { font-size: 1rem; font-weight: 700; color: #f0c040; }
+#turn-info  { font-size: .95rem; color: #aaa; }
+
+#stop-btn-game {
+  padding: 7px 14px; border-radius: 9px; border: 1px solid #444;
+  background: #1e1e2e; color: #aaa; font-size: .85rem; font-weight: 700;
+  cursor: pointer;
+}
+#stop-btn-game:active { opacity: .7; }
+
+/* ── CARD GRID ── */
+#card-grid {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+  max-width: 760px;
+}
+
+/* ── CARDS ── */
+.card {
+  perspective: 700px;
+  cursor: pointer;
+  aspect-ratio: 1;
+}
+
+.card-inner {
+  width: 100%; height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform .32s cubic-bezier(.4,0,.2,1);
+  border-radius: 12px;
+}
+
+.card.flipped .card-inner  { transform: rotateY(180deg); }
+.card.matched .card-inner  { transform: rotateY(180deg); }
+
+.card-back, .card-front {
+  position: absolute; inset: 0;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900;
+}
+
+.card-back {
+  background: linear-gradient(135deg, #1a2a4a 0%, #0d1a30 100%);
+  border: 2px solid #243a5e;
+  font-size: 1.4rem; color: #243a5e;
+}
+
+.card-front {
+  background: linear-gradient(135deg, #1e1a06, #2a2308);
+  border: 2px solid #665010;
+  color: #f0c040;
+  transform: rotateY(180deg);
+  font-size: 1.5rem; /* overridden by JS */
+}
+
+/* Flashing states */
+.card.flash-ok .card-front {
+  border-color: #4caf50; color: #4caf50;
+  background: linear-gradient(135deg, #0e2410, #071a09);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.card.flash-bad .card-front {
+  border-color: #e74c3c; color: #e74c3c;
+  background: linear-gradient(135deg, #2e0c09, #1f0806);
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.card.gone {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .35s ease;
+}
+
+/* ── PLAYER BANNERS (2P) ── */
+.player-banner {
+  padding: 6px 16px; border-radius: 8px; font-size: .95rem; font-weight: 700;
+  text-align: center;
+}
+.p1-banner { background: #1a2a3a; border: 1px solid #2a5a8a; color: #5ab4ff; }
+.p2-banner { background: #2a1a3a; border: 1px solid #6a2a8a; color: #c47aff; }
+.p1-active { border-color: #5ab4ff; }
+.p2-active { border-color: #c47aff; }
+
+/* ── END SCREEN ── */
+.end-big { font-size: 3rem; font-weight: 900; color: #f0c040; text-align: center; }
+.end-detail { font-size: 1rem; color: #aaa; text-align: center; line-height: 1.6; }
+.medal { font-size: 3rem; }
+
+/* ── NOTIF flash (wrong attempt) ── */
+#wrong-flash {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  background: #c0392b; color: #fff; padding: 8px 20px; border-radius: 20px;
+  font-weight: 700; font-size: .95rem; pointer-events: none;
+  opacity: 0; transition: opacity .2s;
+  z-index: 999;
+}
+#wrong-flash.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="wrong-flash">Pas une multiplication valide !</div>
+
+<!-- ═══════════ MENU ═══════════ -->
+<div id="menu-screen" class="screen active">
+  <h1>Memory ×</h1>
+  <h2>Tables de multiplication</h2>
+
+  <span class="group-label">Mode</span>
+  <div class="toggle-row">
+    <div class="toggle-btn on" id="btn-solo" onclick="setMode('solo')">Solo</div>
+    <div class="toggle-btn"    id="btn-duo"  onclick="setMode('duo')">2 joueurs</div>
+  </div>
+
+  <span class="group-label">Nombre de triplets</span>
+  <div class="size-wrap" id="size-wrap"></div>
+
+  <span class="group-label">Tables à inclure</span>
+  <div class="tables-wrap" id="tables-wrap"></div>
+
+  <button class="btn btn-primary" onclick="startGame()">Jouer !</button>
+</div>
+
+<!-- ═══════════ JEU ═══════════ -->
+<div id="game-screen" class="screen">
+  <div id="game-header">
+    <div id="score-info">0 / 0</div>
+    <div id="turn-info"></div>
+    <button id="stop-btn-game" onclick="stopGame()">⏹ Fin</button>
+  </div>
+  <div id="card-grid"></div>
+</div>
+
+<!-- ═══════════ FIN ═══════════ -->
+<div id="end-screen" class="screen">
+  <div class="medal" id="end-medal">🎉</div>
+  <h1 id="end-title">Bravo !</h1>
+  <div class="end-big" id="end-big"></div>
+  <div class="end-detail" id="end-detail"></div>
+  <button class="btn btn-primary"   onclick="startGame()">Rejouer</button>
+  <button class="btn btn-secondary" onclick="showMenu()">← Menu</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let gameMode     = 'solo';
+let numTriplets  = 4;
+let selectedTbls = new Set([2,3,4,5,6,7,8,9,10]);
+
+let cards      = [];   // {id, value, flipped, gone}
+let triplets   = [];   // {a, b, product, consumed}
+let selected   = [];   // ids of face-up but not-yet-matched cards (max 3)
+let locked     = false;
+
+let attempts   = 0;    // solo: number of 3-card evaluations
+let found      = 0;    // triplets found
+let scores     = [0,0];
+let curPlayer  = 0;
+
+// ════════════════════════════════════════════
+//  MENU BUILD
+// ════════════════════════════════════════════
+const SIZES = [
+  {n:3,  label:'9 cartes'},
+  {n:4,  label:'12 cartes'},
+  {n:6,  label:'18 cartes'},
+  {n:8,  label:'24 cartes'},
+  {n:10, label:'30 cartes'},
+];
+
+function buildMenu() {
+  // sizes
+  const sw = document.getElementById('size-wrap');
+  sw.innerHTML = '';
+  SIZES.forEach(({n, label}) => {
+    const btn = document.createElement('div');
+    btn.className = 'size-btn' + (n === numTriplets ? ' on' : '');
+    btn.textContent = label;
+    btn.onclick = () => {
+      numTriplets = n;
+      sw.querySelectorAll('.size-btn').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+    };
+    sw.appendChild(btn);
+  });
+
+  // tables
+  const tw = document.getElementById('tables-wrap');
+  tw.innerHTML = '';
+  for (let t = 2; t <= 12; t++) {
+    const btn = document.createElement('div');
+    btn.className = 'tbl-btn' + (selectedTbls.has(t) ? ' on' : '');
+    btn.textContent = t;
+    btn.onclick = () => {
+      if (selectedTbls.has(t)) {
+        if (selectedTbls.size > 2) { selectedTbls.delete(t); btn.classList.remove('on'); }
+      } else {
+        selectedTbls.add(t); btn.classList.add('on');
+      }
+    };
+    tw.appendChild(btn);
+  }
+}
+
+function setMode(m) {
+  gameMode = m;
+  document.getElementById('btn-solo').classList.toggle('on', m === 'solo');
+  document.getElementById('btn-duo').classList.toggle('on', m === 'duo');
+}
+
+function showMenu() {
+  showScreen('menu-screen');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ════════════════════════════════════════════
+//  BOARD GENERATION
+// ════════════════════════════════════════════
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function buildPool() {
+  const tbl = [...selectedTbls].sort((a, b) => a - b);
+  const pool = [];
+  for (let i = 0; i < tbl.length; i++)
+    for (let j = i; j < tbl.length; j++)
+      pool.push({ a: tbl[i], b: tbl[j], product: tbl[i] * tbl[j], consumed: false });
+  return shuffle(pool);
+}
+
+function generateBoard() {
+  const pool = buildPool();
+  const n = Math.min(numTriplets, pool.length);
+  triplets = pool.slice(0, n).map(t => ({ ...t, consumed: false }));
+
+  let uid = 0;
+  const raw = [];
+  for (const t of triplets) {
+    raw.push({ id: uid++, value: t.a,       flipped: false, gone: false });
+    raw.push({ id: uid++, value: t.b,       flipped: false, gone: false });
+    raw.push({ id: uid++, value: t.product, flipped: false, gone: false });
+  }
+  cards = shuffle(raw);
+}
+
+// ════════════════════════════════════════════
+//  START
+// ════════════════════════════════════════════
+function startGame() {
+  generateBoard();
+  selected   = [];
+  locked     = false;
+  attempts   = 0;
+  found      = 0;
+  scores     = [0, 0];
+  curPlayer  = 0;
+
+  renderGrid();
+  updateHeader();
+  showScreen('game-screen');
+}
+
+function stopGame() {
+  showEnd();
+}
+
+// ════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════
+function cols() {
+  const W = window.innerWidth;
+  const n = cards.length;
+  if (W <= 480) return { 9:3, 12:3, 18:3, 24:4, 30:5 }[n] ?? 3;
+  return              { 9:3, 12:4, 18:6, 24:6, 30:6 }[n] ?? 4;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('card-grid');
+  const c = cols();
+  grid.style.gridTemplateColumns = `repeat(${c}, 1fr)`;
+  grid.innerHTML = '';
+
+  for (const card of cards) {
+    const el = document.createElement('div');
+    el.className = 'card' + (card.flipped ? ' flipped' : '') + (card.gone ? ' gone' : '');
+    el.dataset.id = card.id;
+    el.innerHTML = `<div class="card-inner">
+      <div class="card-back">✦</div>
+      <div class="card-front">${card.value}</div>
+    </div>`;
+    el.addEventListener('click', () => onCardClick(card.id));
+    grid.appendChild(el);
+  }
+  setCardFontSize(c);
+}
+
+function setCardFontSize(c) {
+  const W   = Math.min(window.innerWidth, 760);
+  const gap = (c - 1) * 7 + 16;
+  const cw  = (W - gap) / c;
+  const fs  = Math.max(0.8, Math.min(2.0, cw * 0.32));
+  document.querySelectorAll('.card-front').forEach(el => el.style.fontSize = fs + 'rem');
+}
+
+function cardEl(id) {
+  return document.querySelector(`.card[data-id="${id}"]`);
+}
+
+// ════════════════════════════════════════════
+//  GAME LOGIC
+// ════════════════════════════════════════════
+function onCardClick(id) {
+  if (locked) return;
+  const card = cards.find(c => c.id === id);
+  if (!card || card.flipped || card.gone) return;
+  if (selected.includes(id)) return;
+
+  card.flipped = true;
+  cardEl(id).classList.add('flipped');
+  selected.push(id);
+
+  if (selected.length === 3) {
+    locked = true;
+    attempts++;
+    setTimeout(evaluate, 450);
+  }
+}
+
+function vals() {
+  return selected.map(id => cards.find(c => c.id === id).value);
+}
+
+function isValidMult(a, b, c) {
+  return a * b === c || a * c === b || b * c === a;
+}
+
+function sortedTriple(a, b, c) {
+  return [a, b, c].sort((x, y) => x - y);
+}
+
+function tripletMatches(t, a, b, c) {
+  const [x1, x2, x3] = sortedTriple(a, b, c);
+  const [y1, y2, y3] = sortedTriple(t.a, t.b, t.product);
+  return x1 === y1 && x2 === y2 && x3 === y3;
+}
+
+function evaluate() {
+  const [a, b, c] = vals();
+
+  // Must form a valid multiplication AND match an unconsumed triplet
+  const matchedTriplet = isValidMult(a, b, c)
+    ? triplets.find(t => !t.consumed && tripletMatches(t, a, b, c))
+    : null;
+
+  if (matchedTriplet) {
+    matchedTriplet.consumed = true;
+
+    // Flash green
+    selected.forEach(id => cardEl(id).classList.add('flash-ok'));
+    setTimeout(() => {
+      selected.forEach(id => {
+        const card = cards.find(c => c.id === id);
+        card.gone = true;
+        const el = cardEl(id);
+        el.classList.add('gone');
+        el.classList.remove('flash-ok', 'flipped');
+      });
+      found++;
+      if (gameMode === 'duo') scores[curPlayer]++;
+      // In duo: correct = keep your turn; wrong = switch
+      selected = [];
+      locked   = false;
+      updateHeader();
+      if (found === triplets.length) setTimeout(showEnd, 500);
+    }, 500);
+
+  } else {
+    // Flash red
+    selected.forEach(id => cardEl(id).classList.add('flash-bad'));
+    if (!isValidMult(a, b, c)) flashNotif();
+
+    setTimeout(() => {
+      selected.forEach(id => {
+        const card = cards.find(c => c.id === id);
+        card.flipped = false;
+        const el = cardEl(id);
+        el.classList.remove('flipped', 'flash-bad');
+      });
+      if (gameMode === 'duo') curPlayer = 1 - curPlayer;
+      selected = [];
+      locked   = false;
+      updateHeader();
+    }, 800);
+  }
+}
+
+// ════════════════════════════════════════════
+//  HEADER
+// ════════════════════════════════════════════
+function updateHeader() {
+  const si = document.getElementById('score-info');
+  const ti = document.getElementById('turn-info');
+
+  if (gameMode === 'solo') {
+    si.textContent = `✓ ${found} / ${triplets.length}  •  ${attempts} essais`;
+    ti.textContent = '';
+  } else {
+    si.innerHTML = `<span style="color:#5ab4ff">J1 : ${scores[0]}</span>  •  <span style="color:#c47aff">J2 : ${scores[1]}</span>`;
+    const col = curPlayer === 0 ? '#5ab4ff' : '#c47aff';
+    ti.innerHTML = `Tour : <b style="color:${col}">Joueur ${curPlayer + 1}</b>`;
+  }
+}
+
+// ════════════════════════════════════════════
+//  NOTIF
+// ════════════════════════════════════════════
+let _notifTimer = null;
+function flashNotif() {
+  const el = document.getElementById('wrong-flash');
+  el.classList.add('show');
+  clearTimeout(_notifTimer);
+  _notifTimer = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+// ════════════════════════════════════════════
+//  END
+// ════════════════════════════════════════════
+function showEnd() {
+  const medal  = document.getElementById('end-medal');
+  const title  = document.getElementById('end-title');
+  const big    = document.getElementById('end-big');
+  const detail = document.getElementById('end-detail');
+  const n      = triplets.length;
+
+  if (gameMode === 'solo') {
+    const perfect = n; // minimum possible
+    const ratio   = attempts / n;
+    medal.textContent  = ratio <= 1.3 ? '🏆' : ratio <= 2 ? '⭐' : '🎉';
+    title.textContent  = 'Terminé !';
+    big.textContent    = `${attempts} essais`;
+    detail.innerHTML   = `${n} triplets trouvés.<br>Minimum théorique : <b>${n}</b> essais.`;
+
+    // Best score
+    const key  = `memory_best_${n}`;
+    const prev = parseInt(localStorage.getItem(key)) || Infinity;
+    if (attempts < prev) {
+      localStorage.setItem(key, attempts);
+      detail.innerHTML += `<br><span style="color:#f0c040">🌟 Nouveau record !</span>`;
+    } else {
+      detail.innerHTML += `<br>Ton record : <b>${prev}</b> essais.`;
+    }
+
+  } else {
+    const winner = scores[0] > scores[1] ? 'Joueur 1'
+                 : scores[1] > scores[0] ? 'Joueur 2'
+                 : null;
+    medal.textContent  = winner ? '🏆' : '🤝';
+    title.textContent  = winner ? `${winner} gagne !` : 'Égalité !';
+    big.innerHTML      = `<span style="color:#5ab4ff">${scores[0]}</span> – <span style="color:#c47aff">${scores[1]}</span>`;
+    detail.textContent = `${n} triplets en ${attempts} essais au total.`;
+  }
+
+  showScreen('end-screen');
+}
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+buildMenu();
+window.addEventListener('resize', () => {
+  if (document.getElementById('game-screen').classList.contains('active')) {
+    setCardFontSize(cols());
+  }
+});
+</script>
+</body>
+</html>
