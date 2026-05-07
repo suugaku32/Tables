@@ -1338,7 +1338,14 @@ function memGenerate() {
   for (let i=pool.length-1; i>0; i--) {
     const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]];
   }
-  const chosen = pool.slice(0, Math.min(memPairs, pool.length));
+  // Dédoublonnage : un seul produit possible par paire de cartes
+  const seenProd = new Set();
+  const chosen = [];
+  for (const p of pool) {
+    if (chosen.length >= memPairs) break;
+    const prod = p.a * p.b;
+    if (!seenProd.has(prod)) { seenProd.add(prod); chosen.push(p); }
+  }
   let uid=0;
   const raw=[];
   chosen.forEach((p,pid) => {
@@ -1403,11 +1410,27 @@ function memSetFontSize(c) {
 
 function memCardEl(id) { return document.querySelector(`.mc[data-id="${id}"]`); }
 
+function sfxMemFlip()  { _tone(520, .07, .06, 'sine'); }
+function sfxMemMatch() {
+  const t = _ac()?.currentTime ?? 0;
+  [[392,.0],[523.25,.08],[659.25,.16],[783.99,.24]].forEach(([f,d]) => _tone(f,.22,.14,'sine',t+d));
+}
+function sfxMemWrong() {
+  const t = _ac()?.currentTime ?? 0;
+  _tone(220,.12,.12,'sawtooth',t); _tone(180,.18,.10,'sawtooth',t+.1);
+}
+function sfxMemWin() {
+  const t = _ac()?.currentTime ?? 0;
+  [[523.25,0],[659.25,.1],[783.99,.2],[1046.5,.3],[1318.5,.42],[1046.5,.56],[1318.5,.68]]
+    .forEach(([f,d]) => _tone(f,.28,.15,'triangle',t+d));
+}
+
 function memClick(id) {
   if (memLocked) return;
   const card = memCards.find(c=>c.id===id);
   if (!card || card.flipped || card.gone) return;
   if (memFlipped.includes(id)) return;
+  sfxMemFlip();
   card.flipped = true;
   memCardEl(id).classList.add('flipped');
   memFlipped.push(id);
@@ -1418,6 +1441,7 @@ function memEvaluate() {
   const [id1,id2] = memFlipped;
   const c1=memCards.find(c=>c.id===id1), c2=memCards.find(c=>c.id===id2);
   if (c1.pairId===c2.pairId) {
+    sfxMemMatch();
     [id1,id2].forEach(id => memCardEl(id).classList.add('flash-ok'));
     setTimeout(()=>{
       [id1,id2].forEach(id=>{
@@ -1432,6 +1456,7 @@ function memEvaluate() {
       if (memFound===memCards.length/2) setTimeout(memShowEnd,500);
     }, 500);
   } else {
+    sfxMemWrong();
     [id1,id2].forEach(id => memCardEl(id).classList.add('flash-bad'));
     setTimeout(()=>{
       [id1,id2].forEach(id=>{
@@ -1460,6 +1485,7 @@ function memUpdateHud() {
 
 function memShowEnd() {
   document.getElementById('memory-game').style.display='none';
+  sfxMemWin();
   const n=memCards.length/2;
   if (memMode==='solo') {
     const key=`mem_best_${n}`, prev=parseInt(localStorage.getItem(key))||Infinity;
