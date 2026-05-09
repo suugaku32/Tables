@@ -2277,6 +2277,13 @@ function moleUnusedDigit(exclude) {
 
 function moleSpawn() {
   if (!moleRunning) return;
+  // Corrige toute désync visible=true / .up absent avant de compter
+  moleSlots.forEach(slot => {
+    if (slot.visible && !slot.bodyEl.classList.contains('up')) {
+      slot.visible = false; slot.digit = null;
+      if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
+    }
+  });
   const visible = moleSlots.filter(s => s.visible).length;
   if (visible >= MOLE_MAX_VIS) return;
   const free = moleSlots.filter(s => !s.visible);
@@ -2406,6 +2413,14 @@ function moleUpdateQ() {
 
 function moleTick() {
   if (!moleRunning) return;
+  // Watchdog : corrige la désync visible=true / .up absent
+  moleSlots.forEach(slot => {
+    if (slot.visible && !slot.bodyEl.classList.contains('up')) {
+      slot.visible = false; slot.digit = null;
+      if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
+      setTimeout(moleSpawn, 50);
+    }
+  });
   const drain = 1.6 + (moleLevel - 1) * 0.07;   // accélère avec les niveaux
   moleTimeLeft -= 0.05 * drain;
   const pct  = Math.max(0, moleTimeLeft / MOLE_START_TIME * 100);
