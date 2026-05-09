@@ -1642,7 +1642,7 @@ let moleCurrentQ    = null;
 let moleInput       = '';
 let moleSlots       = [];
 let moleSelTables   = new Set([2,3,4,5,6,7,8,9,10]);
-let moleLastNeededAt = 0;
+let moleGuardTimer   = null;
 let molePairs       = [];
 let molePairScores  = {};
 
@@ -1754,9 +1754,29 @@ function startMoleGame() {
   if (!moleNoTimer) moleTickInt = setInterval(moleTick, 50);
 }
 
+function moleResetGuard() {
+  clearTimeout(moleGuardTimer);
+  moleGuardTimer = setTimeout(moleGuardSpawn, 1500);
+}
+
+function moleGuardSpawn() {
+  if (!moleRunning || !moleCurrentQ) return;
+  const nextDigit = String(moleCurrentQ.ans)[moleInput.length];
+  if (!nextDigit) return;
+  const hasIt = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+  if (!hasIt) {
+    const free = moleSlots.filter(s => !s.visible);
+    if (free.length) {
+      const s = free[Math.floor(Math.random() * free.length)];
+      moleShow(s, parseInt(nextDigit));
+    }
+  }
+  moleGuardTimer = setTimeout(moleGuardSpawn, 1500);
+}
+
 function moleNextQ() {
   moleInput = '';
-  moleLastNeededAt = Date.now();
+  moleResetGuard();
   const q = molePickQuestion();
   moleCurrentQ = q;
   moleUpdateQ();
@@ -1813,9 +1833,8 @@ function moleSpawn() {
   const nextDigit = ansStr[moleInput.length];
   // nextDigit undefined pendant les 280 ms entre bonne réponse et question suivante
   if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
-  const hasNext  = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-  const overdue  = !hasNext && Date.now() - moleLastNeededAt > 1500;
-  const d = (overdue || (!hasNext && Math.random() < 0.9))
+  const hasNext = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+  const d = (!hasNext && Math.random() < 0.9)
     ? parseInt(nextDigit)
     : moleUnusedDigit(parseInt(nextDigit));
   moleShow(slot, d);
@@ -1869,7 +1888,7 @@ function moleClick(i) {
     clearTimeout(slot.hideTimer); slot.hideTimer = null;
     moleHide(slot);
     moleInput += tapped;
-    moleLastNeededAt = Date.now();
+    moleResetGuard();
     moleUpdateQ();
     if (moleInput === ansStr) {
       moleScore++;
@@ -1902,7 +1921,7 @@ function moleClick(i) {
     const p = molePairs.find(p => pairKey(p.a, p.b) === k);
     if (p) molePairScores[k] = Math.min(molePairScores[k] * SCORE_GROW, p.w * 2);
     moleInput = '';
-    moleLastNeededAt = Date.now();
+    moleResetGuard();
     moleUpdateQ();
     moleUpdateHUD();
     moleEnsureDigit(100);
@@ -1943,6 +1962,7 @@ function moleUpdateHUD() {
 function _moleClearTimers() {
   clearInterval(moleTickInt);
   if (moleSpawnTimer) clearTimeout(moleSpawnTimer);
+  if (moleGuardTimer) clearTimeout(moleGuardTimer);
   moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
 }
 
