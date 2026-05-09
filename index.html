@@ -1638,6 +1638,7 @@ let moleLevel       = 1;
 let moleTimeLeft    = 60;
 let moleTickInt     = null;
 let moleSpawnTimer  = null;
+let moleGuardInt    = null;
 let moleCurrentQ    = null;
 let moleInput       = '';
 let moleSlots       = [];
@@ -1751,6 +1752,14 @@ function startMoleGame() {
   moleNextQ();
   moleScheduleSpawn();
   if (!moleNoTimer) moleTickInt = setInterval(moleTick, 50);
+  // Garantit que le prochain chiffre attendu est toujours visible
+  moleGuardInt = setInterval(() => {
+    if (!moleRunning || !moleCurrentQ) return;
+    const nd = String(moleCurrentQ.ans)[moleInput.length];
+    if (!nd) return;
+    if (!moleSlots.some(s => s.visible && String(s.digit) === nd))
+      moleEnsureDigit(0);
+  }, 1200);
 }
 
 function moleNextQ() {
@@ -1921,6 +1930,13 @@ function moleUpdateHUD() {
   document.getElementById('mole-level-display').textContent  = 'Niveau ' + moleLevel;
 }
 
+function _moleClearTimers() {
+  clearInterval(moleTickInt);
+  clearInterval(moleGuardInt);
+  if (moleSpawnTimer) clearTimeout(moleSpawnTimer);
+  moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
+}
+
 function _moleStopMusic() {
   const a = document.getElementById('mole-music');
   a.pause(); a.currentTime = 0;
@@ -1937,9 +1953,7 @@ function moleMuteToggle() {
 
 function moleEnd() {
   moleRunning = false;
-  clearInterval(moleTickInt);
-  if (moleSpawnTimer) clearTimeout(moleSpawnTimer);
-  moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
+  _moleClearTimers();
   _moleStopMusic();
   document.getElementById('mole-game').style.display = 'none';
 
@@ -1959,9 +1973,7 @@ function moleEnd() {
 
 function moleStopGame() {
   moleRunning = false;
-  clearInterval(moleTickInt);
-  if (moleSpawnTimer) clearTimeout(moleSpawnTimer);
-  moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
+  _moleClearTimers();
   _moleStopMusic();
   document.getElementById('mole-game').style.display = 'none';
   showMain();
