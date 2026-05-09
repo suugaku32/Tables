@@ -1867,9 +1867,12 @@ function moleShow(slot, digit) {
 }
 
 function moleHide(slot) {
+  const wasNeeded = moleCurrentQ && slot.digit !== null &&
+    String(slot.digit) === String(moleCurrentQ.ans)[moleInput.length];
   slot.visible = false; slot.digit = null;
   slot.bodyEl.classList.remove('up');
   if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
+  if (wasNeeded) moleEnsureDigit(100);
 }
 
 function moleClick(i) {
