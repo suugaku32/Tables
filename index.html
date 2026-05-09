@@ -1821,8 +1821,8 @@ function snakeStop() { snakeOver(true); }
 function snakeResizeCanvas() {
   const canvas = document.getElementById('snake-canvas');
   const hud    = document.getElementById('snake-hud');
-  const availW = window.innerWidth;
-  const availH = window.innerHeight - hud.offsetHeight;
+  const availW = Math.min(window.innerWidth,  13 * SNAKE_CS);
+  const availH = Math.min(window.innerHeight - hud.offsetHeight, 22 * SNAKE_CS);
   canvas.width  = Math.floor(availW / SNAKE_CS) * SNAKE_CS;
   canvas.height = Math.floor(availH / SNAKE_CS) * SNAKE_CS;
 }
