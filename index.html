@@ -2335,7 +2335,15 @@ function moleHide(slot) {
   slot.visible = false; slot.digit = null;
   slot.bodyEl.classList.remove('up');
   if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
-  if (moleRunning) setTimeout(moleSpawn, Math.max(80, 220 - (moleLevel - 1) * 14));
+  if (moleRunning) {
+    const nextDigit = moleCurrentQ ? String(moleCurrentQ.ans)[moleInput.length] : null;
+    const correctPresent = nextDigit && moleSlots.some(s =>
+      s.visible && s.bodyEl.classList.contains('up') && String(s.digit) === nextDigit
+    );
+    const delay = correctPresent ? Math.max(80, 220 - (moleLevel - 1) * 14) : 0;
+    console.debug('[taupe] hide → spawn delay', delay, 'nextDigit', nextDigit, 'correctPresent', correctPresent);
+    setTimeout(moleSpawn, delay);
+  }
 }
 
 function moleClick(i) {
