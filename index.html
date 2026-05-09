@@ -2068,6 +2068,7 @@ let moleLevel       = 1;
 let moleTimeLeft    = 60;
 let moleTickInt     = null;
 let moleSpawnTimer  = null;
+let moleNextDur     = null;  // durée forcée pour le prochain moleShow (vague initiale)
 let moleCurrentQ    = null;
 let moleInput       = '';
 let moleSlots       = [];
@@ -2180,9 +2181,16 @@ function startMoleGame() {
   if (musicOn) _ma.play().catch(() => {});
   moleUpdateHUD();
   moleNextQ();
-  // Départ décalé : une taupe toutes les 160 ms jusqu'à MOLE_MAX_VIS
+  // Vague initiale : MOLE_MAX_VIS taupes presque simultanées, durées échelonnées
+  // La 1ère disparaît à moleDur(), la dernière à 2×moleDur()
+  const _baseDur = moleDur();
   for (let i = 0; i < MOLE_MAX_VIS; i++) {
-    moleSpawnTimer = setTimeout(() => { if (moleRunning) moleSpawn(); }, i * 160);
+    const _dur = Math.round(_baseDur * (1 + i / (MOLE_MAX_VIS - 1)));
+    moleSpawnTimer = setTimeout(() => {
+      if (!moleRunning) return;
+      moleNextDur = _dur;
+      moleSpawn();
+    }, i * 40);
   }
   if (!moleNoTimer) moleTickInt = setInterval(moleTick, 50);
 }
@@ -2253,7 +2261,8 @@ function moleShow(slot, digit) {
   slot.bodyEl.classList.remove('up');
   void slot.bodyEl.offsetWidth;
   slot.bodyEl.classList.add('up');
-  const dur = moleDur();
+  const dur = (moleNextDur !== null) ? moleNextDur : moleDur();
+  moleNextDur = null;
   slot.hideTimer = setTimeout(() => moleHide(slot), dur);
 
   if (moleCurrentQ) {
