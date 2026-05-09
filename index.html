@@ -1812,8 +1812,7 @@ function moleSpawn() {
   // nextDigit undefined pendant les 280 ms entre bonne réponse et question suivante
   if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
   const hasNext = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-  // 90 % de chance d'afficher le bon chiffre s'il n'est pas présent, 30 % sinon
-  const d = (Math.random() < (hasNext ? 0.3 : 0.9))
+  const d = (!hasNext && Math.random() < 0.9)
     ? parseInt(nextDigit)
     : moleUnusedDigit(parseInt(nextDigit));
   moleShow(slot, d);
