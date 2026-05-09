@@ -1642,6 +1642,7 @@ let moleCurrentQ    = null;
 let moleInput       = '';
 let moleSlots       = [];
 let moleSelTables   = new Set([2,3,4,5,6,7,8,9,10]);
+let moleLastNeededAt = 0;
 let molePairs       = [];
 let molePairScores  = {};
 
@@ -1755,6 +1756,7 @@ function startMoleGame() {
 
 function moleNextQ() {
   moleInput = '';
+  moleLastNeededAt = Date.now();
   const q = molePickQuestion();
   moleCurrentQ = q;
   moleUpdateQ();
@@ -1811,8 +1813,9 @@ function moleSpawn() {
   const nextDigit = ansStr[moleInput.length];
   // nextDigit undefined pendant les 280 ms entre bonne réponse et question suivante
   if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
-  const hasNext = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-  const d = (!hasNext && Math.random() < 0.9)
+  const hasNext  = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+  const overdue  = !hasNext && Date.now() - moleLastNeededAt > 1500;
+  const d = (overdue || (!hasNext && Math.random() < 0.9))
     ? parseInt(nextDigit)
     : moleUnusedDigit(parseInt(nextDigit));
   moleShow(slot, d);
@@ -1832,14 +1835,19 @@ function moleShow(slot, digit) {
   const dur = moleDur();
   slot.hideTimer = setTimeout(() => moleHide(slot), dur);
 
-  // Si le bon chiffre est déjà visible sur une autre taupe, prolonge son timer
   if (moleCurrentQ) {
     const nd = String(moleCurrentQ.ans)[moleInput.length];
-    if (nd && String(digit) !== nd) {
-      const ndSlot = moleSlots.find(s => s !== slot && s.visible && String(s.digit) === nd);
-      if (ndSlot) {
-        clearTimeout(ndSlot.hideTimer);
-        ndSlot.hideTimer = setTimeout(() => moleHide(ndSlot), dur);
+    if (nd) {
+      if (String(digit) === nd) {
+        // Le bon chiffre vient d'apparaître — reset du compteur
+        moleLastNeededAt = Date.now();
+      } else {
+        // Un autre chiffre apparaît — prolonge le timer du bon chiffre s'il est visible
+        const ndSlot = moleSlots.find(s => s !== slot && s.visible && String(s.digit) === nd);
+        if (ndSlot) {
+          clearTimeout(ndSlot.hideTimer);
+          ndSlot.hideTimer = setTimeout(() => moleHide(ndSlot), dur);
+        }
       }
     }
   }
