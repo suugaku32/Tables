@@ -1763,7 +1763,10 @@ function moleNextQ() {
 
 function moleScheduleSpawn() {
   if (!moleRunning) return;
-  const interval = Math.max(550, MOLE_INT_BASE - (moleLevel - 1) * 65);
+  const visible  = moleSlots.filter(s => s.visible).length;
+  const interval = visible < 5
+    ? 200
+    : Math.max(600, MOLE_INT_BASE - (moleLevel - 1) * 65);
   moleSpawnTimer = setTimeout(() => {
     if (moleRunning) { moleSpawn(); moleScheduleSpawn(); }
   }, interval);
@@ -1785,18 +1788,33 @@ function moleEnsureDigit(delayMs) {
   }, delayMs);
 }
 
+function moleUnusedDigit(exclude) {
+  // Chiffre non déjà affiché (et différent de exclude si fourni)
+  const used = new Set(moleSlots.filter(s => s.visible).map(s => s.digit));
+  if (exclude !== undefined) used.add(exclude);
+  const avail = [];
+  for (let i = 0; i <= 9; i++) { if (!used.has(i)) avail.push(i); }
+  if (!avail.length) {
+    // Tous les chiffres déjà présents – on accepte un doublon plutôt que bloquer
+    const pool = [];
+    for (let i = 0; i <= 9; i++) { if (i !== exclude) pool.push(i); }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  return avail[Math.floor(Math.random() * avail.length)];
+}
+
 function moleSpawn() {
   const free = moleSlots.filter(s => !s.visible);
   if (!free.length) return;
-  const slot = free[Math.floor(Math.random() * free.length)];
+  const slot      = free[Math.floor(Math.random() * free.length)];
   const ansStr    = String(moleCurrentQ.ans);
   const nextDigit = ansStr[moleInput.length];
-  // nextDigit est undefined pendant les 280 ms entre la bonne réponse et la question suivante
-  if (!nextDigit) { moleShow(slot, Math.floor(Math.random() * 10)); return; }
-  const hasNext   = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+  // nextDigit undefined pendant les 280 ms entre bonne réponse et question suivante
+  if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
+  const hasNext = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
   const d = (!hasNext && Math.random() < 0.4)
     ? parseInt(nextDigit)
-    : Math.floor(Math.random() * 10);
+    : moleUnusedDigit(parseInt(nextDigit));  // ne duplique pas le chiffre cible non plus
   moleShow(slot, d);
 }
 
