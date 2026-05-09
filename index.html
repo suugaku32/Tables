@@ -2220,31 +2220,28 @@ function moleUnusedDigit(exclude) {
 }
 
 function moleSpawn() {
-  // Une taupe va spawner — choix d'un emplacement libre.
   const free = moleSlots.filter(s => !s.visible);
-  if (!free.length) {
-    console.warn('[moleSpawn] aucun slot libre — toutes les taupes visibles');
-    return;
-  }
+  if (!free.length) return;
   const slot = free[Math.floor(Math.random() * free.length)];
 
-  // Pas de question active (entre 2 questions) → chiffre aléatoire.
   if (!moleCurrentQ) { moleShow(slot, moleUnusedDigit()); return; }
   const ansStr    = String(moleCurrentQ.ans);
-  const nextDigit = ansStr[moleInput.length];   // chiffre demandé À L'INSTANT t
+  const nextDigit = ansStr[moleInput.length];
   if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
 
-  // Test à l'instant t : le chiffre demandé est-il visible MAINTENANT ?
-  const present = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+  // Vérifie visible ET réellement levée (.up) pour éviter la désync état/DOM
+  const present = moleSlots.some(s =>
+    s.visible &&
+    s.bodyEl.classList.contains('up') &&
+    String(s.digit) === nextDigit
+  );
 
-  // DEBUG : trace l'état au moment du spawn
-  const visibleDigits = moleSlots.filter(s => s.visible).map(s => s.digit).join(',');
-  console.log(`[moleSpawn] q=${moleCurrentQ.a}×${moleCurrentQ.b}=${moleCurrentQ.ans} input="${moleInput}" need="${nextDigit}" present=${present} visible=[${visibleDigits}]`);
-
-  // Présent → on spawn aléatoire. Absent → on spawn le chiffre demandé.
   const d = present
     ? moleUnusedDigit(parseInt(nextDigit))
     : parseInt(nextDigit);
+
+  // Garde NaN : ne pas spawner de valeur invalide
+  if (isNaN(d)) { moleShow(slot, moleUnusedDigit()); return; }
   moleShow(slot, d);
 }
 
@@ -2258,6 +2255,9 @@ function moleShow(slot, digit) {
   if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
   slot.digit = digit; slot.visible = true;
   slot.digitEl.textContent = String(digit);
+  // Force un reflow pour réinitialiser la transition CSS (évite la désync visuelle)
+  slot.bodyEl.classList.remove('up');
+  void slot.bodyEl.offsetWidth;
   slot.bodyEl.classList.add('up');
   const dur = moleDur();
   slot.hideTimer = setTimeout(() => moleHide(slot), dur);
@@ -2275,9 +2275,15 @@ function moleShow(slot, digit) {
 }
 
 function moleHide(slot) {
+  const nextDigit = moleCurrentQ ? String(moleCurrentQ.ans)[moleInput.length] : null;
+  const wasNeeded = nextDigit && slot.visible && String(slot.digit) === nextDigit;
+
   slot.visible = false; slot.digit = null;
   slot.bodyEl.classList.remove('up');
   if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
+
+  // Si c'était le bon chiffre, le respawner immédiatement
+  if (wasNeeded && moleRunning) setTimeout(moleSpawn, 80);
 }
 
 function moleClick(i) {
