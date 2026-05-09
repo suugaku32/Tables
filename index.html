@@ -1683,9 +1683,10 @@ function molePickQuestion() {
   return { a: p.a, b: p.b, ans: p.a * p.b };
 }
 
-const MOLE_COUNT    = 12;    // grille 3×4
-const MOLE_DUR_BASE = 5800;  // durée initiale (niveau 1)
-const MOLE_INT_BASE = 1400;  // intervalle initial entre spawns
+const MOLE_COUNT      = 12;    // grille 3×4
+const MOLE_DUR_BASE   = 5800;  // durée initiale (niveau 1)
+const MOLE_INT_BASE   = 1400;  // intervalle initial entre spawns
+const MOLE_START_TIME = 40;    // temps de départ
 
 function showMole() {
   hide('screen-main');
@@ -1718,7 +1719,7 @@ function setMoleTimer(on) {
 function startMoleGame() {
   lastGameType = 'mole';
   hide('screen-mole');
-  moleScore = 0; moleLevel = 1; moleTimeLeft = 60; moleInput = ''; moleRunning = true;
+  moleScore = 0; moleLevel = 1; moleTimeLeft = MOLE_START_TIME; moleInput = ''; moleRunning = true;
   molePairs = moleBuildPairs(); moleInitPairScores();
 
   const arena = document.getElementById('mole-arena');
@@ -1878,8 +1879,9 @@ function moleUpdateQ() {
 
 function moleTick() {
   if (!moleRunning) return;
-  moleTimeLeft -= 0.05;
-  const pct  = Math.max(0, moleTimeLeft / 60 * 100);
+  const drain = 1.6 + (moleLevel - 1) * 0.07;   // accélère avec les niveaux
+  moleTimeLeft -= 0.05 * drain;
+  const pct  = Math.max(0, moleTimeLeft / MOLE_START_TIME * 100);
   const fill = document.getElementById('mole-timer-fill');
   fill.style.width = pct + '%';
   fill.style.background =
