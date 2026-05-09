@@ -1792,7 +1792,10 @@ function moleUnusedDigit(exclude) {
 function moleSpawn() {
   // Une taupe va spawner — choix d'un emplacement libre.
   const free = moleSlots.filter(s => !s.visible);
-  if (!free.length) return;
+  if (!free.length) {
+    console.warn('[moleSpawn] aucun slot libre — toutes les taupes visibles');
+    return;
+  }
   const slot = free[Math.floor(Math.random() * free.length)];
 
   // Pas de question active (entre 2 questions) → chiffre aléatoire.
@@ -1803,6 +1806,10 @@ function moleSpawn() {
 
   // Test à l'instant t : le chiffre demandé est-il visible MAINTENANT ?
   const present = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+
+  // DEBUG : trace l'état au moment du spawn
+  const visibleDigits = moleSlots.filter(s => s.visible).map(s => s.digit).join(',');
+  console.log(`[moleSpawn] q=${moleCurrentQ.a}×${moleCurrentQ.b}=${moleCurrentQ.ans} input="${moleInput}" need="${nextDigit}" present=${present} visible=[${visibleDigits}]`);
 
   // Présent → on spawn aléatoire. Absent → on spawn le chiffre demandé.
   const d = present
