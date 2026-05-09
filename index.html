@@ -879,6 +879,27 @@ function sfxWrong() {
   g.gain.setValueAtTime(.15,t); g.gain.exponentialRampToValueAtTime(.0001,t+.42);
   osc.start(t); osc.stop(t+.45);
 }
+function sfxMiam() {
+  const ctx = _ac(); if (!ctx) return;
+  const t = ctx.currentTime;
+  [[0, 520, 220], [0.13, 480, 200]].forEach(([dt, f0, f1]) => {
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f0, t+dt);
+    osc.frequency.exponentialRampToValueAtTime(f1, t+dt+0.09);
+    g.gain.setValueAtTime(0.28, t+dt);
+    g.gain.exponentialRampToValueAtTime(0.001, t+dt+0.11);
+    osc.start(t+dt); osc.stop(t+dt+0.13);
+    const osc2 = ctx.createOscillator(), g2 = ctx.createGain();
+    osc2.connect(g2); g2.connect(ctx.destination);
+    osc2.type = 'triangle';
+    osc2.frequency.value = f1 * 0.5;
+    g2.gain.setValueAtTime(0.09, t+dt);
+    g2.gain.exponentialRampToValueAtTime(0.001, t+dt+0.1);
+    osc2.start(t+dt); osc2.stop(t+dt+0.12);
+  });
+}
 function sfxLevelUp() {
   const t = _ac()?.currentTime ?? 0;
   [[523.25,0],[659.25,.1],[783.99,.2],[1046.5,.3],[1318.5,.4]].forEach(([f,d]) => _tone(f,.3,.18,'triangle',t+d));
@@ -1896,6 +1917,7 @@ function snakeTick() {
     const newSeg = { x: last.x, y: last.y, digit: eaten.val };
     _snakeShift(wx, wy);
     snakeBody.push(newSeg);
+    sfxMiam();
     snakeAnsIdx++;
     snakeRespawnDigit(eaten);
     if (snakeAnsIdx >= snakeAnsDigits.length) {
