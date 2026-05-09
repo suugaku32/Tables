@@ -1913,11 +1913,7 @@ function snakeTick() {
     // Mauvais chiffre — vie perdue, progression remise à zéro
     _snakeShift(wx, wy);
     sfxWrong();
-    snakeLives--;
-    snakeAnsIdx = 0;
-    snakeUpdateHUD();
-    snakeUpdateQ();
-    if (snakeLives<=0) { snakeOver(false); return; }
+    snakeRespawnDigit(eaten);
   } else {
     _snakeShift(wx, wy);
   }
