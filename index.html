@@ -1683,8 +1683,8 @@ function molePickQuestion() {
   return { a: p.a, b: p.b, ans: p.a * p.b };
 }
 
-const MOLE_COUNT    = 9;
-const MOLE_DUR_BASE = 5000;  // durée initiale (niveau 1)
+const MOLE_COUNT    = 12;    // grille 3×4
+const MOLE_DUR_BASE = 5800;  // durée initiale (niveau 1)
 const MOLE_INT_BASE = 1400;  // intervalle initial entre spawns
 
 function showMole() {
@@ -1800,7 +1800,7 @@ function moleShow(slot, digit) {
   slot.digit = digit; slot.visible = true;
   slot.digitEl.textContent = String(digit);
   slot.bodyEl.classList.add('up');
-  const dur = Math.max(1400, MOLE_DUR_BASE - (moleLevel - 1) * 270);
+  const dur = Math.max(1400, MOLE_DUR_BASE - Math.pow(moleLevel - 1, 1.6) * 220);
   slot.hideTimer = setTimeout(() => moleHide(slot), dur);
 }
 
