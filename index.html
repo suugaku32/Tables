@@ -1638,7 +1638,6 @@ let moleLevel       = 1;
 let moleTimeLeft    = 60;
 let moleTickInt     = null;
 let moleSpawnTimer  = null;
-let moleGuardInt    = null;
 let moleCurrentQ    = null;
 let moleInput       = '';
 let moleSlots       = [];
@@ -1752,14 +1751,6 @@ function startMoleGame() {
   moleNextQ();
   moleScheduleSpawn();
   if (!moleNoTimer) moleTickInt = setInterval(moleTick, 50);
-  // Garantit que le prochain chiffre attendu est toujours visible
-  moleGuardInt = setInterval(() => {
-    if (!moleRunning || !moleCurrentQ) return;
-    const nd = String(moleCurrentQ.ans)[moleInput.length];
-    if (!nd) return;
-    if (!moleSlots.some(s => s.visible && String(s.digit) === nd))
-      moleEnsureDigit(0);
-  }, 1200);
 }
 
 function moleNextQ() {
@@ -1821,10 +1812,17 @@ function moleSpawn() {
   // nextDigit undefined pendant les 280 ms entre bonne réponse et question suivante
   if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
   const hasNext = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-  const d = (!hasNext && Math.random() < 0.4)
+  // 90 % de chance d'afficher le bon chiffre s'il n'est pas présent, 30 % sinon
+  const d = (Math.random() < (hasNext ? 0.3 : 0.9))
     ? parseInt(nextDigit)
-    : moleUnusedDigit(parseInt(nextDigit));  // ne duplique pas le chiffre cible non plus
+    : moleUnusedDigit(parseInt(nextDigit));
   moleShow(slot, d);
+}
+
+function moleDur() {
+  return moleLevel <= 9
+    ? (7.5 - moleLevel * 0.5) * 1000
+    : Math.max(1400, (3 - (moleLevel - 9) * 0.2) * 1000);
 }
 
 function moleShow(slot, digit) {
@@ -1832,11 +1830,20 @@ function moleShow(slot, digit) {
   slot.digit = digit; slot.visible = true;
   slot.digitEl.textContent = String(digit);
   slot.bodyEl.classList.add('up');
-  // Niv 1→9 : 7s → 3s (−0,5s/niv) ; niv 10+ : −0,2s/niv jusqu'au plancher 1,4s
-  const dur = moleLevel <= 9
-    ? (7.5 - moleLevel * 0.5) * 1000
-    : Math.max(1400, (3 - (moleLevel - 9) * 0.2) * 1000);
+  const dur = moleDur();
   slot.hideTimer = setTimeout(() => moleHide(slot), dur);
+
+  // Si le bon chiffre est déjà visible sur une autre taupe, prolonge son timer
+  if (moleCurrentQ) {
+    const nd = String(moleCurrentQ.ans)[moleInput.length];
+    if (nd && String(digit) !== nd) {
+      const ndSlot = moleSlots.find(s => s !== slot && s.visible && String(s.digit) === nd);
+      if (ndSlot) {
+        clearTimeout(ndSlot.hideTimer);
+        ndSlot.hideTimer = setTimeout(() => moleHide(ndSlot), dur);
+      }
+    }
+  }
 }
 
 function moleHide(slot) {
@@ -1932,7 +1939,6 @@ function moleUpdateHUD() {
 
 function _moleClearTimers() {
   clearInterval(moleTickInt);
-  clearInterval(moleGuardInt);
   if (moleSpawnTimer) clearTimeout(moleSpawnTimer);
   moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
 }
