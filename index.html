@@ -1727,7 +1727,9 @@ let snakeRunning = false;
 let snakeBody    = [];        // [{x,y}, …]  head = [0]
 let snakeDir     = {x:1,y:0};
 let snakeNextDir = {x:1,y:0};
-let snakeFood    = [];        // [{x,y,val,ok}, …]
+let snakeDigits   = [];  // [{val:0-9, x, y}] — 10 chiffres toujours présents
+let snakeAnsDigits= [];  // chiffres de la réponse à manger dans l'ordre, ex [5,6]
+let snakeAnsIdx   = 0;   // prochain chiffre à manger
 let snakeScore   = 0;
 let snakeLives   = 3;
 let snakeQ       = null;      // {a,b,ans}
@@ -1822,18 +1824,27 @@ function snakeGrid() {
   };
 }
 
-// ── Question & food ───────────────────────────────────────────
+// ── Question & digits ─────────────────────────────────────────
 function snakeNewQ() {
   const tbls = [...snakeTables];
   const a = tbls[Math.floor(Math.random() * tbls.length)];
   const b = 2 + Math.floor(Math.random() * 11);
   snakeQ = { a, b, ans: a * b };
-  document.getElementById('snake-question').textContent = `${a} × ${b} = ?`;
-  snakePlaceFood();
+  snakeAnsDigits = String(a * b).split('').map(Number);
+  snakeAnsIdx = 0;
+  snakePlaceDigits();
+  snakeUpdateQ();
   snakeUpdateHUD();
 }
 
-function snakePlaceFood() {
+function snakeUpdateQ() {
+  const {a, b} = snakeQ;
+  const done = snakeAnsDigits.slice(0, snakeAnsIdx).join('');
+  const rem  = snakeAnsDigits.slice(snakeAnsIdx).map(() => '?').join('');
+  document.getElementById('snake-question').textContent = `${a} × ${b} = ${done}${rem}`;
+}
+
+function snakePlaceDigits() {
   const {cols, rows} = snakeGrid();
   const occupied = new Set(snakeBody.map(s => `${s.x},${s.y}`));
   const free = [];
@@ -1844,16 +1855,23 @@ function snakePlaceFood() {
     const j = Math.floor(Math.random()*(i+1));
     [free[i],free[j]] = [free[j],free[i]];
   }
-  const ans = snakeQ.ans, a = snakeQ.a, b = snakeQ.b;
-  const traps = [];
-  const cands = [ans+1,ans-1,ans+2,ans-2,a*(b+1),a*(b-1),(a+1)*b,(a-1)*b,ans+a,ans+b];
-  for (const c of cands) {
-    if (c>0 && c!==ans && !traps.includes(c)) traps.push(c);
-    if (traps.length>=3) break;
-  }
-  while (traps.length<3) traps.push(ans+10+traps.length*3);
-  const items = [{val:ans,ok:true}, ...traps.map(v=>({val:v,ok:false}))];
-  snakeFood = items.map((item,i) => free[i] ? {...free[i],...item} : null).filter(Boolean);
+  snakeDigits = [];
+  for (let v=0; v<=9; v++) snakeDigits.push({val:v, ...free[v]});
+}
+
+function snakeRespawnDigit(d) {
+  const {cols, rows} = snakeGrid();
+  const occ = new Set([
+    ...snakeBody.map(s => `${s.x},${s.y}`),
+    ...snakeDigits.filter(dd => dd !== d).map(dd => `${dd.x},${dd.y}`)
+  ]);
+  const free = [];
+  for (let x=0; x<cols; x++)
+    for (let y=0; y<rows; y++)
+      if (!occ.has(`${x},${y}`)) free.push({x,y});
+  if (!free.length) return;
+  const pos = free[Math.floor(Math.random()*free.length)];
+  d.x = pos.x; d.y = pos.y;
 }
 
 // ── Game loop ─────────────────────────────────────────────────
@@ -1873,26 +1891,34 @@ function snakeTick() {
     snakeLoseLife(); return;
   }
 
-  const eaten = snakeFood.find(f => f.x===nx && f.y===ny);
+  const eaten = snakeDigits.find(d => d.x===nx && d.y===ny);
   snakeBody.unshift({x:nx, y:ny});
 
   if (eaten) {
-    snakeFood = snakeFood.filter(f => f!==eaten);
-    if (eaten.ok) {
-      // Correct — keep tail (grow), score++, speed up
-      snakeScore++;
-      sfxCorrect();
-      snakeSpeed = Math.max(75, snakeSpeed - 6);
-      clearInterval(snakeIntId);
-      snakeIntId = setInterval(snakeTick, snakeSpeed);
-      snakeNewQ();
+    if (eaten.val === snakeAnsDigits[snakeAnsIdx]) {
+      // Bon chiffre — grandit, respawn, avance dans la réponse
+      snakeAnsIdx++;
+      snakeRespawnDigit(eaten);
+      if (snakeAnsIdx >= snakeAnsDigits.length) {
+        snakeScore++;
+        sfxCorrect();
+        snakeSpeed = Math.max(75, snakeSpeed - 6);
+        clearInterval(snakeIntId);
+        snakeIntId = setInterval(snakeTick, snakeSpeed);
+        snakeNewQ();
+        return;
+      } else {
+        snakeUpdateQ();
+      }
     } else {
+      // Mauvais chiffre — vie perdue, progression remise à zéro
       snakeBody.pop();
       sfxWrong();
       snakeLives--;
+      snakeAnsIdx = 0;
       snakeUpdateHUD();
+      snakeUpdateQ();
       if (snakeLives<=0) { snakeOver(false); return; }
-      snakePlaceFood();  // regenerate food
     }
   } else {
     snakeBody.pop();
@@ -1903,15 +1929,15 @@ function snakeTick() {
 function snakeLoseLife() {
   sfxWrong();
   snakeLives--;
+  snakeAnsIdx = 0;
   snakeUpdateHUD();
+  snakeUpdateQ();
   if (snakeLives<=0) { snakeOver(false); return; }
-  // Respawn snake in center
   const {cols,rows} = snakeGrid();
   const cx=Math.floor(cols/2), cy=Math.floor(rows/2);
   snakeBody    = [{x:cx,y:cy},{x:cx-1,y:cy},{x:cx-2,y:cy}];
   snakeDir     = {x:1,y:0};
   snakeNextDir = {x:1,y:0};
-  snakePlaceFood();
   snakeDraw();
 }
 
@@ -1936,18 +1962,20 @@ function snakeDraw() {
     ctx.beginPath(); ctx.moveTo(ox,oy+y*cs); ctx.lineTo(ox+cols*cs,oy+y*cs); ctx.stroke();
   }
 
-  // Food
-  for (const f of snakeFood) {
-    const px=ox+f.x*cs, py=oy+f.y*cs, pad=3;
-    ctx.shadowBlur = f.ok ? 18 : 10;
-    ctx.shadowColor= f.ok ? '#43e97b' : '#f5576c';
-    ctx.fillStyle  = f.ok ? 'rgba(67,233,123,0.18)' : 'rgba(245,87,108,0.15)';
+  // Digits (0-9 always on field)
+  const targetVal = snakeAnsDigits[snakeAnsIdx];
+  for (const d of snakeDigits) {
+    const px=ox+d.x*cs, py=oy+d.y*cs, pad=3;
+    const isTarget = d.val === targetVal;
+    ctx.shadowBlur  = isTarget ? 22 : 6;
+    ctx.shadowColor = isTarget ? '#ffd700' : 'rgba(255,255,255,0.2)';
+    ctx.fillStyle   = isTarget ? 'rgba(255,215,0,0.22)' : 'rgba(255,255,255,0.06)';
     snakeRR(ctx, px+pad, py+pad, cs-pad*2, cs-pad*2, 5); ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.fillStyle  = f.ok ? '#43e97b' : '#ff6b8a';
+    ctx.fillStyle  = isTarget ? '#ffd700' : 'rgba(255,255,255,0.55)';
     ctx.font       = `bold ${Math.floor(cs*.44)}px Arial Rounded MT Bold,Arial`;
     ctx.textAlign  = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(f.val), px+cs/2, py+cs/2);
+    ctx.fillText(String(d.val), px+cs/2, py+cs/2);
   }
 
   // Snake body
