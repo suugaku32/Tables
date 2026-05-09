@@ -1789,6 +1789,8 @@ function moleSpawn() {
   const slot = free[Math.floor(Math.random() * free.length)];
   const ansStr    = String(moleCurrentQ.ans);
   const nextDigit = ansStr[moleInput.length];
+  // nextDigit est undefined pendant les 280 ms entre la bonne réponse et la question suivante
+  if (!nextDigit) { moleShow(slot, Math.floor(Math.random() * 10)); return; }
   const hasNext   = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
   const d = (!hasNext && Math.random() < 0.4)
     ? parseInt(nextDigit)
