@@ -2210,6 +2210,7 @@ function setMoleTimer(on) {
 
 function startMoleGame() {
   lastGameType = 'mole';
+  _ac();   // init AudioContext during user gesture so SFX work immediately
   hide('screen-mole');
   moleScore = 0; moleLevel = 1; moleTimeLeft = MOLE_START_TIME; moleInput = ''; moleRunning = true;
   molePairs = moleBuildPairs(); moleInitPairScores();
