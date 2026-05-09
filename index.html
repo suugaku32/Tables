@@ -2180,7 +2180,10 @@ function startMoleGame() {
   if (musicOn) _ma.play().catch(() => {});
   moleUpdateHUD();
   moleNextQ();
-  moleScheduleSpawn();
+  // Départ décalé : une taupe toutes les 160 ms jusqu'à MOLE_MAX_VIS
+  for (let i = 0; i < MOLE_MAX_VIS; i++) {
+    moleSpawnTimer = setTimeout(() => { if (moleRunning) moleSpawn(); }, i * 160);
+  }
   if (!moleNoTimer) moleTickInt = setInterval(moleTick, 50);
 }
 
@@ -2192,23 +2195,6 @@ function moleNextQ() {
   moleSpawn();  // spawn immédiat du chiffre attendu si pas déjà visible
 }
 
-function moleScheduleSpawn() {
-  if (!moleRunning) return;
-  const visible  = moleSlots.filter(s => s.visible).length;
-  if (visible >= MOLE_MAX_VIS) {
-    // Plafond atteint : replanifier sans spawner, vérifier à nouveau plus tard
-    moleSpawnTimer = setTimeout(moleScheduleSpawn, 300);
-    return;
-  }
-  const interval = visible < 3
-    ? 200
-    : Math.max(600, MOLE_INT_BASE - (moleLevel - 1) * 65);
-  moleSpawnTimer = setTimeout(() => {
-    if (!moleRunning) return;
-    try { moleSpawn(); } catch (e) {}
-    moleScheduleSpawn();
-  }, interval);
-}
 
 function moleUnusedDigit(exclude) {
   // Chiffre non déjà affiché (et différent de exclude si fourni)
@@ -2226,6 +2212,7 @@ function moleUnusedDigit(exclude) {
 }
 
 function moleSpawn() {
+  if (!moleRunning) return;
   const visible = moleSlots.filter(s => s.visible).length;
   if (visible >= MOLE_MAX_VIS) return;
   const free = moleSlots.filter(s => !s.visible);
@@ -2283,15 +2270,11 @@ function moleShow(slot, digit) {
 }
 
 function moleHide(slot) {
-  const nextDigit = moleCurrentQ ? String(moleCurrentQ.ans)[moleInput.length] : null;
-  const wasNeeded = nextDigit && slot.visible && String(slot.digit) === nextDigit;
-
   slot.visible = false; slot.digit = null;
   slot.bodyEl.classList.remove('up');
   if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
-
-  // Si c'était le bon chiffre, le respawner immédiatement
-  if (wasNeeded && moleRunning) setTimeout(moleSpawn, 80);
+  // Toujours remplacer la taupe qui se cache (rythme régulier, un pour un)
+  if (moleRunning) setTimeout(moleSpawn, 120);
 }
 
 function moleClick(i) {
