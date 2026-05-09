@@ -468,28 +468,6 @@
     #snake-canvas { flex: 1; width: 100%; display: block; min-height: 0; }
     #snake-tbl-warn { color: #ff6b6b; font-size: .82rem; margin-top: 6px; display: none; }
 
-    /* ── D-pad ── */
-    #snake-dpad {
-      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-      display: grid;
-      grid-template-areas: ". up ." "left . right" ". down .";
-      grid-template-columns: 52px 52px 52px;
-      grid-template-rows: 52px 52px 52px;
-      gap: 5px; z-index: 210;
-    }
-    #dpad-up    { grid-area: up; }
-    #dpad-left  { grid-area: left; }
-    #dpad-right { grid-area: right; }
-    #dpad-down  { grid-area: down; }
-    .dpad-btn {
-      background: rgba(255,255,255,0.07);
-      border: 2px solid rgba(255,255,255,0.15);
-      border-radius: 12px; color: rgba(255,255,255,0.65);
-      font-size: 1.4rem; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      touch-action: manipulation; user-select: none;
-    }
-    .dpad-btn:active { background: rgba(255,255,255,0.18); }
   </style>
 </head>
 <body>
@@ -677,12 +655,6 @@
     <button id="snake-stop-btn" onclick="snakeStop()">Fin</button>
   </div>
   <canvas id="snake-canvas"></canvas>
-  <div id="snake-dpad">
-    <button class="dpad-btn" id="dpad-up"    onclick="snakeDpadDir(0,-1)">▲</button>
-    <button class="dpad-btn" id="dpad-left"  onclick="snakeDpadDir(-1,0)">◀</button>
-    <button class="dpad-btn" id="dpad-right" onclick="snakeDpadDir(1,0)">▶</button>
-    <button class="dpad-btn" id="dpad-down"  onclick="snakeDpadDir(0,1)">▼</button>
-  </div>
 </div>
 
 <!-- ══ JEU MEMORY ══ -->
