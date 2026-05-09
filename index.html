@@ -1642,7 +1642,6 @@ let moleCurrentQ    = null;
 let moleInput       = '';
 let moleSlots       = [];
 let moleSelTables   = new Set([2,3,4,5,6,7,8,9,10]);
-let moleGuardInt     = null;
 let molePairs       = [];
 let molePairScores  = {};
 
@@ -1754,33 +1753,12 @@ function startMoleGame() {
   if (!moleNoTimer) moleTickInt = setInterval(moleTick, 50);
 }
 
-// Polling explicite : vérifie le chiffre attendu (ansStr[moleInput.length])
-// — le 1er si moleInput="", le 2nd si moleInput a un caractère, etc.
-function moleEnsureNeeded() {
-  if (!moleRunning || !moleCurrentQ) return;
-  const ansStr = String(moleCurrentQ.ans);
-  const nextDigit = ansStr[moleInput.length];
-  if (!nextDigit) return;
-  const hasIt = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-  if (hasIt) return;
-  const free = moleSlots.filter(s => !s.visible);
-  if (!free.length) return;
-  const s = free[Math.floor(Math.random() * free.length)];
-  moleShow(s, parseInt(nextDigit));
-}
-
-function moleResetGuard() {
-  if (moleGuardInt) return;
-  moleGuardInt = setInterval(moleEnsureNeeded, 200);
-}
-
 function moleNextQ() {
   moleInput = '';
-  moleResetGuard();
   const q = molePickQuestion();
   moleCurrentQ = q;
   moleUpdateQ();
-  moleEnsureDigit(0);
+  moleSpawn();  // spawn immédiat du chiffre attendu si pas déjà visible
 }
 
 function moleScheduleSpawn() {
@@ -1792,22 +1770,6 @@ function moleScheduleSpawn() {
   moleSpawnTimer = setTimeout(() => {
     if (moleRunning) { moleSpawn(); moleScheduleSpawn(); }
   }, interval);
-}
-
-function moleEnsureDigit(delayMs) {
-  setTimeout(() => {
-    if (!moleRunning || !moleCurrentQ) return;
-    const nextDigit = String(moleCurrentQ.ans)[moleInput.length];
-    if (!nextDigit) return;
-    const hasIt = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-    if (!hasIt) {
-      const free = moleSlots.filter(s => !s.visible);
-      if (free.length) {
-        const s = free[Math.floor(Math.random() * free.length)];
-        moleShow(s, parseInt(nextDigit));
-      }
-    }
-  }, delayMs);
 }
 
 function moleUnusedDigit(exclude) {
@@ -1826,18 +1788,24 @@ function moleUnusedDigit(exclude) {
 }
 
 function moleSpawn() {
+  // Une taupe va spawner — choix d'un emplacement libre.
   const free = moleSlots.filter(s => !s.visible);
   if (!free.length) return;
-  const slot      = free[Math.floor(Math.random() * free.length)];
+  const slot = free[Math.floor(Math.random() * free.length)];
+
+  // Pas de question active (entre 2 questions) → chiffre aléatoire.
   if (!moleCurrentQ) { moleShow(slot, moleUnusedDigit()); return; }
   const ansStr    = String(moleCurrentQ.ans);
-  const nextDigit = ansStr[moleInput.length];
-  // nextDigit undefined pendant les 280 ms entre bonne réponse et question suivante
+  const nextDigit = ansStr[moleInput.length];   // chiffre demandé À L'INSTANT t
   if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
-  const hasNext = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-  const d = !hasNext
-    ? parseInt(nextDigit)
-    : moleUnusedDigit(parseInt(nextDigit));
+
+  // Test à l'instant t : le chiffre demandé est-il visible MAINTENANT ?
+  const present = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+
+  // Présent → on spawn aléatoire. Absent → on spawn le chiffre demandé.
+  const d = present
+    ? moleUnusedDigit(parseInt(nextDigit))
+    : parseInt(nextDigit);
   moleShow(slot, d);
 }
 
@@ -1868,12 +1836,9 @@ function moleShow(slot, digit) {
 }
 
 function moleHide(slot) {
-  const wasNeeded = moleCurrentQ && slot.digit !== null &&
-    String(slot.digit) === String(moleCurrentQ.ans)[moleInput.length];
   slot.visible = false; slot.digit = null;
   slot.bodyEl.classList.remove('up');
   if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
-  if (wasNeeded) moleEnsureDigit(100);
 }
 
 function moleClick(i) {
@@ -1892,7 +1857,6 @@ function moleClick(i) {
     clearTimeout(slot.hideTimer); slot.hideTimer = null;
     moleHide(slot);
     moleInput += tapped;
-    moleResetGuard();
     moleUpdateQ();
     if (moleInput === ansStr) {
       moleScore++;
@@ -1911,8 +1875,6 @@ function moleClick(i) {
       if (!moleNoTimer) moleTimeLeft = Math.min(90, moleTimeLeft + 5);
       moleUpdateHUD();
       setTimeout(() => moleNextQ(), 280);
-    } else {
-      moleEnsureDigit(200);
     }
   } else {
     sfxWrong();
@@ -1925,10 +1887,8 @@ function moleClick(i) {
     const p = molePairs.find(p => pairKey(p.a, p.b) === k);
     if (p) molePairScores[k] = Math.min(molePairScores[k] * SCORE_GROW, p.w * 2);
     moleInput = '';
-    moleResetGuard();
     moleUpdateQ();
     moleUpdateHUD();
-    moleEnsureDigit(100);
   }
 }
 
@@ -1966,7 +1926,6 @@ function moleUpdateHUD() {
 function _moleClearTimers() {
   clearInterval(moleTickInt);
   if (moleSpawnTimer) clearTimeout(moleSpawnTimer);
-  if (moleGuardInt) { clearInterval(moleGuardInt); moleGuardInt = null; }
   moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
 }
 
