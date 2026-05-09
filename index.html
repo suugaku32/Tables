@@ -2277,9 +2277,10 @@ function moleUnusedDigit(exclude) {
 
 function moleSpawn() {
   if (!moleRunning) return;
-  // Corrige toute désync visible=true / .up absent avant de compter
+  // Watchdog : corrige toute désync visible=true / .up absent
   moleSlots.forEach(slot => {
     if (slot.visible && !slot.bodyEl.classList.contains('up')) {
+      console.warn('[taupe] désync détectée slot', moleSlots.indexOf(slot), 'digit', slot.digit);
       slot.visible = false; slot.digit = null;
       if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
     }
@@ -2320,31 +2321,20 @@ function moleShow(slot, digit) {
   if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
   slot.digit = digit; slot.visible = true;
   slot.digitEl.textContent = String(digit);
-  // Force un reflow pour réinitialiser la transition CSS (évite la désync visuelle)
   slot.bodyEl.classList.remove('up');
-  void slot.bodyEl.offsetWidth;
+  void slot.bodyEl.offsetWidth;  // force reflow pour réinitialiser la transition
   slot.bodyEl.classList.add('up');
   const dur = (moleNextDur !== null) ? moleNextDur : moleDur();
   moleNextDur = null;
   slot.hideTimer = setTimeout(() => moleHide(slot), dur);
-
-  if (moleCurrentQ) {
-    const nd = String(moleCurrentQ.ans)[moleInput.length];
-    if (nd && String(digit) !== nd) {
-      const ndSlot = moleSlots.find(s => s !== slot && s.visible && String(s.digit) === nd);
-      if (ndSlot) {
-        clearTimeout(ndSlot.hideTimer);
-        ndSlot.hideTimer = setTimeout(() => moleHide(ndSlot), dur);
-      }
-    }
-  }
+  console.debug('[taupe] show slot', moleSlots.indexOf(slot), 'digit', digit, 'dur', dur);
 }
 
 function moleHide(slot) {
+  console.debug('[taupe] hide slot', moleSlots.indexOf(slot), 'digit', slot.digit);
   slot.visible = false; slot.digit = null;
   slot.bodyEl.classList.remove('up');
   if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
-  // Toujours remplacer la taupe qui se cache (rythme régulier, un pour un)
   if (moleRunning) setTimeout(moleSpawn, Math.max(80, 220 - (moleLevel - 1) * 14));
 }
 
@@ -2413,9 +2403,10 @@ function moleUpdateQ() {
 
 function moleTick() {
   if (!moleRunning) return;
-  // Watchdog : corrige la désync visible=true / .up absent
+  // Watchdog (moleTick) : corrige les désync visible/DOM
   moleSlots.forEach(slot => {
     if (slot.visible && !slot.bodyEl.classList.contains('up')) {
+      console.warn('[taupe] désync tick slot', moleSlots.indexOf(slot), 'digit', slot.digit);
       slot.visible = false; slot.digit = null;
       if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
       setTimeout(moleSpawn, 50);
