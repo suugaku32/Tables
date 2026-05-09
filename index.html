@@ -1734,9 +1734,9 @@ let snakeScore   = 0;
 let snakeLives   = 3;
 let snakeQ       = null;      // {a,b,ans}
 let snakeIntId   = null;
-let snakeSpeed   = 175;
+let snakeSpeed   = 300;
 
-const SNAKE_CS = 24; // cell size px
+const SNAKE_CS = 16; // cell size px
 
 // ── Navigation ────────────────────────────────────────────────
 function showSnake() {
@@ -1797,7 +1797,7 @@ function snakeStart() {
     snakeNextDir = {x:1,y:0};
     snakeScore   = 0;
     snakeLives   = 3;
-    snakeSpeed   = 175;
+    snakeSpeed   = 300;
     snakeRunning = true;
     snakeNewQ();
     snakeDraw();
@@ -1896,13 +1896,14 @@ function snakeTick() {
 
   if (eaten) {
     if (eaten.val === snakeAnsDigits[snakeAnsIdx]) {
-      // Bon chiffre — grandit, respawn, avance dans la réponse
+      // Bon chiffre — grandit, respawn, avance dans la réponse ; affiche le chiffre sur ce segment
+      snakeBody[0].digit = eaten.val;
       snakeAnsIdx++;
       snakeRespawnDigit(eaten);
       if (snakeAnsIdx >= snakeAnsDigits.length) {
         snakeScore++;
         sfxCorrect();
-        snakeSpeed = Math.max(75, snakeSpeed - 6);
+        snakeSpeed = Math.max(80, snakeSpeed - 10);
         clearInterval(snakeIntId);
         snakeIntId = setInterval(snakeTick, snakeSpeed);
         snakeNewQ();
@@ -2003,6 +2004,13 @@ function snakeDraw() {
       [[ex1+.8,ey+1],[ex2+.8,ey+1]].forEach(([ex,ey2]) => {
         ctx.beginPath(); ctx.ellipse(ex,ey2,1.4,1.8,0,0,Math.PI*2); ctx.fill();
       });
+    }
+    // Chiffre ingéré visible sur le corps
+    if (i > 0 && seg.digit !== undefined) {
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.font = `bold ${Math.floor(cs*.48)}px Arial Rounded MT Bold,Arial`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(seg.digit), px+cs/2, py+cs/2);
     }
   });
 }
