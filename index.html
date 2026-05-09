@@ -652,6 +652,7 @@
     <div id="snake-question">? × ? = ?</div>
     <div id="snake-score">⭐ 0</div>
     <div id="snake-lives">❤️❤️❤️</div>
+    <button id="snake-mute-btn" class="hud-btn" onclick="snakeMuteToggle()">🔊</button>
     <button id="snake-stop-btn" onclick="snakeStop()">Fin</button>
   </div>
   <canvas id="snake-canvas"></canvas>
@@ -896,12 +897,27 @@ function _playMelody() {
   _mStep++;
   _mTimer = setTimeout(_playMelody, beats*beat*1000);
 }
-function startMusic() { stopMusic(); _mStep = 0; _mTimer = setTimeout(_playMelody, 350); }
-function stopMusic()  { if (_mTimer) { clearTimeout(_mTimer); _mTimer = null; } }
+function _bgPlay() {
+  const a = document.getElementById('mole-music');
+  a.volume = 0.45;
+  if (musicOn) a.play().catch(() => {});
+}
+function _bgStop() {
+  const a = document.getElementById('mole-music');
+  a.pause(); a.currentTime = 0;
+}
+function _syncMuteIcons() {
+  const icon = musicOn ? '🔊' : '🔇';
+  ['mute-btn','mole-mute-btn','snake-mute-btn'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = icon;
+  });
+}
+function startMusic() { _bgPlay(); }
+function stopMusic()  { _bgStop(); }
 function toggleMusic() {
   musicOn = !musicOn;
-  document.getElementById('mute-btn').textContent = musicOn ? '🔊' : '🔇';
-  if (musicOn && running) { _mStep = 0; _playMelody(); } else stopMusic();
+  musicOn ? _bgPlay() : _bgStop();
+  _syncMuteIcons();
 }
 
 // ── Table selection ───────────────────────────────────────────────────────
@@ -1771,6 +1787,7 @@ function snakeStart() {
     snakeLives   = 3;
     snakeSpeed   = 300;
     snakeRunning = true;
+    _syncMuteIcons(); _bgPlay();
     snakeNewQ();
     snakeDraw();
     if (snakeIntId) clearInterval(snakeIntId);
@@ -2008,6 +2025,7 @@ function snakeUpdateHUD() {
 function snakeOver(manual) {
   snakeRunning = false;
   clearInterval(snakeIntId); snakeIntId = null;
+  _bgStop();
   document.getElementById('snake-game').style.display = 'none';
   if (!manual) sfxWrong();
   const key='snake_best', prev=+localStorage.getItem(key)||0;
@@ -2027,6 +2045,11 @@ function snakeDpadDir(dx,dy) {
   if (!snakeRunning) return;
   if (dx===-snakeDir.x && dy===-snakeDir.y) return;
   snakeNextDir={x:dx,y:dy};
+}
+function snakeMuteToggle() {
+  musicOn = !musicOn;
+  musicOn ? _bgPlay() : document.getElementById('mole-music').pause();
+  _syncMuteIcons();
 }
 
 document.addEventListener('keydown', e => {
@@ -2183,10 +2206,8 @@ function startMoleGame() {
 
   document.getElementById('mole-timer-wrap').style.display = moleNoTimer ? 'none' : 'block';
   document.getElementById('mole-game').style.display = 'flex';
-  const _ma = document.getElementById('mole-music');
-  _ma.volume = 0.45; _ma.currentTime = 0;
-  document.getElementById('mole-mute-btn').textContent = musicOn ? '🔊' : '🔇';
-  if (musicOn) _ma.play().catch(() => {});
+  _syncMuteIcons();
+  _bgPlay();
   moleUpdateHUD();
   moleNextQ();
   // Vague initiale : MOLE_MAX_VIS taupes presque simultanées, durées échelonnées
@@ -2381,18 +2402,12 @@ function _moleClearTimers() {
   moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
 }
 
-function _moleStopMusic() {
-  const a = document.getElementById('mole-music');
-  a.pause(); a.currentTime = 0;
-}
+function _moleStopMusic() { _bgStop(); }
 
 function moleMuteToggle() {
   musicOn = !musicOn;
-  const a = document.getElementById('mole-music');
-  if (musicOn) a.play().catch(() => {}); else a.pause();
-  const icon = musicOn ? '🔊' : '🔇';
-  document.getElementById('mole-mute-btn').textContent = icon;
-  document.getElementById('mute-btn').textContent = icon;
+  musicOn ? _bgPlay() : document.getElementById('mole-music').pause();
+  _syncMuteIcons();
 }
 
 function moleEnd() {
