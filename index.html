@@ -1760,18 +1760,21 @@ function moleResetGuard() {
 }
 
 function moleGuardSpawn() {
-  if (!moleRunning || !moleCurrentQ) return;
-  const nextDigit = String(moleCurrentQ.ans)[moleInput.length];
-  if (!nextDigit) return;
-  const hasIt = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-  if (!hasIt) {
-    const free = moleSlots.filter(s => !s.visible);
-    if (free.length) {
-      const s = free[Math.floor(Math.random() * free.length)];
-      moleShow(s, parseInt(nextDigit));
+  if (!moleRunning) return;
+  if (moleCurrentQ) {
+    const nextDigit = String(moleCurrentQ.ans)[moleInput.length];
+    if (nextDigit) {
+      const hasIt = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+      if (!hasIt) {
+        const free = moleSlots.filter(s => !s.visible);
+        if (free.length) {
+          const s = free[Math.floor(Math.random() * free.length)];
+          moleShow(s, parseInt(nextDigit));
+        }
+      }
     }
   }
-  moleGuardTimer = setTimeout(moleGuardSpawn, 1500);
+  moleGuardTimer = setTimeout(moleGuardSpawn, 800);
 }
 
 function moleNextQ() {
@@ -1829,12 +1832,13 @@ function moleSpawn() {
   const free = moleSlots.filter(s => !s.visible);
   if (!free.length) return;
   const slot      = free[Math.floor(Math.random() * free.length)];
+  if (!moleCurrentQ) { moleShow(slot, moleUnusedDigit()); return; }
   const ansStr    = String(moleCurrentQ.ans);
   const nextDigit = ansStr[moleInput.length];
   // nextDigit undefined pendant les 280 ms entre bonne réponse et question suivante
   if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
   const hasNext = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-  const d = (!hasNext && Math.random() < 0.9)
+  const d = !hasNext
     ? parseInt(nextDigit)
     : moleUnusedDigit(parseInt(nextDigit));
   moleShow(slot, d);
