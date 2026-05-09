@@ -1642,7 +1642,7 @@ let moleCurrentQ    = null;
 let moleInput       = '';
 let moleSlots       = [];
 let moleSelTables   = new Set([2,3,4,5,6,7,8,9,10]);
-let moleGuardTimer   = null;
+let moleGuardInt     = null;
 let molePairs       = [];
 let molePairScores  = {};
 
@@ -1754,27 +1754,24 @@ function startMoleGame() {
   if (!moleNoTimer) moleTickInt = setInterval(moleTick, 50);
 }
 
-function moleResetGuard() {
-  clearTimeout(moleGuardTimer);
-  moleGuardTimer = setTimeout(moleGuardSpawn, 1500);
+// Polling explicite : vérifie le chiffre attendu (ansStr[moleInput.length])
+// — le 1er si moleInput="", le 2nd si moleInput a un caractère, etc.
+function moleEnsureNeeded() {
+  if (!moleRunning || !moleCurrentQ) return;
+  const ansStr = String(moleCurrentQ.ans);
+  const nextDigit = ansStr[moleInput.length];
+  if (!nextDigit) return;
+  const hasIt = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+  if (hasIt) return;
+  const free = moleSlots.filter(s => !s.visible);
+  if (!free.length) return;
+  const s = free[Math.floor(Math.random() * free.length)];
+  moleShow(s, parseInt(nextDigit));
 }
 
-function moleGuardSpawn() {
-  if (!moleRunning) return;
-  if (moleCurrentQ) {
-    const nextDigit = String(moleCurrentQ.ans)[moleInput.length];
-    if (nextDigit) {
-      const hasIt = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
-      if (!hasIt) {
-        const free = moleSlots.filter(s => !s.visible);
-        if (free.length) {
-          const s = free[Math.floor(Math.random() * free.length)];
-          moleShow(s, parseInt(nextDigit));
-        }
-      }
-    }
-  }
-  moleGuardTimer = setTimeout(moleGuardSpawn, 800);
+function moleResetGuard() {
+  if (moleGuardInt) return;
+  moleGuardInt = setInterval(moleEnsureNeeded, 200);
 }
 
 function moleNextQ() {
@@ -1969,7 +1966,7 @@ function moleUpdateHUD() {
 function _moleClearTimers() {
   clearInterval(moleTickInt);
   if (moleSpawnTimer) clearTimeout(moleSpawnTimer);
-  if (moleGuardTimer) clearTimeout(moleGuardTimer);
+  if (moleGuardInt) { clearInterval(moleGuardInt); moleGuardInt = null; }
   moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
 }
 
