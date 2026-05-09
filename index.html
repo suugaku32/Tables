@@ -1768,7 +1768,9 @@ function moleScheduleSpawn() {
     ? 200
     : Math.max(600, MOLE_INT_BASE - (moleLevel - 1) * 65);
   moleSpawnTimer = setTimeout(() => {
-    if (moleRunning) { moleSpawn(); moleScheduleSpawn(); }
+    if (!moleRunning) return;
+    try { moleSpawn(); } catch (e) { console.error('moleSpawn error:', e); }
+    moleScheduleSpawn();
   }, interval);
 }
 
