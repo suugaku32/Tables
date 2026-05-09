@@ -350,6 +350,86 @@
     }
     .mem-size-btn:active { transform: scale(.94); }
 
+    /* ── Mole game ── */
+    .menu-card.mole-card { border-color: rgba(167,139,250,0.45); }
+
+    #mole-game {
+      display: none; position: fixed; inset: 0;
+      background: #0d1b2a; flex-direction: column;
+      align-items: center; z-index: 200;
+    }
+    #mole-hud {
+      width: 100%; padding: 10px 16px;
+      background: rgba(255,255,255,0.05);
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 8px; flex-shrink: 0;
+    }
+    #mole-score-display { color: #ffd700; font-size: clamp(.85rem,3.5vw,1.4rem); font-weight: bold; }
+    #mole-question-zone {
+      text-align: center; padding: 8px 20px 4px; flex-shrink: 0;
+      font-size: clamp(1.5rem, 5.5vw, 2.6rem); font-weight: bold;
+      color: white; letter-spacing: 2px;
+    }
+    #mole-input-display { color: #a78bfa; min-width: 2ch; display: inline-block; }
+    #mole-timer-wrap { padding: 4px 16px 5px; flex-shrink: 0; width: 100%; }
+    #mole-timer-bg   { height: 14px; border-radius: 7px; background: rgba(255,255,255,0.1); overflow: hidden; }
+    #mole-timer-fill { height: 100%; border-radius: 7px; width: 100%;
+      background: linear-gradient(90deg,#a78bfa,#f093fb); transition: background 0.5s; }
+    #mole-arena {
+      flex: 1; display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: clamp(8px,3vw,28px); padding: 8px 16px 6px;
+      width: 100%; max-width: min(820px, 98vw); align-content: center;
+    }
+    .mole-slot {
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .mole-cap {
+      width: 80%; aspect-ratio: 1 / 0.72; overflow: hidden; position: relative;
+    }
+    .mole-body {
+      position: absolute; top: 0; left: 0; right: 0;
+      transform: translateY(105%);
+      transition: transform 0.28s cubic-bezier(0.34,1.4,0.64,1);
+    }
+    .mole-body.up { transform: translateY(0); }
+    .mole-img { width: 100%; height: auto; display: block; pointer-events: none; }
+    .mole-digit {
+      position: absolute; top: 55%; left: 50%;
+      transform: translate(-50%,-50%);
+      background: white; color: #1e1b4b; font-weight: 900; border-radius: 50%;
+      width: clamp(24px,4vw,54px); height: clamp(24px,4vw,54px);
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(0.8rem,1.8vw,1.6rem);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5); pointer-events: none;
+      border: 2px solid #a78bfa;
+    }
+    .mole-hole {
+      width: 80%; height: clamp(10px,2.5vw,18px);
+      background: radial-gradient(ellipse 80% 100% at 50% 55%, #030810 30%, #0a1525 70%, transparent 100%);
+      border-radius: 50%; margin-top: -3px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.7);
+    }
+    .mole-slot.shake { animation: mole-shake 0.4s ease; }
+    @keyframes mole-shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+    .mole-body.tap-ok { animation: mole-tap-ok 0.3s ease; }
+    @keyframes mole-tap-ok {
+      50% { filter: brightness(1.8) saturate(1.5); }
+    }
+    /* 13e trou seul sur sa ligne → centré dans la colonne du milieu */
+    .mole-slot:last-child:nth-child(3n+1) { grid-column: 2; }
+
+    #mole-credit {
+      color: rgba(255,255,255,0.18); font-size: 0.58rem;
+      padding: 1px 8px 3px; flex-shrink: 0; text-align: center;
+    }
+
     /* ── Portrait phone adjustments ── */
     @media (orientation: portrait) and (max-width: 600px) {
       #hud { padding: 8px 12px 6px; }
@@ -414,6 +494,7 @@
 </head>
 <body>
 
+<audio id="mole-music" src="2026-05-09_11-15-53.mp3" loop preload="auto" style="display:none"></audio>
 <div id="bg-stars"></div>
 
 <!-- ══ MENU PRINCIPAL ══ -->
@@ -434,6 +515,11 @@
       <div class="menu-card-icon">🃏</div>
       <div class="menu-card-title">Memory</div>
       <div class="menu-card-desc">paires × tables</div>
+    </div>
+    <div class="menu-card mole-card" onclick="showMole()">
+      <div class="menu-card-icon">🎯</div>
+      <div class="menu-card-title">Taupes</div>
+      <div class="menu-card-desc">tape les chiffres</div>
     </div>
     <div class="menu-card snake-card" onclick="showSnake()">
       <div class="menu-card-icon">🐍</div>
@@ -557,6 +643,21 @@
   <button class="btn-menu" onclick="showMain()">Menu principal</button>
 </div>
 
+<!-- ══ MENU TAUPES ══ -->
+<div class="overlay" id="screen-mole" style="display:none">
+  <h1>🎯 Taupes</h1>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-mole-chrono" onclick="setMoleTimer(true)">⏱ Avec chrono</button>
+    <button class="mode-btn"        id="btn-mole-libre"  onclick="setMoleTimer(false)">∞ Sans chrono</button>
+  </div>
+  <div class="tbl-section">
+    <div class="tbl-section-label">Tables à pratiquer</div>
+    <div class="tbl-grid" id="mole-tbl-grid"></div>
+  </div>
+  <button class="btn-play" onclick="startMoleGame()">Jouer !</button>
+  <button class="btn-back" onclick="showMain()">← Menu principal</button>
+</div>
+
 <!-- ══ GAME OVER ══ -->
 <div class="overlay" id="screen-over" style="display:none">
   <h1 id="over-title">⏰ Temps écoulé !</h1>
@@ -592,6 +693,24 @@
     <button class="hud-btn" style="width:auto;padding:0 12px;border-radius:20px;font-size:.75rem;color:#ff6b6b;border-color:rgba(255,80,80,0.5);background:rgba(255,80,80,0.25)" onclick="memStop()">Fin</button>
   </div>
   <div id="mem-grid"></div>
+</div>
+
+<!-- ══ JEU TAUPES ══ -->
+<div id="mole-game">
+  <div id="mole-hud">
+    <div id="mole-score-display">⭐ 0</div>
+    <div id="mole-level-display" style="color:#a0c4ff;font-size:clamp(.82rem,3vw,1.05rem);font-weight:bold">Niveau 1</div>
+    <button id="mole-mute-btn" class="hud-btn" onclick="moleMuteToggle()">🔊</button>
+    <button class="hud-btn" style="width:auto;padding:0 12px;border-radius:20px;font-size:.75rem;color:#ff6b6b;border-color:rgba(255,80,80,0.5);background:rgba(255,80,80,0.25)" onclick="moleStopGame()">Fin</button>
+  </div>
+  <div id="mole-timer-wrap">
+    <div id="mole-timer-bg"><div id="mole-timer-fill"></div></div>
+  </div>
+  <div id="mole-question-zone">
+    <span id="mole-question-text"></span><span id="mole-input-display"></span>
+  </div>
+  <div id="mole-arena"></div>
+  <div id="mole-credit">Image : Petr Kratochvil (domaine public)</div>
 </div>
 
 <!-- ══ JEU ══ -->
@@ -639,8 +758,9 @@ let mentalMode = 'addition';
 
 function showMain() {
   hide('screen-tables'); hide('screen-mental'); hide('screen-over');
-  hide('screen-memory'); hide('screen-memory-end'); hide('screen-snake');
+  hide('screen-memory'); hide('screen-memory-end'); hide('screen-mole'); hide('screen-snake');
   document.getElementById('memory-game').style.display = 'none';
+  document.getElementById('mole-game').style.display   = 'none';
   document.getElementById('snake-game').style.display  = 'none';
   if (snakeRunning) { snakeRunning = false; clearInterval(snakeIntId); snakeIntId = null; }
   show('screen-main');
@@ -1093,6 +1213,7 @@ function tickBubbles() {
 }
 
 // ── Game state ────────────────────────────────────────────────────────────
+let lastGameType = 'bubble'; // 'bubble' | 'mole'
 let running=false, score=0, streak=0, level=1, timeLeft=START_TIME;
 let tickInt=null, currentQ=null, busy=false, gameStartTime=0;
 
@@ -1122,12 +1243,14 @@ function startMentalGame() {
 
 function replayGame() {
   hide('screen-over');
+  if (lastGameType === 'mole') { startMoleGame(); return; }
   if (gameMode==='tables') startTablesGame();
   else if (gameMode==='snake') snakeStart();
   else startMentalGame();
 }
 
 function _startGame() {
+  lastGameType = 'bubble';
   _ac();
   hide('screen-over');
   score=0; streak=0; level=1; busy=false;
@@ -1934,6 +2057,358 @@ window.addEventListener('resize',()=>{
   if (!snakeRunning) return;
   snakeResizeCanvas(); snakeDraw();
 });
+
+// ════════════════════════════════════════════════════════════════
+//  MOLE GAME
+// ════════════════════════════════════════════════════════════════
+let moleNoTimer     = false;
+let moleRunning     = false;
+let moleScore       = 0;
+let moleLevel       = 1;
+let moleTimeLeft    = 60;
+let moleTickInt     = null;
+let moleSpawnTimer  = null;
+let moleCurrentQ    = null;
+let moleInput       = '';
+let moleSlots       = [];
+let moleSelTables   = new Set([2,3,4,5,6,7,8,9,10]);
+let molePairs       = [];
+let molePairScores  = {};
+
+function sfxMoleCorrect() {
+  const ctx = _ac(); if (!ctx) return;
+  const t = ctx.currentTime;
+  // Arpège brillant type "coin collecté"
+  [[880,.0],[1108,.07],[1319,.13],[1760,.19],[2093,.27]]
+    .forEach(([f,d]) => _tone(f, 0.22, 0.13, 'sine', t + d));
+}
+
+function moleBuildPairs() {
+  const sel = moleSelTables.size > 0 ? moleSelTables : new Set([2,3,4,5,6,7,8,9,10]);
+  const maxFactor = (!sel.has(11) && !sel.has(12)) ? 10 : 12;
+  const list = [];
+  for (let a = 2; a <= maxFactor; a++) {
+    for (let b = a; b <= maxFactor; b++) {
+      if (!sel.has(a) && !sel.has(b)) continue;
+      const w = (HARD_TABLES.has(a) || HARD_TABLES.has(b)) ? SCORE_BASE_HARD : SCORE_BASE_EASY;
+      list.push({ a, b, w });
+    }
+  }
+  return list;
+}
+
+function moleInitPairScores() {
+  molePairScores = {};
+  for (const p of molePairs) molePairScores[pairKey(p.a, p.b)] = p.w;
+}
+
+function molePickQuestion() {
+  const total = molePairs.reduce((s, p) => s + molePairScores[pairKey(p.a, p.b)], 0);
+  let r = Math.random() * total;
+  for (const p of molePairs) {
+    r -= molePairScores[pairKey(p.a, p.b)];
+    if (r <= 0) {
+      const [a, b] = Math.random() < 0.5 ? [p.a, p.b] : [p.b, p.a];
+      return { a, b, ans: p.a * p.b };
+    }
+  }
+  const p = molePairs[molePairs.length - 1];
+  return { a: p.a, b: p.b, ans: p.a * p.b };
+}
+
+const MOLE_COUNT      = 13;    // grille 3×4 + 1 centré
+const MOLE_INT_BASE   = 1400;  // intervalle initial entre spawns
+const MOLE_START_TIME = 40;    // temps de départ
+
+function showMole() {
+  hide('screen-main');
+  buildMoleTblGrid();
+  show('screen-mole');
+}
+
+function buildMoleTblGrid() {
+  const g = document.getElementById('mole-tbl-grid');
+  g.innerHTML = '';
+  for (let n = 2; n <= 12; n++) {
+    const b = document.createElement('button');
+    b.className = 'tbl-btn' + (moleSelTables.has(n) ? ' on' : '');
+    b.textContent = n;
+    b.onclick = () => {
+      if (moleSelTables.has(n)) {
+        if (moleSelTables.size > 1) { moleSelTables.delete(n); b.classList.remove('on'); }
+      } else { moleSelTables.add(n); b.classList.add('on'); }
+    };
+    g.appendChild(b);
+  }
+}
+
+function setMoleTimer(on) {
+  moleNoTimer = !on;
+  document.getElementById('btn-mole-chrono').classList.toggle('active',  on);
+  document.getElementById('btn-mole-libre').classList.toggle('active',  !on);
+}
+
+function startMoleGame() {
+  lastGameType = 'mole';
+  hide('screen-mole');
+  moleScore = 0; moleLevel = 1; moleTimeLeft = MOLE_START_TIME; moleInput = ''; moleRunning = true;
+  molePairs = moleBuildPairs(); moleInitPairScores();
+
+  const arena = document.getElementById('mole-arena');
+  arena.innerHTML = ''; moleSlots = [];
+  for (let i = 0; i < MOLE_COUNT; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'mole-slot'; slot.dataset.slot = i;
+    slot.innerHTML =
+      '<div class="mole-cap"><div class="mole-body">' +
+      '<img src="3.png" class="mole-img" alt="">' +
+      '<span class="mole-digit">0</span></div></div>' +
+      '<div class="mole-hole"></div>';
+    const bodyEl  = slot.querySelector('.mole-body');
+    const digitEl = slot.querySelector('.mole-digit');
+    slot.addEventListener('click', () => moleClick(i));
+    arena.appendChild(slot);
+    moleSlots.push({ el: slot, bodyEl, digitEl, digit: null, visible: false, hideTimer: null });
+  }
+
+  document.getElementById('mole-timer-wrap').style.display = moleNoTimer ? 'none' : 'block';
+  document.getElementById('mole-game').style.display = 'flex';
+  const _ma = document.getElementById('mole-music');
+  _ma.volume = 0.45; _ma.currentTime = 0;
+  document.getElementById('mole-mute-btn').textContent = musicOn ? '🔊' : '🔇';
+  if (musicOn) _ma.play().catch(() => {});
+  moleUpdateHUD();
+  moleNextQ();
+  moleScheduleSpawn();
+  if (!moleNoTimer) moleTickInt = setInterval(moleTick, 50);
+}
+
+function moleNextQ() {
+  moleInput = '';
+  const q = molePickQuestion();
+  moleCurrentQ = q;
+  moleUpdateQ();
+  moleSpawn();  // spawn immédiat du chiffre attendu si pas déjà visible
+}
+
+function moleScheduleSpawn() {
+  if (!moleRunning) return;
+  const visible  = moleSlots.filter(s => s.visible).length;
+  const interval = visible < 5
+    ? 200
+    : Math.max(600, MOLE_INT_BASE - (moleLevel - 1) * 65);
+  moleSpawnTimer = setTimeout(() => {
+    if (!moleRunning) return;
+    try { moleSpawn(); } catch (e) { console.error('moleSpawn error:', e); }
+    moleScheduleSpawn();
+  }, interval);
+}
+
+function moleUnusedDigit(exclude) {
+  // Chiffre non déjà affiché (et différent de exclude si fourni)
+  const used = new Set(moleSlots.filter(s => s.visible).map(s => s.digit));
+  if (exclude !== undefined) used.add(exclude);
+  const avail = [];
+  for (let i = 0; i <= 9; i++) { if (!used.has(i)) avail.push(i); }
+  if (!avail.length) {
+    // Tous les chiffres déjà présents – on accepte un doublon plutôt que bloquer
+    const pool = [];
+    for (let i = 0; i <= 9; i++) { if (i !== exclude) pool.push(i); }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  return avail[Math.floor(Math.random() * avail.length)];
+}
+
+function moleSpawn() {
+  // Une taupe va spawner — choix d'un emplacement libre.
+  const free = moleSlots.filter(s => !s.visible);
+  if (!free.length) {
+    console.warn('[moleSpawn] aucun slot libre — toutes les taupes visibles');
+    return;
+  }
+  const slot = free[Math.floor(Math.random() * free.length)];
+
+  // Pas de question active (entre 2 questions) → chiffre aléatoire.
+  if (!moleCurrentQ) { moleShow(slot, moleUnusedDigit()); return; }
+  const ansStr    = String(moleCurrentQ.ans);
+  const nextDigit = ansStr[moleInput.length];   // chiffre demandé À L'INSTANT t
+  if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
+
+  // Test à l'instant t : le chiffre demandé est-il visible MAINTENANT ?
+  const present = moleSlots.some(s => s.visible && String(s.digit) === nextDigit);
+
+  // DEBUG : trace l'état au moment du spawn
+  const visibleDigits = moleSlots.filter(s => s.visible).map(s => s.digit).join(',');
+  console.log(`[moleSpawn] q=${moleCurrentQ.a}×${moleCurrentQ.b}=${moleCurrentQ.ans} input="${moleInput}" need="${nextDigit}" present=${present} visible=[${visibleDigits}]`);
+
+  // Présent → on spawn aléatoire. Absent → on spawn le chiffre demandé.
+  const d = present
+    ? moleUnusedDigit(parseInt(nextDigit))
+    : parseInt(nextDigit);
+  moleShow(slot, d);
+}
+
+function moleDur() {
+  return moleLevel <= 9
+    ? (7.5 - moleLevel * 0.5) * 1000
+    : Math.max(1400, (3 - (moleLevel - 9) * 0.2) * 1000);
+}
+
+function moleShow(slot, digit) {
+  if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
+  slot.digit = digit; slot.visible = true;
+  slot.digitEl.textContent = String(digit);
+  slot.bodyEl.classList.add('up');
+  const dur = moleDur();
+  slot.hideTimer = setTimeout(() => moleHide(slot), dur);
+
+  if (moleCurrentQ) {
+    const nd = String(moleCurrentQ.ans)[moleInput.length];
+    if (nd && String(digit) !== nd) {
+      const ndSlot = moleSlots.find(s => s !== slot && s.visible && String(s.digit) === nd);
+      if (ndSlot) {
+        clearTimeout(ndSlot.hideTimer);
+        ndSlot.hideTimer = setTimeout(() => moleHide(ndSlot), dur);
+      }
+    }
+  }
+}
+
+function moleHide(slot) {
+  slot.visible = false; slot.digit = null;
+  slot.bodyEl.classList.remove('up');
+  if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
+}
+
+function moleClick(i) {
+  if (!moleRunning) return;
+  const slot = moleSlots[i];
+  if (!slot.visible) return;
+
+  const ansStr   = String(moleCurrentQ.ans);
+  const tapped   = String(slot.digit);
+  const expected = ansStr[moleInput.length];
+
+  if (tapped === expected) {
+    sfxCorrect();
+    slot.bodyEl.classList.add('tap-ok');
+    setTimeout(() => slot.bodyEl && slot.bodyEl.classList.remove('tap-ok'), 320);
+    clearTimeout(slot.hideTimer); slot.hideTimer = null;
+    moleHide(slot);
+    moleInput += tapped;
+    moleUpdateQ();
+    if (moleInput === ansStr) {
+      moleScore++;
+      // Mise à jour du score de paire (favorise les opérations bien maîtrisées)
+      const k = pairKey(moleCurrentQ.a, moleCurrentQ.b);
+      molePairScores[k] = Math.max(SCORE_MIN, molePairScores[k] * SCORE_DECAY);
+      const newLevel = Math.floor(moleScore / 5) + 1;
+      if (newLevel > moleLevel) {
+        moleLevel = newLevel;
+        spawnFX('🎉 Niveau ' + moleLevel + ' !', '#ffd700');
+        sfxLevelUp();
+      } else {
+        spawnFX('✓', '#43e97b');
+        sfxMoleCorrect();
+      }
+      if (!moleNoTimer) moleTimeLeft = Math.min(90, moleTimeLeft + 5);
+      moleUpdateHUD();
+      setTimeout(() => moleNextQ(), 280);
+    }
+  } else {
+    sfxWrong();
+    spawnFX('💥', '#ff6b6b');
+    slot.el.classList.add('shake');
+    setTimeout(() => slot.el.classList.remove('shake'), 420);
+    if (!moleNoTimer) moleTimeLeft = Math.max(0, moleTimeLeft - 3);
+    // Pénalise la paire (sera posée plus souvent)
+    const k = pairKey(moleCurrentQ.a, moleCurrentQ.b);
+    const p = molePairs.find(p => pairKey(p.a, p.b) === k);
+    if (p) molePairScores[k] = Math.min(molePairScores[k] * SCORE_GROW, p.w * 2);
+    moleInput = '';
+    moleUpdateQ();
+    moleUpdateHUD();
+  }
+}
+
+function moleUpdateQ() {
+  const ansStr = String(moleCurrentQ.ans);
+  document.getElementById('mole-question-text').textContent =
+    `${moleCurrentQ.a} × ${moleCurrentQ.b} = `;
+  document.getElementById('mole-input-display').innerHTML =
+    ansStr.split('').map((_, idx) =>
+      idx < moleInput.length
+        ? `<span style="color:#43e97b">${moleInput[idx]}</span>`
+        : `<span style="opacity:0.35">_</span>`
+    ).join('');
+}
+
+function moleTick() {
+  if (!moleRunning) return;
+  const drain = 1.6 + (moleLevel - 1) * 0.07;   // accélère avec les niveaux
+  moleTimeLeft -= 0.05 * drain;
+  const pct  = Math.max(0, moleTimeLeft / MOLE_START_TIME * 100);
+  const fill = document.getElementById('mole-timer-fill');
+  fill.style.width = pct + '%';
+  fill.style.background =
+    pct > 55 ? 'linear-gradient(90deg,#a78bfa,#f093fb)' :
+    pct > 25 ? 'linear-gradient(90deg,#f7971e,#ffd200)' :
+               'linear-gradient(90deg,#ff416c,#ff4b2b)';
+  if (moleTimeLeft <= 0) moleEnd();
+}
+
+function moleUpdateHUD() {
+  document.getElementById('mole-score-display').textContent  = '⭐ ' + moleScore;
+  document.getElementById('mole-level-display').textContent  = 'Niveau ' + moleLevel;
+}
+
+function _moleClearTimers() {
+  clearInterval(moleTickInt);
+  if (moleSpawnTimer) clearTimeout(moleSpawnTimer);
+  moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
+}
+
+function _moleStopMusic() {
+  const a = document.getElementById('mole-music');
+  a.pause(); a.currentTime = 0;
+}
+
+function moleMuteToggle() {
+  musicOn = !musicOn;
+  const a = document.getElementById('mole-music');
+  if (musicOn) a.play().catch(() => {}); else a.pause();
+  const icon = musicOn ? '🔊' : '🔇';
+  document.getElementById('mole-mute-btn').textContent = icon;
+  document.getElementById('mute-btn').textContent = icon;
+}
+
+function moleEnd() {
+  moleRunning = false;
+  _moleClearTimers();
+  _moleStopMusic();
+  document.getElementById('mole-game').style.display = 'none';
+
+  const key  = 'mole_best' + (moleNoTimer ? '_free' : '');
+  const prev = +localStorage.getItem(key) || 0;
+  if (moleScore > prev) localStorage.setItem(key, moleScore);
+  const best = Math.max(moleScore, prev);
+
+  document.getElementById('over-title').textContent = moleNoTimer ? '🏁 Partie terminée !' : '⏰ Temps écoulé !';
+  document.getElementById('over-score').textContent = moleScore;
+  document.getElementById('plural-s').textContent   = moleScore > 1 ? 's' : '';
+  document.getElementById('plural-s2').textContent  = moleScore > 1 ? 's' : '';
+  document.getElementById('over-best').textContent  =
+    moleScore > 0 && moleScore >= best ? '🏆 Nouveau record !' : `Record : ${best}`;
+  show('screen-over');
+}
+
+function moleStopGame() {
+  moleRunning = false;
+  _moleClearTimers();
+  _moleStopMusic();
+  document.getElementById('mole-game').style.display = 'none';
+  showMain();
+}
 
 // ── Mobile height fix ─────────────────────────────────────────────────────
 function fixHeight() { document.getElementById('game').style.height=window.innerHeight+'px'; }
