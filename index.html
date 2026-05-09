@@ -1914,6 +1914,11 @@ function snakeTick() {
     _snakeShift(wx, wy);
     sfxWrong();
     snakeRespawnDigit(eaten);
+    snakeLives--;
+    snakeAnsIdx = 0;
+    snakeUpdateHUD();
+    snakeUpdateQ();
+    if (snakeLives<=0) { snakeOver(false); return; }
   } else {
     _snakeShift(wx, wy);
   }
