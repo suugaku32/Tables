@@ -448,7 +448,7 @@
     #snake-game {
       display: none; position: fixed; inset: 0;
       background: #0a1628; flex-direction: column;
-      align-items: stretch; z-index: 200;
+      align-items: center; justify-content: flex-start; z-index: 200;
     }
     #snake-hud {
       width: 100%; padding: 10px 16px;
@@ -465,7 +465,7 @@
       background: rgba(255,80,80,0.25);
       color: #ff6b6b; font-size: .75rem; font-weight: bold; cursor: pointer;
     }
-    #snake-canvas { flex: 1; width: 100%; display: block; min-height: 0; }
+    #snake-canvas { display: block; border: 2px solid rgba(255,255,255,0.08); border-radius: 8px; }
     #snake-tbl-warn { color: #ff6b6b; font-size: .82rem; margin-top: 6px; display: none; }
 
   </style>
@@ -1724,7 +1724,9 @@ let snakeQ       = null;      // {a,b,ans}
 let snakeIntId   = null;
 let snakeSpeed   = 300;
 
-const SNAKE_CS = 32; // cell size px
+const SNAKE_CS   = 32;
+const SNAKE_COLS = 14;
+const SNAKE_ROWS = 11;
 
 // ── Navigation ────────────────────────────────────────────────
 function showSnake() {
@@ -1799,18 +1801,13 @@ function snakeStop() { snakeOver(true); }
 
 function snakeResizeCanvas() {
   const canvas = document.getElementById('snake-canvas');
-  const hud    = document.getElementById('snake-hud');
-  canvas.width  = window.innerWidth;
-  canvas.height = window.innerHeight - hud.offsetHeight;
+  canvas.width  = SNAKE_COLS * SNAKE_CS;
+  canvas.height = SNAKE_ROWS * SNAKE_CS;
 }
 
 // ── Grid ──────────────────────────────────────────────────────
 function snakeGrid() {
-  const canvas = document.getElementById('snake-canvas');
-  return {
-    cols: Math.floor(canvas.width  / SNAKE_CS),
-    rows: Math.floor(canvas.height / SNAKE_CS),
-  };
+  return { cols: SNAKE_COLS, rows: SNAKE_ROWS };
 }
 
 // ── Question & digits ─────────────────────────────────────────
@@ -1864,6 +1861,16 @@ function snakeRespawnDigit(d) {
 }
 
 // ── Game loop ─────────────────────────────────────────────────
+// Décale toutes les positions d'un cran (la queue suit la tête)
+function _snakeShift(nx, ny) {
+  for (let i = snakeBody.length - 1; i > 0; i--) {
+    snakeBody[i].x = snakeBody[i-1].x;
+    snakeBody[i].y = snakeBody[i-1].y;
+  }
+  snakeBody[0].x = nx;
+  snakeBody[0].y = ny;
+}
+
 function snakeTick() {
   if (!snakeRunning) return;
   snakeDir = {...snakeNextDir};
@@ -1875,43 +1882,43 @@ function snakeTick() {
   if (nx<0 || nx>=cols || ny<0 || ny>=rows) {
     snakeLoseLife(); return;
   }
-  // Self hit
-  if (snakeBody.some(s => s.x===nx && s.y===ny)) {
+  // Self hit — la queue va libérer sa case, on ne la compte pas
+  if (snakeBody.slice(0, -1).some(s => s.x===nx && s.y===ny)) {
     snakeLoseLife(); return;
   }
 
   const eaten = snakeDigits.find(d => d.x===nx && d.y===ny);
-  snakeBody.unshift({x:nx, y:ny});
 
-  if (eaten) {
-    if (eaten.val === snakeAnsDigits[snakeAnsIdx]) {
-      // Bon chiffre — grandit, respawn, avance dans la réponse ; affiche le chiffre sur ce segment
-      snakeBody[0].digit = eaten.val;
-      snakeAnsIdx++;
-      snakeRespawnDigit(eaten);
-      if (snakeAnsIdx >= snakeAnsDigits.length) {
-        snakeScore++;
-        sfxCorrect();
-        snakeSpeed = Math.max(80, snakeSpeed - 10);
-        clearInterval(snakeIntId);
-        snakeIntId = setInterval(snakeTick, snakeSpeed);
-        snakeNewQ();
-        return;
-      } else {
-        snakeUpdateQ();
-      }
+  if (eaten && eaten.val === snakeAnsDigits[snakeAnsIdx]) {
+    // Bon chiffre : ajouter un segment permanent avec ce chiffre
+    const last = snakeBody[snakeBody.length - 1];
+    const newSeg = { x: last.x, y: last.y, digit: eaten.val };
+    _snakeShift(nx, ny);
+    snakeBody.push(newSeg);
+    snakeAnsIdx++;
+    snakeRespawnDigit(eaten);
+    if (snakeAnsIdx >= snakeAnsDigits.length) {
+      snakeScore++;
+      sfxCorrect();
+      snakeSpeed = Math.max(80, snakeSpeed - 10);
+      clearInterval(snakeIntId);
+      snakeIntId = setInterval(snakeTick, snakeSpeed);
+      snakeNewQ();
+      return;
     } else {
-      // Mauvais chiffre — vie perdue, progression remise à zéro
-      snakeBody.pop();
-      sfxWrong();
-      snakeLives--;
-      snakeAnsIdx = 0;
-      snakeUpdateHUD();
       snakeUpdateQ();
-      if (snakeLives<=0) { snakeOver(false); return; }
     }
+  } else if (eaten) {
+    // Mauvais chiffre — vie perdue, progression remise à zéro
+    _snakeShift(nx, ny);
+    sfxWrong();
+    snakeLives--;
+    snakeAnsIdx = 0;
+    snakeUpdateHUD();
+    snakeUpdateQ();
+    if (snakeLives<=0) { snakeOver(false); return; }
   } else {
-    snakeBody.pop();
+    _snakeShift(nx, ny);
   }
   snakeDraw();
 }
