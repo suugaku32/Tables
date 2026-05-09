@@ -1724,9 +1724,7 @@ let snakeQ       = null;      // {a,b,ans}
 let snakeIntId   = null;
 let snakeSpeed   = 300;
 
-const SNAKE_CS   = 32;
-const SNAKE_COLS = 14;
-const SNAKE_ROWS = 11;
+const SNAKE_CS = 32;
 
 // ── Navigation ────────────────────────────────────────────────
 function showSnake() {
@@ -1790,7 +1788,7 @@ function snakeStart() {
     snakeSpeed   = 300;
     snakeRunning = true;
     _syncMuteIcons(); _bgPlay();
-    snakeNewQ();
+    snakeNewQ(true); // true = placer les chiffres au départ uniquement
     snakeDraw();
     if (snakeIntId) clearInterval(snakeIntId);
     snakeIntId = setInterval(snakeTick, snakeSpeed);
@@ -1801,24 +1799,28 @@ function snakeStop() { snakeOver(true); }
 
 function snakeResizeCanvas() {
   const canvas = document.getElementById('snake-canvas');
-  canvas.width  = SNAKE_COLS * SNAKE_CS;
-  canvas.height = SNAKE_ROWS * SNAKE_CS;
+  const hud    = document.getElementById('snake-hud');
+  const availW = window.innerWidth;
+  const availH = window.innerHeight - hud.offsetHeight;
+  canvas.width  = Math.floor(availW / SNAKE_CS) * SNAKE_CS;
+  canvas.height = Math.floor(availH / SNAKE_CS) * SNAKE_CS;
 }
 
 // ── Grid ──────────────────────────────────────────────────────
 function snakeGrid() {
-  return { cols: SNAKE_COLS, rows: SNAKE_ROWS };
+  const canvas = document.getElementById('snake-canvas');
+  return { cols: canvas.width / SNAKE_CS, rows: canvas.height / SNAKE_CS };
 }
 
 // ── Question & digits ─────────────────────────────────────────
-function snakeNewQ() {
+function snakeNewQ(placeDigits = false) {
   const tbls = [...snakeTables];
   const a = tbls[Math.floor(Math.random() * tbls.length)];
   const b = 2 + Math.floor(Math.random() * 11);
   snakeQ = { a, b, ans: a * b };
   snakeAnsDigits = String(a * b).split('').map(Number);
   snakeAnsIdx = 0;
-  snakePlaceDigits();
+  if (placeDigits) snakePlaceDigits();
   snakeUpdateQ();
   snakeUpdateHUD();
 }
@@ -1878,22 +1880,21 @@ function snakeTick() {
   const head = snakeBody[0];
   const nx = head.x + snakeDir.x, ny = head.y + snakeDir.y;
 
-  // Wall hit
-  if (nx<0 || nx>=cols || ny<0 || ny>=rows) {
-    snakeLoseLife(); return;
-  }
+  // Mur : ressort du bord opposé
+  const wx = (nx + cols) % cols;
+  const wy = (ny + rows) % rows;
   // Self hit — la queue va libérer sa case, on ne la compte pas
-  if (snakeBody.slice(0, -1).some(s => s.x===nx && s.y===ny)) {
+  if (snakeBody.slice(0, -1).some(s => s.x===wx && s.y===wy)) {
     snakeLoseLife(); return;
   }
 
-  const eaten = snakeDigits.find(d => d.x===nx && d.y===ny);
+  const eaten = snakeDigits.find(d => d.x===wx && d.y===wy);
 
   if (eaten && eaten.val === snakeAnsDigits[snakeAnsIdx]) {
     // Bon chiffre : ajouter un segment permanent avec ce chiffre
     const last = snakeBody[snakeBody.length - 1];
     const newSeg = { x: last.x, y: last.y, digit: eaten.val };
-    _snakeShift(nx, ny);
+    _snakeShift(wx, wy);
     snakeBody.push(newSeg);
     snakeAnsIdx++;
     snakeRespawnDigit(eaten);
@@ -1910,7 +1911,7 @@ function snakeTick() {
     }
   } else if (eaten) {
     // Mauvais chiffre — vie perdue, progression remise à zéro
-    _snakeShift(nx, ny);
+    _snakeShift(wx, wy);
     sfxWrong();
     snakeLives--;
     snakeAnsIdx = 0;
@@ -1918,7 +1919,7 @@ function snakeTick() {
     snakeUpdateQ();
     if (snakeLives<=0) { snakeOver(false); return; }
   } else {
-    _snakeShift(nx, ny);
+    _snakeShift(wx, wy);
   }
   snakeDraw();
 }
