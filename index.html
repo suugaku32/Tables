@@ -1837,17 +1837,11 @@ function moleShow(slot, digit) {
 
   if (moleCurrentQ) {
     const nd = String(moleCurrentQ.ans)[moleInput.length];
-    if (nd) {
-      if (String(digit) === nd) {
-        // Le bon chiffre vient d'apparaître — reset du compteur
-        moleLastNeededAt = Date.now();
-      } else {
-        // Un autre chiffre apparaît — prolonge le timer du bon chiffre s'il est visible
-        const ndSlot = moleSlots.find(s => s !== slot && s.visible && String(s.digit) === nd);
-        if (ndSlot) {
-          clearTimeout(ndSlot.hideTimer);
-          ndSlot.hideTimer = setTimeout(() => moleHide(ndSlot), dur);
-        }
+    if (nd && String(digit) !== nd) {
+      const ndSlot = moleSlots.find(s => s !== slot && s.visible && String(s.digit) === nd);
+      if (ndSlot) {
+        clearTimeout(ndSlot.hideTimer);
+        ndSlot.hideTimer = setTimeout(() => moleHide(ndSlot), dur);
       }
     }
   }
@@ -1875,6 +1869,7 @@ function moleClick(i) {
     clearTimeout(slot.hideTimer); slot.hideTimer = null;
     moleHide(slot);
     moleInput += tapped;
+    moleLastNeededAt = Date.now();
     moleUpdateQ();
     if (moleInput === ansStr) {
       moleScore++;
@@ -1907,6 +1902,7 @@ function moleClick(i) {
     const p = molePairs.find(p => pairKey(p.a, p.b) === k);
     if (p) molePairScores[k] = Math.min(molePairScores[k] * SCORE_GROW, p.w * 2);
     moleInput = '';
+    moleLastNeededAt = Date.now();
     moleUpdateQ();
     moleUpdateHUD();
     moleEnsureDigit(100);
