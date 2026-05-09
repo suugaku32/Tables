@@ -2241,9 +2241,8 @@ function moleSpawn() {
 }
 
 function moleDur() {
-  return moleLevel <= 9
-    ? (7.5 - moleLevel * 0.5) * 1000
-    : Math.max(1400, (3 - (moleLevel - 9) * 0.2) * 1000);
+  // Niveau 1 : 4500 ms → diminue de 300 ms par niveau → plancher 900 ms
+  return Math.max(900, 4500 - (moleLevel - 1) * 300);
 }
 
 function moleShow(slot, digit) {
@@ -2274,7 +2273,7 @@ function moleHide(slot) {
   slot.bodyEl.classList.remove('up');
   if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
   // Toujours remplacer la taupe qui se cache (rythme régulier, un pour un)
-  if (moleRunning) setTimeout(moleSpawn, 120);
+  if (moleRunning) setTimeout(moleSpawn, Math.max(80, 220 - (moleLevel - 1) * 14));
 }
 
 function moleClick(i) {
