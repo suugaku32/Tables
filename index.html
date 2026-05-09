@@ -1687,7 +1687,6 @@ function molePickQuestion() {
 }
 
 const MOLE_COUNT      = 13;    // grille 3×4 + 1 centré
-const MOLE_DUR_BASE   = 7000;  // durée initiale (niveau 1)
 const MOLE_INT_BASE   = 1400;  // intervalle initial entre spawns
 const MOLE_START_TIME = 40;    // temps de départ
 
@@ -1806,7 +1805,10 @@ function moleShow(slot, digit) {
   slot.digit = digit; slot.visible = true;
   slot.digitEl.textContent = String(digit);
   slot.bodyEl.classList.add('up');
-  const dur = Math.max(1400, MOLE_DUR_BASE - Math.pow(moleLevel - 1, 1.6) * 200);
+  // Niv 1→9 : 7s → 3s (−0,5s/niv) ; niv 10+ : −0,2s/niv jusqu'au plancher 1,4s
+  const dur = moleLevel <= 9
+    ? (7.5 - moleLevel * 0.5) * 1000
+    : Math.max(1400, (3 - (moleLevel - 9) * 0.2) * 1000);
   slot.hideTimer = setTimeout(() => moleHide(slot), dur);
 }
 
