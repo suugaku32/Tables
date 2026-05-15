@@ -3,38 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>詰将棋 FSRS</title>
+<title>詰将棋</title>
 <style>
-:root {
-  --bg:#1a1a2e; --surface:#16213e; --surface2:#0f3460;
-  --accent:#e94560; --gold:#f5a623; --text:#eaeaea; --dim:#888;
-  --cell:44px; --ps:38px;
-}
+:root{--bg:#1a1a2e;--surface:#16213e;--surface2:#0f3460;--accent:#e94560;--gold:#f5a623;--green:#27ae60;--blue:#2980b9;--text:#eaeaea;--dim:#888;--cell:44px;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;}
+body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;max-width:500px;margin:0 auto;}
 
-#nav{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--surface2);}
-#nav h1{font-size:17px;font-weight:700;}
+/* ── HOME ── */
+#home-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--surface2);}
+#home-nav h1{font-size:20px;font-weight:700;letter-spacing:1px;}
 .nbtn{background:var(--surface2);color:var(--text);border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;}
+#home-body{padding:20px 16px;display:flex;flex-direction:column;gap:14px;}
+.mode-card{background:var(--surface);border-radius:14px;padding:20px;cursor:pointer;display:flex;align-items:center;gap:16px;border:2px solid transparent;transition:border-color .15s;}
+.mode-card:active{border-color:var(--surface2);}
+.mode-card.training{border-color:#444;}
+.mode-card.review{border-color:#444;}
+.mode-icon{font-size:36px;flex-shrink:0;}
+.mode-text{}
+.mode-title{font-size:19px;font-weight:700;margin-bottom:4px;}
+.mode-sub{font-size:13px;color:var(--dim);}
+.due-pill{display:inline-block;background:var(--accent);color:#fff;border-radius:20px;padding:1px 9px;font-size:13px;font-weight:700;margin-left:6px;}
+#home-stats{background:var(--surface);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-around;font-size:13px;}
+.hstat{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.hstat-val{font-size:20px;font-weight:700;}
+.hstat-val.c-red{color:var(--accent);}
+.hstat-val.c-blue{color:#3498db;}
+.hstat-val.c-green{color:var(--green);}
+.hstat-label{font-size:10px;color:var(--dim);}
 
-#stats{display:flex;gap:14px;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--surface2);font-size:13px;}
-.sv{font-weight:700;}.sv.due{color:var(--accent);}.sv.nw{color:#3498db;}.sv.ok{color:#27ae60;}
+/* ── STUDY ── */
+#sh{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--surface2);}
+#bk{background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:0 4px;line-height:1;}
+#timer-wrap{display:flex;flex-direction:column;align-items:flex-start;}
+#timer{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;min-width:80px;}
+#timer.hidden-mode{color:var(--dim);letter-spacing:4px;}
+#timer.running{color:var(--gold);}
+#timer.stopped{color:var(--green);}
+#sh-right{flex:1;text-align:right;font-size:11px;color:var(--dim);line-height:1.5;}
+#queue-badge{background:var(--surface2);border-radius:12px;padding:2px 8px;font-size:12px;font-weight:600;color:var(--text);}
 
-#list{padding:10px;}
-.sec{font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin:14px 0 6px;}
-.card{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:10px;padding:9px;margin-bottom:7px;cursor:pointer;}
-.card:active{background:var(--surface2);}
-.cinfo{flex:1;min-width:0;}
-.ct{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.cm{font-size:11px;color:var(--dim);margin-top:2px;}
-.cbadge{font-size:16px;flex-shrink:0;}
-
-#study{display:none;flex-direction:column;min-height:100vh;}
-#sh{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--surface2);}
-#bk{background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:0 4px;}
-#timer{font-size:22px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;min-width:85px;}
-#best{flex:1;text-align:right;font-size:11px;color:var(--dim);}
-#sb{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+#sb{overflow-y:auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:30px;}
 
 #goban{display:grid;border:2px solid #666;background:#2a1800;}
 .cell{width:var(--cell);height:var(--cell);border:1px solid #4a3820;display:flex;align-items:center;justify-content:center;}
@@ -54,18 +62,18 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 #mlabel{font-size:13px;color:var(--dim);min-width:120px;text-align:center;}
 
 #sol-wrap{width:100%;max-width:420px;}
-#sol-btn{width:100%;padding:13px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:15px;cursor:pointer;}
-#sol-moves{background:var(--surface);border-radius:10px;padding:10px;margin-top:7px;}
+#sol-btn{width:100%;padding:14px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:600;}
+#sol-moves{background:var(--surface);border-radius:10px;padding:10px;margin-top:8px;}
 .smv{padding:5px 0;font-size:13px;border-bottom:1px solid var(--surface2);display:flex;gap:6px;}
 .smv:last-child{border:none;}
 .smn{color:var(--gold);font-weight:700;min-width:40px;}
 
-#fsrs{width:100%;max-width:420px;padding-bottom:20px;}
+#fsrs{width:100%;max-width:420px;}
 .frow{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px;}
 .fb{padding:10px 4px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;}
 .fi{font-size:10px;font-weight:400;opacity:.8;}
 .fb.again{background:#c0392b;color:#fff;}.fb.hard{background:#d35400;color:#fff;}
-.fb.good{background:#27ae60;color:#fff;}.fb.easy{background:#2980b9;color:#fff;}
+.fb.good{background:var(--green);color:#fff;}.fb.easy{background:var(--blue);color:#fff;}
 
 #loading{display:flex;align-items:center;justify-content:center;height:80vh;font-size:16px;color:var(--dim);}
 </style>
@@ -87,13 +95,12 @@ const fsrs={
   forgetS(d,s,r){return Math.max(W[11]*Math.pow(d,-W[12])*(Math.pow(s+1,W[13])-1)*Math.exp((1-r)*W[14]),0.1);},
   fmtIvl(card){
     const diff=(new Date(card.due)-Date.now())/60000;
-    if(diff<60) return Math.max(1,Math.round(diff))+'m';
-    if(diff<1440) return Math.round(diff/60)+'h';
+    if(diff<60)return Math.max(1,Math.round(diff))+'m';
+    if(diff<1440)return Math.round(diff/60)+'h';
     return Math.round(diff/1440)+'j';
   },
   schedule(card,rating,now=new Date()){
-    const c={...card};
-    const elapsed=c.lastReview?(now-new Date(c.lastReview))/86400000:0;
+    const c={...card},elapsed=c.lastReview?(now-new Date(c.lastReview))/86400000:0;
     c.lastReview=now.toISOString();
     const min=m=>new Date(now.getTime()+m*60000).toISOString();
     const day=d=>new Date(now.getTime()+d*86400000).toISOString();
@@ -117,7 +124,7 @@ const fsrs={
   preview:card=>[1,2,3,4].map(r=>fsrs.fmtIvl(fsrs.schedule({...card},r)))
 };
 
-// ── PIECE DATA ────────────────────────────────────────────────────────────
+// ── PIECES ────────────────────────────────────────────────────────────────
 const PFILE={fu:'FU',kyou:'KY',kei:'KE',gin:'GI',kin:'KI',kaku:'KA',hi:'HI',gyoku:'OU',ou:'OU',to:'TO',nkyou:'NY',nkei:'NK',ngin:'NG',uma:'UM',ryuu:'RY'};
 const PKANJI={fu:'歩',kyou:'香',kei:'桂',gin:'銀',kin:'金',kaku:'角',hi:'飛',gyoku:'玉',ou:'王',to:'と',nkyou:'杏',nkei:'圭',ngin:'全',uma:'馬',ryuu:'龍'};
 const PROMO={fu:'to',kyou:'nkyou',kei:'nkei',gin:'ngin',kaku:'uma',hi:'ryuu'};
@@ -129,19 +136,14 @@ function psvg(piece,player,size){
   const k=PKANJI[piece]||'?',pr=PSET.has(piece);
   const fill=player==='sente'?'#f0e8d0':'#c8c0b0',tf=pr?'#c0392b':'#1a0a00';
   const rot=player==='gote'?`rotate(180,${size/2},${size/2})`:'';
-  const s=size,m=s*0.08;
-  const path=`M${s/2},${m} L${s-m},${s*0.3} L${s-m},${s-m} L${m},${s-m} L${m},${s*0.3}Z`;
-  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><g transform="${rot}"><path d="${path}" fill="${fill}" stroke="#666" stroke-width="0.8"/><text x="${s/2}" y="${s*0.73}" text-anchor="middle" font-size="${s*0.44}px" fill="${tf}" font-family="serif" font-weight="bold">${k}</text></g></svg>`;
+  const s=size,m=s*0.08,path=`M${s/2},${m} L${s-m},${s*0.3} L${s-m},${s-m} L${m},${s-m} L${m},${s*0.3}Z`;
+  return`<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><g transform="${rot}"><path d="${path}" fill="${fill}" stroke="#666" stroke-width="0.8"/><text x="${s/2}" y="${s*0.73}" text-anchor="middle" font-size="${s*0.44}px" fill="${tf}" font-family="serif" font-weight="bold">${k}</text></g></svg>`;
 }
-
-// Global fallback: called by onerror on img tags
 window._pfb=function(img,p,pl,s){
-  const wrap=document.createElement('span');
-  wrap.style.cssText='display:flex;align-items:center;justify-content:center;';
-  wrap.innerHTML=psvg(p,pl,s);
-  img.replaceWith(wrap);
+  const w=document.createElement('span');
+  w.style.cssText='display:flex;align-items:center;justify-content:center;';
+  w.innerHTML=psvg(p,pl,s);img.replaceWith(w);
 };
-
 function pieceHTML(cell,size=38){
   if(!cell)return'';
   const pre=cell.player==='sente'?'0':'1',suf=PFILE[cell.piece]||'FU';
@@ -189,15 +191,14 @@ function buildStates(tsume){
   return states;
 }
 
-// ── SVG THUMBNAIL ─────────────────────────────────────────────────────────
+// ── THUMBNAIL ─────────────────────────────────────────────────────────────
 function makeThumbnail(tsume){
   const{board,bbox}=tsume;
   if(!bbox)return'<svg width="56" height="56"><rect width="56" height="56" fill="#333" rx="4"/></svg>';
   const{min_row,max_row,min_col,max_col}=bbox;
   const rows=max_row-min_row+1,cols=max_col-min_col+1;
   const cs=Math.max(5,Math.min(11,Math.floor(56/Math.max(rows,cols))));
-  const W_=cols*cs,H_=rows*cs;
-  let out=`<svg width="${W_}" height="${H_}" viewBox="0 0 ${W_} ${H_}">`;
+  let out=`<svg width="${cols*cs}" height="${rows*cs}" viewBox="0 0 ${cols*cs} ${rows*cs}">`;
   for(let r=min_row;r<=max_row;r++)for(let c=min_col;c<=max_col;c++){
     const x=(c-min_col)*cs,y=(r-min_row)*cs;
     out+=`<rect x="${x}" y="${y}" width="${cs}" height="${cs}" fill="#3a2000" stroke="#543" stroke-width="0.4"/>`;
@@ -220,18 +221,127 @@ let bestTimes=(()=>{try{return JSON.parse(localStorage.getItem(TKEY))||{};}catch
 const save=()=>localStorage.setItem(KEY,JSON.stringify(progress));
 const saveT=()=>localStorage.setItem(TKEY,JSON.stringify(bestTimes));
 
-// ── APP STATE ─────────────────────────────────────────────────────────────
+// ── STATE ─────────────────────────────────────────────────────────────────
 let data=[],st=null,tickID=null,t0=null,elapsed=0;
 
 function getStatus(id){
   const c=progress[id];
   if(!c||c.state==='new')return'new';
   if(new Date(c.due)<=new Date())return'due';
-  if(c.state==='review'&&c.reps>=4)return'done';
+  if(c.state==='review'&&c.reps>=4)return'mastered';
   return'learning';
 }
-
 const fmtMs=ms=>{const s=Math.floor(ms/1000),m=Math.floor(s/60);return`${m}:${String(s%60).padStart(2,'0')}.${Math.floor((ms%1000)/100)}`;};
+
+// ── HOME ──────────────────────────────────────────────────────────────────
+function renderHome(){
+  const due=data.filter(t=>getStatus(t.id)==='due').length;
+  const mastered=data.filter(t=>getStatus(t.id)==='mastered').length;
+  const rated=data.filter(t=>progress[t.id]&&progress[t.id].state!=='new').length;
+  document.getElementById('app').innerHTML=`
+    <div id="home-nav"><h1>詰将棋</h1><button class="nbtn" onclick="resetAll()">リセット</button></div>
+    <div id="home-body">
+      <div class="mode-card training" onclick="startTraining()">
+        <div class="mode-icon">🎯</div>
+        <div class="mode-text">
+          <div class="mode-title">Entraînement</div>
+          <div class="mode-sub">Problème aléatoire · chrono masqué</div>
+        </div>
+      </div>
+      <div class="mode-card review" onclick="startReview()">
+        <div class="mode-icon">📚</div>
+        <div class="mode-text">
+          <div class="mode-title">Révision${due?`<span class="due-pill">${due}</span>`:''}
+          </div>
+          <div class="mode-sub">${due?`${due} carte${due>1?'s':''} à réviser`:'Aucune carte due aujourd\'hui'}</div>
+        </div>
+      </div>
+      <div id="home-stats">
+        <div class="hstat"><span class="hstat-val c-red">${due}</span><span class="hstat-label">À réviser</span></div>
+        <div class="hstat"><span class="hstat-val c-blue">${rated-mastered}</span><span class="hstat-label">En cours</span></div>
+        <div class="hstat"><span class="hstat-val c-green">${mastered}</span><span class="hstat-label">Maîtrisés</span></div>
+        <div class="hstat"><span class="hstat-val" style="color:var(--dim)">${data.length}</span><span class="hstat-label">Total</span></div>
+      </div>
+    </div>`;
+}
+
+// ── TRAINING ──────────────────────────────────────────────────────────────
+function startTraining(){
+  const idx=Math.floor(Math.random()*data.length);
+  openStudy(data[idx].id,'training',[]);
+}
+
+// ── REVIEW ────────────────────────────────────────────────────────────────
+function startReview(){
+  const queue=data
+    .filter(t=>{const s=getStatus(t.id);return s==='due'||s==='learning';})
+    .sort((a,b)=>new Date(progress[a.id]?.due||0)-new Date(progress[b.id]?.due||0))
+    .map(t=>t.id);
+  if(!queue.length){
+    alert('Aucune carte à réviser pour l\'instant !');return;
+  }
+  openStudy(queue[0],'review',queue.slice(1));
+}
+
+// ── STUDY ─────────────────────────────────────────────────────────────────
+function openStudy(id,mode,queue){
+  const tsume=data.find(t=>t.id===id);if(!tsume)return;
+  if(tickID){clearInterval(tickID);tickID=null;}
+  elapsed=0;t0=Date.now();
+  st={tsume,states:buildStates(tsume),step:0,card:progress[id]||fsrs.blank(),shown:false,mode,queue};
+  if(mode==='review'){
+    tickID=setInterval(()=>{elapsed=Date.now()-t0;const el=document.getElementById('timer');if(el)el.textContent=fmtMs(elapsed);},100);
+  }
+  renderStudy();
+}
+
+function renderStudy(){
+  const{tsume,states,step,card,shown,mode,queue}=st;
+  const s=states[step],ivls=fsrs.preview(card);
+  const bt=bestTimes[tsume.id];
+
+  // Header right content
+  let rightHTML='';
+  if(mode==='review'&&queue.length>0) rightHTML=`<span id="queue-badge">${queue.length} restant${queue.length>1?'s':''}</span>`;
+  else if(bt&&shown) rightHTML=`ベスト: ${fmtMs(bt)}`;
+
+  // Timer display
+  let timerClass='', timerText='';
+  if(mode==='training'){
+    timerClass=shown?'stopped':'hidden-mode';
+    timerText=shown?fmtMs(elapsed):'● ● ●';
+  }else{
+    timerClass=shown?'stopped':'running';
+    timerText=fmtMs(elapsed);
+  }
+
+  document.getElementById('app').innerHTML=`
+    <div id="sh">
+      <button id="bk" onclick="goHome()">←</button>
+      <div id="timer" class="${timerClass}">${timerText}</div>
+      <div id="sh-right">${rightHTML}</div>
+    </div>
+    <div id="sb">
+      <div id="gw">${gobanHTML(s,tsume)}</div>
+      <div class="hands" id="hw">${handHTML(s.gH,'gote')}${handHTML(s.sH,'sente')}</div>
+      <div id="mnav">
+        <button onclick="stepNav(-1)"${step===0?' disabled':''}>◀</button>
+        <span id="mlabel">${step===0?'初期配置':`${s.num}手目: ${s.label}`}</span>
+        <button onclick="stepNav(1)"${step===states.length-1?' disabled':''}>▶</button>
+      </div>
+      <div id="sol-wrap">
+        ${!shown
+          ?`<button id="sol-btn" onclick="showSol()">解答を見る ▼</button>`
+          :`<div id="sol-moves">${tsume.moves.map(m=>`<div class="smv"><span class="smn">${m.num}手目</span>${m.move}</div>`).join('')}</div>`}
+      </div>
+      ${shown?`<div id="fsrs"><div class="frow">
+        <button class="fb again" onclick="rate(1)">Again<span class="fi">${ivls[0]}</span></button>
+        <button class="fb hard"  onclick="rate(2)">Hard<span class="fi">${ivls[1]}</span></button>
+        <button class="fb good"  onclick="rate(3)">Good<span class="fi">${ivls[2]}</span></button>
+        <button class="fb easy"  onclick="rate(4)">Easy<span class="fi">${ivls[3]}</span></button>
+      </div></div>`:''}
+    </div>`;
+}
 
 // ── RENDER HELPERS ────────────────────────────────────────────────────────
 function handHTML(h,player){
@@ -256,88 +366,14 @@ function gobanHTML(state,tsume){
   return g+'</div>';
 }
 
-// ── LIST VIEW ─────────────────────────────────────────────────────────────
-function renderList(){
-  const groups={due:[],new_:[],learning:[],done:[]};
-  for(const t of data){
-    const s=getStatus(t.id);
-    groups[s==='new'?'new_':s].push(t);
-  }
-  groups.due.sort((a,b)=>new Date(progress[a.id]?.due||0)-new Date(progress[b.id]?.due||0));
-
-  const sec=(label,arr,limit=999)=>{
-    if(!arr.length)return'';
-    let h=`<div class="sec">${label} (${arr.length})</div>`;
-    for(const t of arr.slice(0,limit)){
-      const c=progress[t.id],iv=c?` · ${fsrs.fmtIvl(c)}`:'';
-      const src=[t.author,t.source].filter(Boolean).join(' / ');
-      const s=getStatus(t.id);
-      const badge=s==='due'?'🔴':s==='new'?'🆕':s==='done'?'✅':'📚';
-      h+=`<div class="card" onclick="openStudy(${t.id})"><div class="tsume-thumb">${makeThumbnail(t)}</div><div class="cinfo"><div class="ct">詰将棋 #${t.id}</div><div class="cm">${src}${iv}</div></div><div class="cbadge">${badge}</div></div>`;
-    }
-    if(arr.length>limit)h+=`<div style="color:var(--dim);font-size:12px;text-align:center;padding:6px">…残り${arr.length-limit}問</div>`;
-    return h;
-  };
-
-  const due=groups.due.length,nw=groups.new_.length,dn=groups.done.length;
-  document.getElementById('app').innerHTML=`
-    <div id="nav"><h1>詰将棋 FSRS</h1><button class="nbtn" onclick="resetAll()">リセット</button></div>
-    <div id="stats"><span>🔴 <span class="sv due">${due}</span></span><span>🆕 <span class="sv nw">${nw}</span></span><span>✅ <span class="sv ok">${dn}</span></span><span style="margin-left:auto;color:var(--dim)">計${data.length}</span></div>
-    <div id="list">
-      ${sec('🔴 今日の復習',groups.due)}
-      ${sec('🆕 新規',groups.new_,20)}
-      ${sec('📚 学習中',groups.learning,15)}
-      ${sec('✅ 習得済み',groups.done,5)}
-    </div>`;
-}
-
-// ── STUDY VIEW ────────────────────────────────────────────────────────────
-function openStudy(id){
-  const tsume=data.find(t=>t.id===id);if(!tsume)return;
-  st={tsume,states:buildStates(tsume),step:0,card:progress[id]||fsrs.blank(),shown:false};
-  elapsed=0;t0=Date.now();
-  tickID=setInterval(()=>{elapsed=Date.now()-t0;const el=document.getElementById('timer');if(el)el.textContent=fmtMs(elapsed);},100);
-  renderStudy();
-}
-
-function renderStudy(){
-  const{tsume,states,step,card,shown}=st;
-  const s=states[step],ivls=fsrs.preview(card);
-  const bt=bestTimes[tsume.id];
-  document.getElementById('app').innerHTML=`
-    <div id="study" style="display:flex">
-      <div id="sh"><button id="bk" onclick="goBack()">←</button><div id="timer">${fmtMs(elapsed)}</div><div id="best">${bt?'ベスト: '+fmtMs(bt):''}</div></div>
-      <div id="sb">
-        <div id="gw">${gobanHTML(s,tsume)}</div>
-        <div class="hands" id="hw">${handHTML(s.gH,'gote')}${handHTML(s.sH,'sente')}</div>
-        <div id="mnav">
-          <button onclick="stepNav(-1)"${step===0?' disabled':''}>◀</button>
-          <span id="mlabel">${step===0?'初期配置':`${s.num}手目: ${s.label}`}</span>
-          <button onclick="stepNav(1)"${step===states.length-1?' disabled':''}>▶</button>
-        </div>
-        <div id="sol-wrap">
-          ${!shown
-            ?`<button id="sol-btn" onclick="showSol()">解答を見る ▼</button>`
-            :`<div id="sol-moves">${tsume.moves.map(m=>`<div class="smv"><span class="smn">${m.num}手目</span>${m.move}</div>`).join('')}</div>`}
-        </div>
-        ${shown?`<div id="fsrs"><div class="frow">
-          <button class="fb again" onclick="rate(1)">Again<span class="fi">${ivls[0]}</span></button>
-          <button class="fb hard"  onclick="rate(2)">Hard<span class="fi">${ivls[1]}</span></button>
-          <button class="fb good"  onclick="rate(3)">Good<span class="fi">${ivls[2]}</span></button>
-          <button class="fb easy"  onclick="rate(4)">Easy<span class="fi">${ivls[3]}</span></button>
-        </div></div>`:''}
-      </div>
-    </div>`;
-}
-
 function showSol(){
   elapsed=Date.now()-t0;
-  clearInterval(tickID);tickID=null;
+  if(tickID){clearInterval(tickID);tickID=null;}
   const id=st.tsume.id;
   if(!bestTimes[id]||elapsed<bestTimes[id]){bestTimes[id]=elapsed;saveT();}
   st.shown=true;
   renderStudy();
-  // auto-play moves
+  // auto-play
   let i=0;
   const play=setInterval(()=>{i++;if(i>=st.states.length){clearInterval(play);return;}st.step=i;updateGoban();},700);
 }
@@ -358,26 +394,33 @@ function updateGoban(){
 }
 
 function rate(r){
-  const nc=fsrs.schedule(st.card,r);
-  progress[st.tsume.id]=nc;save();goBack();
+  const{mode,queue,tsume}=st;
+  progress[tsume.id]=fsrs.schedule(st.card,r);
+  save();
+  // Review mode: auto-advance to next card in queue
+  if(mode==='review'&&queue.length>0){
+    openStudy(queue[0],'review',queue.slice(1));
+  }else{
+    goHome();
+  }
 }
 
-function goBack(){
+function goHome(){
   if(tickID){clearInterval(tickID);tickID=null;}
-  st=null;elapsed=0;renderList();
+  st=null;elapsed=0;renderHome();
 }
 
 function resetAll(){
-  if(!confirm('進捗をすべてリセットしますか？'))return;
-  progress={};bestTimes={};save();saveT();renderList();
+  if(!confirm('Réinitialiser toute la progression ?'))return;
+  progress={};bestTimes={};save();saveT();renderHome();
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 fetch('tsume.json')
   .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-  .then(d=>{data=d;renderList();})
+  .then(d=>{data=d;renderHome();})
   .catch(e=>{
-    document.getElementById('app').innerHTML=`<div style="padding:20px"><h2 style="color:var(--accent)">tsume.json が見つかりません</h2><p style="color:var(--dim);margin-top:8px;font-size:13px">${e.message}</p><p style="color:#555;margin-top:10px;font-size:12px">tsume.json をこのファイルと同じフォルダに置いてください。</p></div>`;
+    document.getElementById('app').innerHTML=`<div style="padding:24px"><h2 style="color:var(--accent);margin-bottom:8px">Erreur de chargement</h2><p style="color:var(--dim);font-size:13px">${e.message}</p></div>`;
   });
 </script>
 </body>
