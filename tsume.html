@@ -289,8 +289,10 @@ function renderHome(){
 }
 
 // ── TRAINING ──────────────────────────────────────────────────────────────
+function validTsume(t){return t.moves.length>0&&!t.moves.some(m=>m.move==='中断');}
+
 function showMoveSelect(){
-  const counts=[...new Set(data.map(t=>t.moves.length).filter(n=>n>0))].sort((a,b)=>a-b);
+  const counts=[...new Set(data.filter(validTsume).map(t=>t.moves.length))].sort((a,b)=>a-b);
   document.getElementById('app').innerHTML=`
     <div id="home-nav">
       <button class="nbtn" onclick="renderHome()">←</button>
@@ -300,7 +302,7 @@ function showMoveSelect(){
     <div id="home-body">
       <div style="font-size:13px;color:var(--dim);margin-bottom:4px">Choisissez le nombre de coups :</div>
       ${counts.map(n=>{
-        const total=data.filter(t=>t.moves.length===n).length;
+        const total=data.filter(t=>validTsume(t)&&t.moves.length===n).length;
         return`<button class="move-btn" onclick="startTraining(${n})">
           <span class="move-btn-title">${n}手詰</span>
           <span class="move-btn-count">${total} problème${total>1?'s':''}</span>
@@ -310,7 +312,7 @@ function showMoveSelect(){
 }
 
 function startTraining(n){
-  const pool=data.filter(t=>t.moves.length===n);
+  const pool=data.filter(t=>validTsume(t)&&t.moves.length===n);
   if(!pool.length)return;
   const t=pool[Math.floor(Math.random()*pool.length)];
   st={...st||{},moveFilter:n};
