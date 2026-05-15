@@ -15,6 +15,10 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 .nbtn{background:var(--surface2);color:var(--text);border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;}
 #home-body{padding:20px 16px;display:flex;flex-direction:column;gap:14px;}
 .mode-card{background:var(--surface);border-radius:14px;padding:20px;cursor:pointer;display:flex;align-items:center;gap:16px;border:2px solid transparent;transition:border-color .15s;}
+.move-btn{background:var(--surface);border:2px solid var(--surface2);border-radius:14px;padding:18px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;color:var(--text);transition:border-color .15s;}
+.move-btn:active{border-color:var(--blue);}
+.move-btn-title{font-size:22px;font-weight:700;}
+.move-btn-count{font-size:13px;color:var(--dim);}
 .mode-card:active{border-color:var(--surface2);}
 .mode-card.training{border-color:#444;}
 .mode-card.review{border-color:#444;}
@@ -260,11 +264,11 @@ function renderHome(){
   document.getElementById('app').innerHTML=`
     <div id="home-nav"><h1>詰将棋</h1><button class="nbtn" onclick="resetAll()">リセット</button></div>
     <div id="home-body">
-      <div class="mode-card training" onclick="startTraining()">
-        <div class="mode-icon">🎯</div>
+      <div class="mode-card training" onclick="showMoveSelect()">
+        <div class="mode-icon">🆕</div>
         <div class="mode-text">
-          <div class="mode-title">Entraînement</div>
-          <div class="mode-sub">Problème aléatoire · chrono masqué</div>
+          <div class="mode-title">Nouveau problème</div>
+          <div class="mode-sub">Choisir le nombre de coups</div>
         </div>
       </div>
       <div class="mode-card review" onclick="startReview()">
@@ -285,9 +289,32 @@ function renderHome(){
 }
 
 // ── TRAINING ──────────────────────────────────────────────────────────────
-function startTraining(){
-  const idx=Math.floor(Math.random()*data.length);
-  openStudy(data[idx].id,'training',[]);
+function showMoveSelect(){
+  const counts=[...new Set(data.map(t=>t.moves.length).filter(n=>n>0))].sort((a,b)=>a-b);
+  document.getElementById('app').innerHTML=`
+    <div id="home-nav">
+      <button class="nbtn" onclick="renderHome()">←</button>
+      <h1>Nouveau problème</h1>
+      <span></span>
+    </div>
+    <div id="home-body">
+      <div style="font-size:13px;color:var(--dim);margin-bottom:4px">Choisissez le nombre de coups :</div>
+      ${counts.map(n=>{
+        const total=data.filter(t=>t.moves.length===n).length;
+        return`<button class="move-btn" onclick="startTraining(${n})">
+          <span class="move-btn-title">${n}手詰</span>
+          <span class="move-btn-count">${total} problème${total>1?'s':''}</span>
+        </button>`;
+      }).join('')}
+    </div>`;
+}
+
+function startTraining(n){
+  const pool=data.filter(t=>t.moves.length===n);
+  if(!pool.length)return;
+  const t=pool[Math.floor(Math.random()*pool.length)];
+  st={...st||{},moveFilter:n};
+  openStudy(t.id,'training',[]);
 }
 
 // ── REVIEW ────────────────────────────────────────────────────────────────
@@ -548,7 +575,7 @@ function rate(r){
   if(mode==='review'&&queue.length>0){
     openStudy(queue[0],'review',queue.slice(1));
   }else if(mode==='training'){
-    startTraining();
+    startTraining(st.moveFilter||3);
   }else{
     goHome();
   }
