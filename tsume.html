@@ -275,29 +275,29 @@ function renderHome(){
       <div class="mode-card training" onclick="showMoveSelect()">
         <div class="mode-icon">🆕</div>
         <div class="mode-text">
-          <div class="mode-title">Nouveau problème</div>
-          <div class="mode-sub">Choisir le nombre de coups</div>
+          <div class="mode-title"><ruby>新<rt>あたら</rt></ruby>しい<ruby>問題<rt>もんだい</rt></ruby></div>
+          <div class="mode-sub"><ruby>手数<rt>てかず</rt></ruby>を<ruby>選<rt>えら</rt></ruby>ぶ</div>
         </div>
       </div>
       <div class="mode-card review" onclick="startReview()">
         <div class="mode-icon">📚</div>
         <div class="mode-text">
-          <div class="mode-title">Révision${due?`<span class="due-pill">${due}</span>`:''}
+          <div class="mode-title"><ruby>復習<rt>ふくしゅう</rt></ruby>${due?`<span class="due-pill">${due}</span>`:''}
           </div>
-          <div class="mode-sub">${due?`${due} carte${due>1?'s':''} à réviser`:'Aucune carte due aujourd\'hui'}</div>
+          <div class="mode-sub">${due?`${due}<ruby>枚<rt>まい</rt></ruby><ruby>復習<rt>ふくしゅう</rt></ruby>あり`:'<ruby>今日<rt>きょう</rt></ruby>の<ruby>復習<rt>ふくしゅう</rt></ruby>はありません'}</div>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <input id="goto-input" type="number" min="1" max="${data.length}" placeholder="N° du problème…"
+        <input id="goto-input" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="${data.length}" placeholder="問題番号…"
           style="flex:1;padding:12px 14px;background:var(--surface);border:2px solid var(--surface2);border-radius:10px;color:var(--text);font-size:15px;outline:none"
           onkeydown="if(event.key==='Enter')gotoNum()">
         <button onclick="gotoNum()" style="padding:12px 18px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:600">→</button>
       </div>
       <div id="home-stats">
-        <div class="hstat"><span class="hstat-val c-red">${due}</span><span class="hstat-label">À réviser</span></div>
-        <div class="hstat"><span class="hstat-val c-blue">${rated-mastered}</span><span class="hstat-label">En cours</span></div>
-        <div class="hstat"><span class="hstat-val c-green">${mastered}</span><span class="hstat-label">Maîtrisés</span></div>
-        <div class="hstat"><span class="hstat-val" style="color:var(--dim)">${data.length}</span><span class="hstat-label">Total</span></div>
+        <div class="hstat"><span class="hstat-val c-red">${due}</span><span class="hstat-label"><ruby>要復習<rt>ようふくしゅう</rt></ruby></span></div>
+        <div class="hstat"><span class="hstat-val c-blue">${rated-mastered}</span><span class="hstat-label"><ruby>学習中<rt>がくしゅうちゅう</rt></ruby></span></div>
+        <div class="hstat"><span class="hstat-val c-green">${mastered}</span><span class="hstat-label"><ruby>習得済<rt>しゅうとくず</rt></ruby>み</span></div>
+        <div class="hstat"><span class="hstat-val" style="color:var(--dim)">${data.length}</span><span class="hstat-label"><ruby>合計<rt>ごうけい</rt></ruby></span></div>
       </div>
     </div>`;
 }
@@ -329,16 +329,16 @@ function showMoveSelect(){
   document.getElementById('app').innerHTML=`
     <div id="home-nav">
       <button class="nbtn" onclick="renderHome()">←</button>
-      <h1>Nouveau problème</h1>
+      <h1><ruby>新<rt>あたら</rt></ruby>しい<ruby>問題<rt>もんだい</rt></ruby></h1>
       <span></span>
     </div>
     <div id="home-body">
-      <div style="font-size:13px;color:var(--dim);margin-bottom:4px">Choisissez le nombre de coups :</div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:4px"><ruby>手数<rt>てかず</rt></ruby>を<ruby>選<rt>えら</rt></ruby>んでください：</div>
       ${counts.map(n=>{
         const total=data.filter(t=>validTsume(t)&&t.moves.length===n).length;
         return`<button class="move-btn" onclick="startTraining(${n})">
           <span class="move-btn-title">${n}手詰</span>
-          <span class="move-btn-count">${total} problème${total>1?'s':''}</span>
+          <span class="move-btn-count">${total}<ruby>問<rt>もん</rt></ruby></span>
         </button>`;
       }).join('')}
     </div>`;
@@ -359,7 +359,7 @@ function startReview(){
     .sort((a,b)=>new Date(progress[a.id]?.due||0)-new Date(progress[b.id]?.due||0))
     .map(t=>t.id);
   if(!queue.length){
-    alert('Aucune carte à réviser pour l\'instant !');return;
+    alert('今は復習するカードがありません！');return;
   }
   openStudy(queue[0],'review',queue.slice(1));
 }
@@ -387,7 +387,7 @@ function renderStudy(){
   const src=tsume.source||'';
   let rightHTML=`<span style="font-weight:700;color:var(--text)">No.${tsume.id} &nbsp;${nMoves}手詰</span>`;
   if(src) rightHTML+=`<br>${src}`;
-  if(mode==='review'&&queue.length>0) rightHTML+=`<br><span id="queue-badge">${queue.length} restant${queue.length>1?'s':''}</span>`;
+  if(mode==='review'&&queue.length>0) rightHTML+=`<br><span id="queue-badge">${queue.length}<ruby>問<rt>もん</rt></ruby><ruby>残<rt>のこ</rt></ruby>り</span>`;
   else if(bt&&shown) rightHTML+=`<br>ベスト: ${fmtMs(bt)}`;
 
   // Timer display
@@ -419,15 +419,15 @@ function renderStudy(){
         ${!shown
           ?`<button id="sol-btn" onclick="showSol()">解答を見る ▼</button>`
           :''}
-        <button onclick="restartProblem()" style="width:100%;padding:10px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:13px;cursor:pointer;margin-top:6px">↺ Recommencer</button>
+        <button onclick="restartProblem()" style="width:100%;padding:10px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:13px;cursor:pointer;margin-top:6px">↺ やり<ruby>直<rt>なお</rt></ruby>す</button>
       </div>
       ${shown&&st.fsrsReady!==false?`<div id="fsrs">
-        ${(card.step||0)<3?`<div style="text-align:center;font-size:12px;color:var(--dim);margin-bottom:4px">Étape ${(card.step||0)+1}/3 avant graduation</div>`:''}
+        ${(card.step||0)<3?`<div style="text-align:center;font-size:12px;color:var(--dim);margin-bottom:4px"><ruby>卒業<rt>そつぎょう</rt></ruby>まであと${3-(card.step||0)}<ruby>段階<rt>だんかい</rt></ruby></div>`:''}
         <div class="frow">
-          <button class="fb again" onclick="rate(1)">Again<span class="fi">${ivls[0]}</span></button>
-          <button class="fb hard"  onclick="rate(2)">Hard<span class="fi">${ivls[1]}</span></button>
-          <button class="fb good"  onclick="rate(3)">Good<span class="fi">${ivls[2]}</span></button>
-          <button class="fb easy"  onclick="rate(4)">Easy<span class="fi">${ivls[3]}</span></button>
+          <button class="fb again" onclick="rate(1)"><ruby>再挑戦<rt>さいちょうせん</rt></ruby><span class="fi">${ivls[0]}</span></button>
+          <button class="fb hard"  onclick="rate(2)"><ruby>難<rt>むずか</rt></ruby>しい<span class="fi">${ivls[1]}</span></button>
+          <button class="fb good"  onclick="rate(3)"><ruby>良<rt>よ</rt></ruby>い<span class="fi">${ivls[2]}</span></button>
+          <button class="fb easy"  onclick="rate(4)"><ruby>簡単<rt>かんたん</rt></ruby><span class="fi">${ivls[3]}</span></button>
         </div></div>`:''}
     </div>`;
 }
@@ -505,7 +505,7 @@ function showFSRSButtons(){
   const sb=document.getElementById('sb');if(!sb)return;
   const div=document.createElement('div');
   div.id='fsrs';
-  div.innerHTML=`<button id="replay-btn" onclick="replayAnimation()" style="width:100%;padding:9px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;font-size:13px;cursor:pointer;margin-bottom:8px">↺ Rejouer</button>${(card.step||0)<3?`<div style="text-align:center;font-size:12px;color:var(--dim);margin-bottom:4px">Étape ${(card.step||0)+1}/3 avant graduation</div>`:''}<div class="frow"><button class="fb again" onclick="rate(1)">Again<span class="fi">${ivls[0]}</span></button><button class="fb hard" onclick="rate(2)">Hard<span class="fi">${ivls[1]}</span></button><button class="fb good" onclick="rate(3)">Good<span class="fi">${ivls[2]}</span></button><button class="fb easy" onclick="rate(4)">Easy<span class="fi">${ivls[3]}</span></button></div>`;
+  div.innerHTML=`<button id="replay-btn" onclick="replayAnimation()" style="width:100%;padding:9px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;font-size:13px;cursor:pointer;margin-bottom:8px">↺ もう一度見る</button>${(card.step||0)<3?`<div style="text-align:center;font-size:12px;color:var(--dim);margin-bottom:4px"><ruby>卒業<rt>そつぎょう</rt></ruby>まであと${3-(card.step||0)}<ruby>段階<rt>だんかい</rt></ruby></div>`:''}<div class="frow"><button class="fb again" onclick="rate(1)"><ruby>再挑戦<rt>さいちょうせん</rt></ruby><span class="fi">${ivls[0]}</span></button><button class="fb hard" onclick="rate(2)"><ruby>難<rt>むずか</rt></ruby>しい<span class="fi">${ivls[1]}</span></button><button class="fb good" onclick="rate(3)"><ruby>良<rt>よ</rt></ruby>い<span class="fi">${ivls[2]}</span></button><button class="fb easy" onclick="rate(4)"><ruby>簡単<rt>かんたん</rt></ruby><span class="fi">${ivls[3]}</span></button></div>`;
   sb.appendChild(div);
   setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}),50);
 }
