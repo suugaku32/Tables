@@ -35,6 +35,7 @@ const tsume = unseen[Math.floor(Math.random() * unseen.length)]
 
 // Mémorise l'ID vu et sauvegarde
 state.seen.push(tsume.id)
+state.lastId = tsume.id
 saveState(state)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
