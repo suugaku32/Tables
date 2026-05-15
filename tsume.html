@@ -81,7 +81,7 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 .fb.good{background:var(--green);color:#fff;}.fb.easy{background:var(--blue);color:#fff;}
 
 #loading{display:flex;align-items:center;justify-content:center;height:80vh;font-size:16px;color:var(--dim);}
-#mute-btn{position:fixed;top:calc(env(safe-area-inset-top,0px)+10px);right:14px;z-index:100;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+#mute-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+16px);right:16px;z-index:100;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
 </style>
 </head>
 <body>
@@ -523,12 +523,23 @@ function replayAnimation(){
 let animating=false;
 
 // Sons de déplacement
-const SOUNDS=[1,2,3,4].map(n=>{const a=new Audio(`sounds/SON_${n}.mp3`);a.preload='auto';return a;});
-function playMoveSound(){const a=SOUNDS[Math.floor(Math.random()*SOUNDS.length)];a.currentTime=0;a.play().catch(()=>{});}
+const _actx=new(window.AudioContext||window.webkitAudioContext)();
+const SOUNDS=[1,2,3,4].map(n=>{
+  const a=new Audio(`sounds/SON_${n}.mp3`);a.preload='auto';
+  const src=_actx.createMediaElementSource(a);
+  const gain=_actx.createGain();gain.gain.value=3.5;
+  src.connect(gain);gain.connect(_actx.destination);
+  return a;
+});
+function playMoveSound(){
+  if(_actx.state==='suspended')_actx.resume();
+  const a=SOUNDS[Math.floor(Math.random()*SOUNDS.length)];
+  a.currentTime=0;a.play().catch(()=>{});
+}
 
 // Musique de fond
 const BGM=new Audio('sounds/BGM.mp3');
-BGM.loop=true;BGM.volume=0.08;
+BGM.loop=true;BGM.volume=0.05;
 let muted=false;
 function toggleMute(){
   muted=!muted;
