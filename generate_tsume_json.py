@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 # ── Configuration ──────────────────────────────────────────────────────────
-KIF_DIR    = Path("/Users/fabienloi/Downloads/tsume/8K Tsume Problems/3 Moves Tsume/")
+KIF_DIR    = Path("/Users/fabienloi/Downloads/tsume/8K Tsume Problems/")
 OUTPUT     = Path.home() / "Library/Mobile Documents/iCloud~dk~simonbs~Scriptable/Documents/tsume.json"
 
 # ── Tables de correspondance ───────────────────────────────────────────────
@@ -186,7 +186,7 @@ def parse_kif(filepath):
 
 # ── Main ───────────────────────────────────────────────────────────────────
 def main():
-    kif_files = sorted(KIF_DIR.glob("*.kif"))
+    kif_files = sorted(KIF_DIR.rglob("*.kif"))
     total = len(kif_files)
 
     if total == 0:
