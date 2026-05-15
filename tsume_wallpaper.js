@@ -10,10 +10,11 @@ const BASE = FM.documentsDirectory()
 
 // ── State ────────────────────────────────────────────────────────────────────
 const STATE_PATH = FM.joinPath(BASE, "state.json")
-function loadState() {
-  if (!FM.fileExists(STATE_PATH)) return { index: 0 }
-  FM.downloadFileFromiCloud(STATE_PATH)
-  return JSON.parse(FM.readString(STATE_PATH))
+let state = { seen: [] }
+if (FM.fileExists(STATE_PATH)) {
+  await FM.downloadFileFromiCloud(STATE_PATH)
+  const parsed = JSON.parse(FM.readString(STATE_PATH))
+  if (Array.isArray(parsed.seen)) state.seen = parsed.seen
 }
 function saveState(s) { FM.writeString(STATE_PATH, JSON.stringify(s)) }
 
@@ -25,16 +26,12 @@ const ALL_TSUME = JSON.parse(FM.readString(TSUME_PATH))
 // Filtre sur les problèmes en 3 coups uniquement
 const TSUME_POOL = ALL_TSUME.filter(t => t.moves.length === 3)
 
-let state = loadState()
-if (!Array.isArray(state.seen)) state.seen = []
-
 // Priorité aux problèmes pas encore vus ; réinitialise si tout a été vu
-const unseen = TSUME_POOL.filter(t => !state.seen.includes(t.id))
-const pool = unseen.length > 0 ? unseen : TSUME_POOL
-if (unseen.length === 0) state.seen = []
+let unseen = TSUME_POOL.filter(t => !state.seen.includes(t.id))
+if (unseen.length === 0) { state.seen = []; unseen = TSUME_POOL }
 
-// Tirage aléatoire
-const tsume = pool[Math.floor(Math.random() * pool.length)]
+// Tirage aléatoire parmi les non-vus
+const tsume = unseen[Math.floor(Math.random() * unseen.length)]
 
 // Mémorise l'ID vu et sauvegarde
 state.seen.push(tsume.id)
