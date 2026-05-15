@@ -336,7 +336,8 @@ function openStudy(id,mode,queue){
   const tsume=data.find(t=>t.id===id);if(!tsume)return;
   if(tickID){clearInterval(tickID);tickID=null;}
   elapsed=0;t0=Date.now();
-  st={tsume,states:buildStates(tsume),step:0,card:progress[id]||fsrs.blank(),shown:false,mode,queue};
+  const mf=st?.moveFilter;
+  st={tsume,states:buildStates(tsume),step:0,card:progress[id]||fsrs.blank(),shown:false,mode,queue,moveFilter:mf};
   if(mode==='review'){
     tickID=setInterval(()=>{elapsed=Date.now()-t0;const el=document.getElementById('timer');if(el)el.textContent=fmtMs(elapsed);},100);
   }
