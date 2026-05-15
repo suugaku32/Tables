@@ -103,24 +103,31 @@ def parse_moves(move_lines):
     moves = []
     pattern_from = re.compile(r'\s*(\d+)\s+(.*?)\((\d{2})\)\s*\(')
     pattern_drop = re.compile(r'\s*(\d+)\s+(\S+)\s*\(')
+    expected = 1  # prochain numéro de coup attendu
     for line in move_lines:
-        # Arrêt sur tout marqueur de fin invalide
-        if any(w in line for w in STOP_WORDS):
+        # Arrêt sur variante ou marqueur de fin invalide
+        if '変化：' in line or any(w in line for w in STOP_WORDS):
             break
         m = pattern_from.match(line)
         if m:
             num = int(m.group(1))
+            if num != expected:
+                break  # numéro inattendu = début de variante
             move = m.group(2).strip()
             from_coord = m.group(3)
             from_col = 9 - int(from_coord[0])
             from_row = int(from_coord[1]) - 1
             moves.append({'num': num, 'move': move, 'from_col': from_col, 'from_row': from_row})
+            expected += 1
         else:
             m2 = pattern_drop.match(line)
             if m2:
                 num = int(m2.group(1))
+                if num != expected:
+                    break
                 move = m2.group(2).strip()
                 moves.append({'num': num, 'move': move, 'from_col': -1, 'from_row': -1})
+                expected += 1
     return moves
 
 
