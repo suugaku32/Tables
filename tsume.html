@@ -162,8 +162,8 @@ const PSET=new Set(['to','nkyou','nkei','ngin','uma','ryuu']);
 
 function psvg(piece,player,size){
   const k=PKANJI[piece]||'?',pr=PSET.has(piece);
-  const color=player==='sente'?(pr?'#ff6b6b':'#e8e8e8'):(pr?'#cc5555':'#505050');
-  const fs=Math.round(size*0.64);
+  const color=pr?'#ff6b6b':'#e8e8e8';
+  const fs=Math.round(size*0.76);
   const rot=player==='gote'?'display:inline-block;transform:rotate(180deg);':'';
   return`<span style="font-size:${fs}px;color:${color};${rot}line-height:1;font-weight:700;font-family:'Hiragino Mincho ProN','Noto Serif JP',serif;user-select:none">${k}</span>`;
 }
@@ -233,7 +233,7 @@ function makeThumbnail(tsume){
     const cell=board[r]?.[c];
     if(cell){
       const k=PKANJI[cell.piece]||'?',pr=PSET.has(cell.piece);
-      const fill=cell.player==='sente'?(pr?'#ff6b6b':'#e8e8e8'):(pr?'#cc5555':'#505050');
+      const fill=pr?'#ff6b6b':'#e8e8e8';
       const rot=cell.player==='gote'?`rotate(180,${x+cs/2},${y+cs/2})`:'';
       out+=`<g transform="${rot}"><text x="${x+cs/2}" y="${y+cs*0.78}" text-anchor="middle" font-size="${cs*0.62}px" fill="${fill}" font-family="serif" font-weight="bold">${k}</text></g>`;
     }
