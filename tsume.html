@@ -7,7 +7,7 @@
 <style>
 :root{--bg:#1a1a2e;--surface:#16213e;--surface2:#0f3460;--accent:#e94560;--gold:#f5a623;--green:#27ae60;--blue:#2980b9;--text:#eaeaea;--dim:#888;--cell:44px;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;max-width:500px;margin:0 auto;}
+body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;max-width:500px;margin:0 auto;touch-action:manipulation;}
 
 /* ── HOME ── */
 #home-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--surface2);}
@@ -561,6 +561,10 @@ function resetAll(){
   if(!confirm('Réinitialiser toute la progression ?'))return;
   progress={};bestTimes={};save();saveT();renderHome();
 }
+
+// Bloquer pinch-to-zoom sur iOS Safari
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 fetch('tsume.json')
