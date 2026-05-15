@@ -351,7 +351,7 @@ function renderStudy(){
           ?`<button id="sol-btn" onclick="showSol()">解答を見る ▼</button>`
           :''}
       </div>
-      ${shown?`<div id="fsrs">
+      ${shown&&st.fsrsReady!==false?`<div id="fsrs">
         ${(card.step||0)<3?`<div style="text-align:center;font-size:12px;color:var(--dim);margin-bottom:4px">Étape ${(card.step||0)+1}/3 avant graduation</div>`:''}
         <div class="frow">
           <button class="fb again" onclick="rate(1)">Again<span class="fi">${ivls[0]}</span></button>
@@ -410,14 +410,27 @@ function showSol(){
   const id=st.tsume.id;
   if(!bestTimes[id]||elapsed<bestTimes[id]){bestTimes[id]=elapsed;saveT();}
   st.shown=true;
+  st.fsrsReady=false;
   renderStudy();
   function playStep(i){
-    if(i>=st.states.length)return;
+    if(i>=st.states.length){showFSRSButtons();return;}
     st.step=i;
     const ns=st.states[i];
     flyPiece(ns,()=>{applyMoveToDOM(ns);setTimeout(()=>playStep(i+1),320);});
   }
   setTimeout(()=>playStep(1),300);
+}
+
+function showFSRSButtons(){
+  st.fsrsReady=true;
+  if(document.getElementById('fsrs'))return;
+  const {card}=st,ivls=fsrs.preview(card);
+  const sb=document.getElementById('sb');if(!sb)return;
+  const div=document.createElement('div');
+  div.id='fsrs';
+  div.innerHTML=`${(card.step||0)<3?`<div style="text-align:center;font-size:12px;color:var(--dim);margin-bottom:4px">Étape ${(card.step||0)+1}/3 avant graduation</div>`:''}<div class="frow"><button class="fb again" onclick="rate(1)">Again<span class="fi">${ivls[0]}</span></button><button class="fb hard" onclick="rate(2)">Hard<span class="fi">${ivls[1]}</span></button><button class="fb good" onclick="rate(3)">Good<span class="fi">${ivls[2]}</span></button><button class="fb easy" onclick="rate(4)">Easy<span class="fi">${ivls[3]}</span></button></div>`;
+  sb.appendChild(div);
+  div.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 let animating=false;
