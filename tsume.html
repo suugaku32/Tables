@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>詰将棋 FSRS</title>
+<style>
+:root {
+  --bg:#1a1a2e; --surface:#16213e; --surface2:#0f3460;
+  --accent:#e94560; --gold:#f5a623; --text:#eaeaea; --dim:#888;
+  --cell:44px; --ps:38px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;}
+
+#nav{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--surface2);}
+#nav h1{font-size:17px;font-weight:700;}
+.nbtn{background:var(--surface2);color:var(--text);border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;}
+
+#stats{display:flex;gap:14px;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--surface2);font-size:13px;}
+.sv{font-weight:700;}.sv.due{color:var(--accent);}.sv.nw{color:#3498db;}.sv.ok{color:#27ae60;}
+
+#list{padding:10px;}
+.sec{font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin:14px 0 6px;}
+.card{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:10px;padding:9px;margin-bottom:7px;cursor:pointer;}
+.card:active{background:var(--surface2);}
+.cinfo{flex:1;min-width:0;}
+.ct{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cm{font-size:11px;color:var(--dim);margin-top:2px;}
+.cbadge{font-size:16px;flex-shrink:0;}
+
+#study{display:none;flex-direction:column;min-height:100vh;}
+#sh{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--surface2);}
+#bk{background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:0 4px;}
+#timer{font-size:22px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;min-width:85px;}
+#best{flex:1;text-align:right;font-size:11px;color:var(--dim);}
+#sb{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+
+#goban{display:grid;border:2px solid #666;background:#2a1800;}
+.cell{width:var(--cell);height:var(--cell);border:1px solid #4a3820;display:flex;align-items:center;justify-content:center;}
+.cell.ht{background:rgba(255,200,0,0.18);}
+.cell.hf{background:rgba(80,140,255,0.15);}
+
+.hands{display:flex;gap:8px;width:100%;max-width:420px;}
+.hbox{flex:1;background:var(--surface);border-radius:8px;padding:7px;}
+.hl{font-size:10px;color:var(--dim);margin-bottom:4px;}
+.hpieces{display:flex;flex-wrap:wrap;gap:3px;min-height:20px;}
+.hp{position:relative;width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
+.hpc{position:absolute;top:-1px;right:-1px;font-size:9px;background:var(--accent);border-radius:50%;width:12px;height:12px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+
+#mnav{display:flex;gap:8px;align-items:center;}
+#mnav button{background:var(--surface2);color:var(--text);border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:16px;}
+#mnav button:disabled{opacity:.35;}
+#mlabel{font-size:13px;color:var(--dim);min-width:120px;text-align:center;}
+
+#sol-wrap{width:100%;max-width:420px;}
+#sol-btn{width:100%;padding:13px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:15px;cursor:pointer;}
+#sol-moves{background:var(--surface);border-radius:10px;padding:10px;margin-top:7px;}
+.smv{padding:5px 0;font-size:13px;border-bottom:1px solid var(--surface2);display:flex;gap:6px;}
+.smv:last-child{border:none;}
+.smn{color:var(--gold);font-weight:700;min-width:40px;}
+
+#fsrs{width:100%;max-width:420px;padding-bottom:20px;}
+.frow{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px;}
+.fb{padding:10px 4px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.fi{font-size:10px;font-weight:400;opacity:.8;}
+.fb.again{background:#c0392b;color:#fff;}.fb.hard{background:#d35400;color:#fff;}
+.fb.good{background:#27ae60;color:#fff;}.fb.easy{background:#2980b9;color:#fff;}
+
+#loading{display:flex;align-items:center;justify-content:center;height:80vh;font-size:16px;color:var(--dim);}
+</style>
+</head>
+<body>
+<div id="app"><div id="loading">読み込み中…</div></div>
+<script>
+// ── FSRS-4.5 ──────────────────────────────────────────────────────────────
+const W=[0.4072,1.1829,3.1262,15.4722,7.2102,0.5316,1.0651,0.0589,1.5330,0.1544,1.0071,1.9395,0.1100,0.2900,2.2700,0.2500,2.9898];
+const RET=0.9;
+const fsrs={
+  blank:()=>({state:'new',due:new Date(0).toISOString(),stability:1,difficulty:5,reps:0,lapses:0,lastReview:null}),
+  fc:(t,s)=>Math.pow(1+t/(9*s),-1),
+  ivl:s=>Math.max(1,Math.round(9*s*(1/RET-1))),
+  initS:r=>Math.max(W[r-1],0.1),
+  initD:r=>Math.min(Math.max(W[4]-Math.exp(W[5]*(r-1))+1,1),10),
+  nextD(d,r){const n=d-W[6]*(r-3);return Math.min(Math.max(W[7]*W[4]+(1-W[7])*n,1),10);},
+  recallS(d,s,r,g){return Math.max(s*(Math.exp(W[8])*(11-d)*Math.pow(s,-W[9])*(Math.exp((1-r)*W[10])-1)*(g===2?W[15]:1)*(g===4?W[16]:1)+1),0.1);},
+  forgetS(d,s,r){return Math.max(W[11]*Math.pow(d,-W[12])*(Math.pow(s+1,W[13])-1)*Math.exp((1-r)*W[14]),0.1);},
+  fmtIvl(card){
+    const diff=(new Date(card.due)-Date.now())/60000;
+    if(diff<60) return Math.max(1,Math.round(diff))+'m';
+    if(diff<1440) return Math.round(diff/60)+'h';
+    return Math.round(diff/1440)+'j';
+  },
+  schedule(card,rating,now=new Date()){
+    const c={...card};
+    const elapsed=c.lastReview?(now-new Date(c.lastReview))/86400000:0;
+    c.lastReview=now.toISOString();
+    const min=m=>new Date(now.getTime()+m*60000).toISOString();
+    const day=d=>new Date(now.getTime()+d*86400000).toISOString();
+    if(c.state==='new'){
+      c.difficulty=this.initD(rating);c.stability=this.initS(rating);
+      if(rating===1){c.state='learning';c.due=min(1);}
+      else if(rating===2){c.state='learning';c.due=min(5);}
+      else{c.state='review';c.reps++;c.due=day(Math.max(this.ivl(c.stability),rating===4?4:1));}
+    }else if(c.state==='learning'||c.state==='relearning'){
+      if(rating===1)c.due=min(1);
+      else if(rating===2)c.due=min(5);
+      else{c.state='review';c.reps++;c.due=day(this.ivl(c.stability));}
+    }else if(c.state==='review'){
+      const r=this.fc(elapsed,c.stability);
+      c.difficulty=this.nextD(c.difficulty,rating);
+      if(rating===1){c.stability=this.forgetS(c.difficulty,c.stability,r);c.state='relearning';c.lapses++;c.due=min(10);}
+      else{c.stability=this.recallS(c.difficulty,c.stability,r,rating);c.reps++;c.due=day(this.ivl(c.stability));}
+    }
+    return c;
+  },
+  preview:card=>[1,2,3,4].map(r=>fsrs.fmtIvl(fsrs.schedule({...card},r)))
+};
+
+// ── PIECE DATA ────────────────────────────────────────────────────────────
+const PFILE={fu:'FU',kyou:'KY',kei:'KE',gin:'GI',kin:'KI',kaku:'KA',hi:'HI',gyoku:'OU',ou:'OU',to:'TO',nkyou:'NY',nkei:'NK',ngin:'NG',uma:'UM',ryuu:'RY'};
+const PKANJI={fu:'歩',kyou:'香',kei:'桂',gin:'銀',kin:'金',kaku:'角',hi:'飛',gyoku:'玉',ou:'王',to:'と',nkyou:'杏',nkei:'圭',ngin:'全',uma:'馬',ryuu:'龍'};
+const PROMO={fu:'to',kyou:'nkyou',kei:'nkei',gin:'ngin',kaku:'uma',hi:'ryuu'};
+const DEPROM={to:'fu',nkyou:'kyou',nkei:'kei',ngin:'gin',uma:'kaku',ryuu:'hi'};
+const HORDER=['hi','kaku','kin','gin','kei','kyou','fu'];
+const PSET=new Set(['to','nkyou','nkei','ngin','uma','ryuu']);
+
+function psvg(piece,player,size){
+  const k=PKANJI[piece]||'?',pr=PSET.has(piece);
+  const fill=player==='sente'?'#f0e8d0':'#c8c0b0',tf=pr?'#c0392b':'#1a0a00';
+  const rot=player==='gote'?`rotate(180,${size/2},${size/2})`:'';
+  const s=size,m=s*0.08;
+  const path=`M${s/2},${m} L${s-m},${s*0.3} L${s-m},${s-m} L${m},${s-m} L${m},${s*0.3}Z`;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><g transform="${rot}"><path d="${path}" fill="${fill}" stroke="#666" stroke-width="0.8"/><text x="${s/2}" y="${s*0.73}" text-anchor="middle" font-size="${s*0.44}px" fill="${tf}" font-family="serif" font-weight="bold">${k}</text></g></svg>`;
+}
+
+function pieceHTML(cell,size=38){
+  if(!cell)return'';
+  const pre=cell.player==='sente'?'0':'1',suf=PFILE[cell.piece]||'FU';
+  const fb=psvg(cell.piece,cell.player,size).replace(/'/g,"&#39;");
+  return`<img src="pieces/${pre}${suf}.png" width="${size}" height="${size}" style="display:block" onerror="this.outerHTML='${fb}'" alt="${PKANJI[cell.piece]||''}">`;
+}
+
+// ── BOARD LOGIC ───────────────────────────────────────────────────────────
+const COL_NUM={'１':1,'２':2,'３':3,'４':4,'５':5,'６':6,'７':7,'８':8,'９':9};
+const ROW_IDX={'一':0,'二':1,'三':2,'四':3,'五':4,'六':5,'七':6,'八':7,'九':8};
+const cpB=b=>b.map(r=>r.map(c=>c?{...c}:null));
+const cpH=h=>({...h});
+
+function applyMove(m,board,gH,sH,lastTo){
+  const mv=m.move,isSame=mv.startsWith('同'),isDrop=mv.includes('打');
+  const promotes=mv.includes('成')&&!['成香','成桂','成銀'].some(p=>mv.startsWith(p));
+  let toR=-1,toC=-1;
+  if(isSame&&lastTo){toR=lastTo[0];toC=lastTo[1];}
+  else{const cn=COL_NUM[mv[0]],ri=ROW_IDX[mv[1]];if(cn!==undefined)toC=9-cn;if(ri!==undefined)toR=ri;}
+  const fromR=m.from_row??-1,fromC=m.from_col??-1;
+  if(isDrop){
+    const player=m.num%2===1?'sente':'gote';
+    const K2P={'歩':'fu','香':'kyou','桂':'kei','銀':'gin','金':'kin','角':'kaku','飛':'hi'};
+    for(const[k,v]of Object.entries(K2P)){if(mv.includes(k)){board[toR][toC]={piece:v,player};const h=player==='sente'?sH:gH;if(h[v]>0)h[v]--;break;}}
+  }else if(fromR>=0&&fromC>=0&&toR>=0&&toC>=0){
+    const p=board[fromR][fromC];if(!p)return[toR,toC];
+    const tgt=board[toR][toC];
+    if(tgt){const base=DEPROM[tgt.piece]||tgt.piece;const h=tgt.player==='gote'?sH:gH;h[base]=(h[base]||0)+1;}
+    board[toR][toC]={piece:promotes&&PROMO[p.piece]?PROMO[p.piece]:p.piece,player:p.player};
+    board[fromR][fromC]=null;
+  }
+  return[toR,toC];
+}
+
+function buildStates(tsume){
+  const states=[];
+  let board=cpB(tsume.board),gH=cpH(tsume.gote_hand||{}),sH=cpH(tsume.sente_hand||{});
+  let lastTo=null;
+  states.push({board:cpB(board),gH:cpH(gH),sH:cpH(sH),lastTo:null,moveFrom:null,label:'初期配置',num:0});
+  for(const m of tsume.moves){
+    const isDrop=m.move.includes('打');
+    const fromR=isDrop?-1:(m.from_row??-1),fromC=isDrop?-1:(m.from_col??-1);
+    lastTo=applyMove(m,board,gH,sH,lastTo);
+    states.push({board:cpB(board),gH:cpH(gH),sH:cpH(sH),lastTo:lastTo?[...lastTo]:null,moveFrom:fromR>=0?[fromR,fromC]:null,label:m.move,num:m.num});
+  }
+  return states;
+}
+
+// ── SVG THUMBNAIL ─────────────────────────────────────────────────────────
+function makeThumbnail(tsume){
+  const{board,bbox}=tsume;
+  if(!bbox)return'<svg width="56" height="56"><rect width="56" height="56" fill="#333" rx="4"/></svg>';
+  const{min_row,max_row,min_col,max_col}=bbox;
+  const rows=max_row-min_row+1,cols=max_col-min_col+1;
+  const cs=Math.max(5,Math.min(11,Math.floor(56/Math.max(rows,cols))));
+  const W_=cols*cs,H_=rows*cs;
+  let out=`<svg width="${W_}" height="${H_}" viewBox="0 0 ${W_} ${H_}">`;
+  for(let r=min_row;r<=max_row;r++)for(let c=min_col;c<=max_col;c++){
+    const x=(c-min_col)*cs,y=(r-min_row)*cs;
+    out+=`<rect x="${x}" y="${y}" width="${cs}" height="${cs}" fill="#3a2000" stroke="#543" stroke-width="0.4"/>`;
+    const cell=board[r]?.[c];
+    if(cell){
+      const k=PKANJI[cell.piece]||'?',pr=PSET.has(cell.piece);
+      const fill=cell.player==='sente'?'#f0e8d0':'#b0a898',tf=pr?'#c03':'#100';
+      const rot=cell.player==='gote'?`rotate(180,${x+cs/2},${y+cs/2})`:'';
+      const m2=cs*0.08;
+      out+=`<g transform="${rot}"><path d="M${x+cs/2},${y+m2} L${x+cs-m2},${y+cs*0.3} L${x+cs-m2},${y+cs-m2} L${x+m2},${y+cs-m2} L${x+m2},${y+cs*0.3}Z" fill="${fill}" stroke="#555" stroke-width="0.3"/><text x="${x+cs/2}" y="${y+cs*0.75}" text-anchor="middle" font-size="${cs*0.55}px" fill="${tf}" font-family="serif">${k}</text></g>`;
+    }
+  }
+  return out+'</svg>';
+}
+
+// ── STORAGE ───────────────────────────────────────────────────────────────
+const KEY='tsume_fsrs_v1',TKEY='tsume_times_v1';
+let progress=(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch{return{};}})();
+let bestTimes=(()=>{try{return JSON.parse(localStorage.getItem(TKEY))||{};}catch{return{};}})();
+const save=()=>localStorage.setItem(KEY,JSON.stringify(progress));
+const saveT=()=>localStorage.setItem(TKEY,JSON.stringify(bestTimes));
+
+// ── APP STATE ─────────────────────────────────────────────────────────────
+let data=[],st=null,tickID=null,t0=null,elapsed=0;
+
+function getStatus(id){
+  const c=progress[id];
+  if(!c||c.state==='new')return'new';
+  if(new Date(c.due)<=new Date())return'due';
+  if(c.state==='review'&&c.reps>=4)return'done';
+  return'learning';
+}
+
+const fmtMs=ms=>{const s=Math.floor(ms/1000),m=Math.floor(s/60);return`${m}:${String(s%60).padStart(2,'0')}.${Math.floor((ms%1000)/100)}`;};
+
+// ── RENDER HELPERS ────────────────────────────────────────────────────────
+function handHTML(h,player){
+  const label=player==='sente'?'先手':'後手';
+  let inner='';
+  for(const p of HORDER){const n=h[p]||0;if(n>0)inner+=`<div class="hp">${pieceHTML({piece:p,player},26)}${n>1?`<span class="hpc">${n}</span>`:''}</div>`;}
+  if(!inner)inner='<span style="color:#555;font-size:11px">なし</span>';
+  return`<div class="hbox"><div class="hl">${label}の持ち駒</div><div class="hpieces">${inner}</div></div>`;
+}
+
+function gobanHTML(state,tsume){
+  const{board,gH,sH,lastTo,moveFrom}=state,{bbox}=tsume;
+  if(!bbox)return'';
+  const{min_row,max_row,min_col,max_col}=bbox;
+  const rows=max_row-min_row+1,cols=max_col-min_col+1;
+  let g=`<div id="goban" style="grid-template-columns:repeat(${cols},var(--cell));grid-template-rows:repeat(${rows},var(--cell));">`;
+  for(let r=min_row;r<=max_row;r++)for(let c=min_col;c<=max_col;c++){
+    const isTo=lastTo&&lastTo[0]===r&&lastTo[1]===c;
+    const isFrom=moveFrom&&moveFrom[0]===r&&moveFrom[1]===c;
+    g+=`<div class="cell${isTo?' ht':''}${isFrom?' hf':''}">${pieceHTML(board[r]?.[c])}</div>`;
+  }
+  return g+'</div>';
+}
+
+// ── LIST VIEW ─────────────────────────────────────────────────────────────
+function renderList(){
+  const groups={due:[],new_:[],learning:[],done:[]};
+  for(const t of data){
+    const s=getStatus(t.id);
+    groups[s==='new'?'new_':s].push(t);
+  }
+  groups.due.sort((a,b)=>new Date(progress[a.id]?.due||0)-new Date(progress[b.id]?.due||0));
+
+  const sec=(label,arr,limit=999)=>{
+    if(!arr.length)return'';
+    let h=`<div class="sec">${label} (${arr.length})</div>`;
+    for(const t of arr.slice(0,limit)){
+      const c=progress[t.id],iv=c?` · ${fsrs.fmtIvl(c)}`:'';
+      const src=[t.author,t.source].filter(Boolean).join(' / ');
+      const s=getStatus(t.id);
+      const badge=s==='due'?'🔴':s==='new'?'🆕':s==='done'?'✅':'📚';
+      h+=`<div class="card" onclick="openStudy(${t.id})"><div class="tsume-thumb">${makeThumbnail(t)}</div><div class="cinfo"><div class="ct">詰将棋 #${t.id}</div><div class="cm">${src}${iv}</div></div><div class="cbadge">${badge}</div></div>`;
+    }
+    if(arr.length>limit)h+=`<div style="color:var(--dim);font-size:12px;text-align:center;padding:6px">…残り${arr.length-limit}問</div>`;
+    return h;
+  };
+
+  const due=groups.due.length,nw=groups.new_.length,dn=groups.done.length;
+  document.getElementById('app').innerHTML=`
+    <div id="nav"><h1>詰将棋 FSRS</h1><button class="nbtn" onclick="resetAll()">リセット</button></div>
+    <div id="stats"><span>🔴 <span class="sv due">${due}</span></span><span>🆕 <span class="sv nw">${nw}</span></span><span>✅ <span class="sv ok">${dn}</span></span><span style="margin-left:auto;color:var(--dim)">計${data.length}</span></div>
+    <div id="list">
+      ${sec('🔴 今日の復習',groups.due)}
+      ${sec('🆕 新規',groups.new_,20)}
+      ${sec('📚 学習中',groups.learning,15)}
+      ${sec('✅ 習得済み',groups.done,5)}
+    </div>`;
+}
+
+// ── STUDY VIEW ────────────────────────────────────────────────────────────
+function openStudy(id){
+  const tsume=data.find(t=>t.id===id);if(!tsume)return;
+  st={tsume,states:buildStates(tsume),step:0,card:progress[id]||fsrs.blank(),shown:false};
+  elapsed=0;t0=Date.now();
+  tickID=setInterval(()=>{elapsed=Date.now()-t0;const el=document.getElementById('timer');if(el)el.textContent=fmtMs(elapsed);},100);
+  renderStudy();
+}
+
+function renderStudy(){
+  const{tsume,states,step,card,shown}=st;
+  const s=states[step],ivls=fsrs.preview(card);
+  const bt=bestTimes[tsume.id];
+  document.getElementById('app').innerHTML=`
+    <div id="study" style="display:flex">
+      <div id="sh"><button id="bk" onclick="goBack()">←</button><div id="timer">${fmtMs(elapsed)}</div><div id="best">${bt?'ベスト: '+fmtMs(bt):''}</div></div>
+      <div id="sb">
+        <div id="gw">${gobanHTML(s,tsume)}</div>
+        <div class="hands" id="hw">${handHTML(s.gH,'gote')}${handHTML(s.sH,'sente')}</div>
+        <div id="mnav">
+          <button onclick="stepNav(-1)"${step===0?' disabled':''}>◀</button>
+          <span id="mlabel">${step===0?'初期配置':`${s.num}手目: ${s.label}`}</span>
+          <button onclick="stepNav(1)"${step===states.length-1?' disabled':''}>▶</button>
+        </div>
+        <div id="sol-wrap">
+          ${!shown
+            ?`<button id="sol-btn" onclick="showSol()">解答を見る ▼</button>`
+            :`<div id="sol-moves">${tsume.moves.map(m=>`<div class="smv"><span class="smn">${m.num}手目</span>${m.move}</div>`).join('')}</div>`}
+        </div>
+        ${shown?`<div id="fsrs"><div class="frow">
+          <button class="fb again" onclick="rate(1)">Again<span class="fi">${ivls[0]}</span></button>
+          <button class="fb hard"  onclick="rate(2)">Hard<span class="fi">${ivls[1]}</span></button>
+          <button class="fb good"  onclick="rate(3)">Good<span class="fi">${ivls[2]}</span></button>
+          <button class="fb easy"  onclick="rate(4)">Easy<span class="fi">${ivls[3]}</span></button>
+        </div></div>`:''}
+      </div>
+    </div>`;
+}
+
+function showSol(){
+  elapsed=Date.now()-t0;
+  clearInterval(tickID);tickID=null;
+  const id=st.tsume.id;
+  if(!bestTimes[id]||elapsed<bestTimes[id]){bestTimes[id]=elapsed;saveT();}
+  st.shown=true;
+  renderStudy();
+  // auto-play moves
+  let i=0;
+  const play=setInterval(()=>{i++;if(i>=st.states.length){clearInterval(play);return;}st.step=i;updateGoban();},700);
+}
+
+function stepNav(d){
+  const ns=st.step+d;
+  if(ns<0||ns>=st.states.length)return;
+  st.step=ns;updateGoban();
+}
+
+function updateGoban(){
+  const{states,step,tsume}=st,s=states[step];
+  const gw=document.getElementById('gw');if(gw)gw.innerHTML=gobanHTML(s,tsume);
+  const hw=document.getElementById('hw');if(hw)hw.innerHTML=handHTML(s.gH,'gote')+handHTML(s.sH,'sente');
+  const ml=document.getElementById('mlabel');if(ml)ml.textContent=step===0?'初期配置':`${s.num}手目: ${s.label}`;
+  const btns=document.querySelectorAll('#mnav button');
+  if(btns[0])btns[0].disabled=step===0;if(btns[1])btns[1].disabled=step===st.states.length-1;
+}
+
+function rate(r){
+  const nc=fsrs.schedule(st.card,r);
+  progress[st.tsume.id]=nc;save();goBack();
+}
+
+function goBack(){
+  if(tickID){clearInterval(tickID);tickID=null;}
+  st=null;elapsed=0;renderList();
+}
+
+function resetAll(){
+  if(!confirm('進捗をすべてリセットしますか？'))return;
+  progress={};bestTimes={};save();saveT();renderList();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+fetch('tsume.json')
+  .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  .then(d=>{data=d;renderList();})
+  .catch(e=>{
+    document.getElementById('app').innerHTML=`<div style="padding:20px"><h2 style="color:var(--accent)">tsume.json が見つかりません</h2><p style="color:var(--dim);margin-top:8px;font-size:13px">${e.message}</p><p style="color:#555;margin-top:10px;font-size:12px">tsume.json をこのファイルと同じフォルダに置いてください。</p></div>`;
+  });
+</script>
+</body>
+</html>
