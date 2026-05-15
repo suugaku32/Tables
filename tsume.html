@@ -554,6 +554,8 @@ function startBGM(){
 document.addEventListener('click',startBGM);
 document.addEventListener('touchstart',startBGM);
 
+document.addEventListener('visibilitychange',()=>{if(document.hidden){BGM.pause();}else if(!muted){BGM.play().catch(()=>{});}});
+
 // Pièce volante : anime SANS reconstruire le DOM
 function flyPiece(nextState,cb){
   if(!nextState.moveFrom||!nextState.lastTo){playMoveSound();applyMoveToDOM(nextState);cb();return;}
