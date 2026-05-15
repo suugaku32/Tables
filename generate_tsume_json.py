@@ -252,13 +252,17 @@ def main():
             if not is_valid(data):
                 skipped += 1
                 continue
-            data['id'] = len(tsume_list) + 1
             tsume_list.append(data)
             if i % 100 == 0:
                 print(f"  {i}/{total}…")
         except Exception as e:
             errors.append((kif_path.name, str(e)))
             print(f"  ⚠️  {kif_path.name} : {e}")
+
+    # Trier par nombre de coups (ordre stable à l'intérieur de chaque groupe)
+    tsume_list.sort(key=lambda t: len(t['moves']))
+    for i, t in enumerate(tsume_list, 1):
+        t['id'] = i
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT, 'w', encoding='utf-8') as f:
