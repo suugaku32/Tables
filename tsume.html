@@ -167,15 +167,9 @@ function psvg(piece,player,size){
   const rot=player==='gote'?'display:inline-block;transform:rotate(180deg);':'';
   return`<span style="font-size:${fs}px;color:${color};${rot}line-height:1;font-weight:700;font-family:'Hiragino Mincho ProN','Noto Serif JP',serif;user-select:none">${k}</span>`;
 }
-window._pfb=function(img,p,pl,s){
-  const w=document.createElement('span');
-  w.style.cssText='display:flex;align-items:center;justify-content:center;';
-  w.innerHTML=psvg(p,pl,s);img.replaceWith(w);
-};
 function pieceHTML(cell,size=38){
   if(!cell)return'';
-  const pre=cell.player==='sente'?'0':'1',suf=PFILE[cell.piece]||'FU';
-  return`<img src="pieces/${pre}${suf}.png" width="${size}" height="${size}" style="display:block" onerror="_pfb(this,'${cell.piece}','${cell.player}',${size})" alt="${PKANJI[cell.piece]||''}">`;
+  return psvg(cell.piece,cell.player,size);
 }
 
 // ── BOARD LOGIC ───────────────────────────────────────────────────────────
