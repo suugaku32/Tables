@@ -520,6 +520,10 @@ function replayAnimation(){
 
 let animating=false;
 
+// Sons de déplacement
+const SOUNDS=[1,2,3,4].map(n=>{const a=new Audio(`sounds/SON_${n}.mp3`);a.preload='auto';return a;});
+function playMoveSound(){const a=SOUNDS[Math.floor(Math.random()*SOUNDS.length)];a.currentTime=0;a.play().catch(()=>{});}
+
 // Pièce volante : anime SANS reconstruire le DOM
 function flyPiece(nextState,cb){
   if(!nextState.moveFrom||!nextState.lastTo){applyMoveToDOM(nextState);cb();return;}
@@ -535,6 +539,7 @@ function flyPiece(nextState,cb){
   fly.innerHTML=pieceHTML(piece,sz);
   document.body.appendChild(fly);
   fromCell.style.visibility='hidden';
+  playMoveSound();
   let done=false;
   const finish=()=>{
     if(done)return;done=true;
