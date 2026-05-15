@@ -45,9 +45,10 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 #sb{overflow-y:auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:30px;}
 
 #goban{display:grid;border:2px solid #666;background:#2a1800;}
-.cell{width:var(--cell);height:var(--cell);border:1px solid #4a3820;display:flex;align-items:center;justify-content:center;}
+.cell{border:1px solid #4a3820;display:flex;align-items:center;justify-content:center;}
 .cell.ht{background:rgba(255,200,0,0.18);}
 .cell.hf{background:rgba(80,140,255,0.15);}
+.glbl{font-size:10px;color:var(--dim);display:flex;align-items:center;justify-content:center;}
 
 .hands{display:flex;gap:8px;width:100%;max-width:420px;}
 .hbox{flex:1;background:var(--surface);border-radius:8px;padding:7px;}
@@ -381,18 +382,37 @@ function handHTML(h,player){
   return`<div class="hbox"><div class="hl">${label}の持ち駒</div><div class="hpieces">${inner}</div></div>`;
 }
 
+const ROW_K=['一','二','三','四','五','六','七','八','九'];
+
 function gobanHTML(state,tsume){
-  const{board,gH,sH,lastTo,moveFrom}=state,{bbox}=tsume;
+  const{board,lastTo,moveFrom}=state,{bbox}=tsume;
   if(!bbox)return'';
   const{min_row,max_row,min_col,max_col}=bbox;
   const rows=max_row-min_row+1,cols=max_col-min_col+1;
-  let g=`<div id="goban" style="grid-template-columns:repeat(${cols},var(--cell));grid-template-rows:repeat(${rows},var(--cell));">`;
+  // Taille adaptative au viewport
+  const avail=Math.min((window.innerWidth||390),500)-70;
+  const cs=Math.min(48,Math.max(28,Math.floor(avail/cols)));
+  const ps=Math.round(cs*0.84);
+
+  // Labels colonnes (9→1 de gauche à droite)
+  let colRow=`<div style="display:flex;margin-left:0;">`;
+  for(let c=min_col;c<=max_col;c++) colRow+=`<div class="glbl" style="width:${cs}px;height:14px">${9-c}</div>`;
+  colRow+='</div>';
+
+  // Goban + labels lignes
+  let g=`<div id="goban" style="grid-template-columns:repeat(${cols},${cs}px);grid-template-rows:repeat(${rows},${cs}px);">`;
   for(let r=min_row;r<=max_row;r++)for(let c=min_col;c<=max_col;c++){
     const isTo=lastTo&&lastTo[0]===r&&lastTo[1]===c;
     const isFrom=moveFrom&&moveFrom[0]===r&&moveFrom[1]===c;
-    g+=`<div class="cell${isTo?' ht':''}${isFrom?' hf':''}">${pieceHTML(board[r]?.[c])}</div>`;
+    g+=`<div class="cell${isTo?' ht':''}${isFrom?' hf':''}" data-r="${r}" data-c="${c}" style="width:${cs}px;height:${cs}px">${pieceHTML(board[r]?.[c],ps)}</div>`;
   }
-  return g+'</div>';
+  g+='</div>';
+
+  let rowCol=`<div style="display:flex;flex-direction:column;margin-left:3px;">`;
+  for(let r=min_row;r<=max_row;r++) rowCol+=`<div class="glbl" style="height:${cs}px;width:12px">${ROW_K[r]}</div>`;
+  rowCol+='</div>';
+
+  return`<div>${colRow}<div style="display:flex">${g}${rowCol}</div></div>`;
 }
 
 function showSol(){
@@ -402,15 +422,54 @@ function showSol(){
   if(!bestTimes[id]||elapsed<bestTimes[id]){bestTimes[id]=elapsed;saveT();}
   st.shown=true;
   renderStudy();
-  // auto-play
-  let i=0;
-  const play=setInterval(()=>{i++;if(i>=st.states.length){clearInterval(play);return;}st.step=i;updateGoban();},700);
+  // auto-play animé
+  function playStep(i){
+    if(i>=st.states.length)return;
+    st.step=i;
+    const ns=st.states[i];
+    if(ns.moveFrom&&ns.lastTo){
+      flyPiece(ns,()=>{updateGoban();setTimeout(()=>playStep(i+1),350);});
+    }else{
+      updateGoban();setTimeout(()=>playStep(i+1),600);
+    }
+  }
+  setTimeout(()=>playStep(1),200);
+}
+
+let animating=false;
+
+// Animation pièce volante (inspirée du script Scriptable)
+function flyPiece(nextState,cb){
+  if(!nextState.moveFrom||!nextState.lastTo){cb();return;}
+  const[fR,fC]=nextState.moveFrom,[tR,tC]=nextState.lastTo;
+  const piece=nextState.board[tR]?.[tC];
+  const fromCell=document.querySelector(`[data-r="${fR}"][data-c="${fC}"]`);
+  const toCell=document.querySelector(`[data-r="${tR}"][data-c="${tC}"]`);
+  if(!fromCell||!toCell||!piece){cb();return;}
+  const fr=fromCell.getBoundingClientRect(),tr=toCell.getBoundingClientRect();
+  const sz=fr.width-4;
+  const fly=document.createElement('span');
+  fly.style.cssText=`position:fixed;z-index:999;pointer-events:none;width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;left:${fr.left+2}px;top:${fr.top+2}px;transition:left .28s cubic-bezier(.4,0,.2,1),top .28s cubic-bezier(.4,0,.2,1)`;
+  fly.innerHTML=pieceHTML(piece,sz);
+  document.body.appendChild(fly);
+  fromCell.style.visibility='hidden';
+  let done=false;
+  const finish=()=>{if(done)return;done=true;fly.remove();fromCell.style.visibility='';cb();};
+  setTimeout(()=>{fly.style.left=`${tr.left+2}px`;fly.style.top=`${tr.top+2}px`;},16);
+  fly.addEventListener('transitionend',finish,{once:true});
+  setTimeout(finish,450); // fallback
 }
 
 function stepNav(d){
+  if(animating)return;
   const ns=st.step+d;
   if(ns<0||ns>=st.states.length)return;
-  st.step=ns;updateGoban();
+  if(d===1){
+    animating=true;
+    flyPiece(st.states[ns],()=>{animating=false;st.step=ns;updateGoban();});
+  }else{
+    st.step=ns;updateGoban();
+  }
 }
 
 function updateGoban(){
