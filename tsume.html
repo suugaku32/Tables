@@ -422,30 +422,25 @@ function showSol(){
   if(!bestTimes[id]||elapsed<bestTimes[id]){bestTimes[id]=elapsed;saveT();}
   st.shown=true;
   renderStudy();
-  // auto-play animé
   function playStep(i){
     if(i>=st.states.length)return;
     st.step=i;
     const ns=st.states[i];
-    if(ns.moveFrom&&ns.lastTo){
-      flyPiece(ns,()=>{updateGoban();setTimeout(()=>playStep(i+1),350);});
-    }else{
-      updateGoban();setTimeout(()=>playStep(i+1),600);
-    }
+    flyPiece(ns,()=>{applyMoveToDOM(ns);setTimeout(()=>playStep(i+1),320);});
   }
-  setTimeout(()=>playStep(1),200);
+  setTimeout(()=>playStep(1),300);
 }
 
 let animating=false;
 
-// Animation pièce volante (inspirée du script Scriptable)
+// Pièce volante : anime SANS reconstruire le DOM
 function flyPiece(nextState,cb){
-  if(!nextState.moveFrom||!nextState.lastTo){cb();return;}
+  if(!nextState.moveFrom||!nextState.lastTo){applyMoveToDOM(nextState);cb();return;}
   const[fR,fC]=nextState.moveFrom,[tR,tC]=nextState.lastTo;
   const piece=nextState.board[tR]?.[tC];
   const fromCell=document.querySelector(`[data-r="${fR}"][data-c="${fC}"]`);
   const toCell=document.querySelector(`[data-r="${tR}"][data-c="${tC}"]`);
-  if(!fromCell||!toCell||!piece){cb();return;}
+  if(!fromCell||!toCell||!piece){applyMoveToDOM(nextState);cb();return;}
   const fr=fromCell.getBoundingClientRect(),tr=toCell.getBoundingClientRect();
   const sz=fr.width-4;
   const fly=document.createElement('span');
@@ -454,10 +449,38 @@ function flyPiece(nextState,cb){
   document.body.appendChild(fly);
   fromCell.style.visibility='hidden';
   let done=false;
-  const finish=()=>{if(done)return;done=true;fly.remove();fromCell.style.visibility='';cb();};
+  const finish=()=>{
+    if(done)return;done=true;
+    fly.remove();
+    // Mise à jour atomique : vide la source, met à jour la destination → pas de flash
+    fromCell.innerHTML='';fromCell.style.visibility='';
+    applyMoveToDOM(nextState);
+    cb();
+  };
   setTimeout(()=>{fly.style.left=`${tr.left+2}px`;fly.style.top=`${tr.top+2}px`;},16);
   fly.addEventListener('transitionend',finish,{once:true});
-  setTimeout(finish,450); // fallback
+  setTimeout(finish,420);
+}
+
+// Mise à jour chirurgicale : uniquement les cellules qui changent (pas de rebuild)
+function applyMoveToDOM(s){
+  const{board,lastTo,moveFrom,gH,sH,label,num}=s;
+  const anyCell=document.querySelector('#goban .cell');
+  const ps=anyCell?anyCell.offsetWidth-4:36;
+  document.querySelectorAll('.cell.ht,.cell.hf').forEach(c=>c.classList.remove('ht','hf'));
+  if(moveFrom){
+    const[r,c]=moveFrom,cell=document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+    if(cell){cell.innerHTML='';cell.style.visibility='';cell.classList.add('hf');}
+  }
+  if(lastTo){
+    const[r,c]=lastTo,cell=document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+    const piece=board[r]?.[c];
+    if(cell){cell.innerHTML=piece?pieceHTML(piece,ps):'';cell.classList.add('ht');}
+  }
+  const hw=document.getElementById('hw');if(hw)hw.innerHTML=handHTML(gH,'gote')+handHTML(sH,'sente');
+  const ml=document.getElementById('mlabel');if(ml)ml.textContent=num===0?'初期配置':`${num}手目: ${label}`;
+  const btns=document.querySelectorAll('#mnav button'),step=st.step;
+  if(btns[0])btns[0].disabled=step===0;if(btns[1])btns[1].disabled=step===st.states.length-1;
 }
 
 function stepNav(d){
@@ -466,9 +489,9 @@ function stepNav(d){
   if(ns<0||ns>=st.states.length)return;
   if(d===1){
     animating=true;
-    flyPiece(st.states[ns],()=>{animating=false;st.step=ns;updateGoban();});
+    flyPiece(st.states[ns],()=>{animating=false;st.step=ns;});
   }else{
-    st.step=ns;updateGoban();
+    st.step=ns;updateGoban(); // backward : rebuild complet OK (pas d'animation)
   }
 }
 
