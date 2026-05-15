@@ -274,7 +274,7 @@ function startTraining(){
 // ── REVIEW ────────────────────────────────────────────────────────────────
 function startReview(){
   const queue=data
-    .filter(t=>{const s=getStatus(t.id);return s==='due'||s==='learning';})
+    .filter(t=>getStatus(t.id)==='due')
     .sort((a,b)=>new Date(progress[a.id]?.due||0)-new Date(progress[b.id]?.due||0))
     .map(t=>t.id);
   if(!queue.length){
