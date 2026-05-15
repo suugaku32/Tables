@@ -81,9 +81,11 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 .fb.good{background:var(--green);color:#fff;}.fb.easy{background:var(--blue);color:#fff;}
 
 #loading{display:flex;align-items:center;justify-content:center;height:80vh;font-size:16px;color:var(--dim);}
+#mute-btn{position:fixed;top:calc(env(safe-area-inset-top,0px)+10px);right:14px;z-index:100;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
 </style>
 </head>
 <body>
+<button id="mute-btn" onclick="toggleMute()" title="Mute/Unmute">🔊</button>
 <div id="app"><div id="loading">読み込み中…</div></div>
 <script>
 // ── FSRS-4.5 + 3-step learning ────────────────────────────────────────────
@@ -523,6 +525,20 @@ let animating=false;
 // Sons de déplacement
 const SOUNDS=[1,2,3,4].map(n=>{const a=new Audio(`sounds/SON_${n}.mp3`);a.preload='auto';return a;});
 function playMoveSound(){const a=SOUNDS[Math.floor(Math.random()*SOUNDS.length)];a.currentTime=0;a.play().catch(()=>{});}
+
+// Musique de fond
+const BGM=new Audio('sounds/BGM.mp3');
+BGM.loop=true;BGM.volume=0.35;
+let muted=false;
+function toggleMute(){
+  muted=!muted;
+  BGM.muted=muted;
+  document.getElementById('mute-btn').textContent=muted?'🔇':'🔊';
+}
+// Démarre la BGM au premier geste utilisateur (politique autoplay)
+function startBGM(){BGM.play().catch(()=>{});document.removeEventListener('click',startBGM);document.removeEventListener('touchstart',startBGM);}
+document.addEventListener('click',startBGM);
+document.addEventListener('touchstart',startBGM);
 
 // Pièce volante : anime SANS reconstruire le DOM
 function flyPiece(nextState,cb){
