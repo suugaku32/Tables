@@ -26,11 +26,18 @@ const ALL_TSUME = JSON.parse(FM.readString(TSUME_PATH))
 const TSUME_POOL = ALL_TSUME.filter(t => t.moves.length === 3)
 
 let state = loadState()
-const idx = state.index % TSUME_POOL.length
-const tsume = TSUME_POOL[idx]
+if (!Array.isArray(state.seen)) state.seen = []
 
-// Incrémente pour le prochain appel
-state.index = (state.index + 1) % TSUME_POOL.length
+// Priorité aux problèmes pas encore vus ; réinitialise si tout a été vu
+const unseen = TSUME_POOL.filter(t => !state.seen.includes(t.id))
+const pool = unseen.length > 0 ? unseen : TSUME_POOL
+if (unseen.length === 0) state.seen = []
+
+// Tirage aléatoire
+const tsume = pool[Math.floor(Math.random() * pool.length)]
+
+// Mémorise l'ID vu et sauvegarde
+state.seen.push(tsume.id)
 saveState(state)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
