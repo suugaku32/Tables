@@ -134,11 +134,18 @@ function psvg(piece,player,size){
   return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><g transform="${rot}"><path d="${path}" fill="${fill}" stroke="#666" stroke-width="0.8"/><text x="${s/2}" y="${s*0.73}" text-anchor="middle" font-size="${s*0.44}px" fill="${tf}" font-family="serif" font-weight="bold">${k}</text></g></svg>`;
 }
 
+// Global fallback: called by onerror on img tags
+window._pfb=function(img,p,pl,s){
+  const wrap=document.createElement('span');
+  wrap.style.cssText='display:flex;align-items:center;justify-content:center;';
+  wrap.innerHTML=psvg(p,pl,s);
+  img.replaceWith(wrap);
+};
+
 function pieceHTML(cell,size=38){
   if(!cell)return'';
   const pre=cell.player==='sente'?'0':'1',suf=PFILE[cell.piece]||'FU';
-  const fb=psvg(cell.piece,cell.player,size).replace(/'/g,"&#39;");
-  return`<img src="pieces/${pre}${suf}.png" width="${size}" height="${size}" style="display:block" onerror="this.outerHTML='${fb}'" alt="${PKANJI[cell.piece]||''}">`;
+  return`<img src="pieces/${pre}${suf}.png" width="${size}" height="${size}" style="display:block" onerror="_pfb(this,'${cell.piece}','${cell.player}',${size})" alt="${PKANJI[cell.piece]||''}">`;
 }
 
 // ── BOARD LOGIC ───────────────────────────────────────────────────────────
