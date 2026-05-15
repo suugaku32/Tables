@@ -81,11 +81,7 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 .fb.good{background:var(--green);color:#fff;}.fb.easy{background:var(--blue);color:#fff;}
 
 #loading{display:flex;align-items:center;justify-content:center;height:80vh;font-size:16px;color:var(--dim);}
-.vol-wrap{display:flex;align-items:center;gap:4px;}
-.vol-icon{background:none;border:none;font-size:18px;cursor:pointer;padding:0;line-height:1;flex-shrink:0;}
-.vol-slider{-webkit-appearance:none;appearance:none;width:72px;height:3px;border-radius:2px;background:rgba(255,255,255,0.25);outline:none;cursor:pointer;}
-.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;}
-.vol-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:none;cursor:pointer;}
+.mute-btn{background:none;border:none;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;}
 </style>
 </head>
 <body>
@@ -271,7 +267,7 @@ function renderHome(){
   const mastered=data.filter(t=>getStatus(t.id)==='mastered').length;
   const rated=data.filter(t=>progress[t.id]&&progress[t.id].state!=='new').length;
   document.getElementById('app').innerHTML=`
-    <div id="home-nav"><h1>詰将棋</h1>${volHTML()}<button class="nbtn" onclick="resetAll()">リセット</button></div>
+    <div id="home-nav"><h1>詰将棋</h1>${muteHTML()}<button class="nbtn" onclick="resetAll()">リセット</button></div>
     <div id="home-body">
       <div class="mode-card training" onclick="showMoveSelect()">
         <div class="mode-icon">🆕</div>
@@ -406,7 +402,7 @@ function renderStudy(){
       <button id="bk" onclick="goHome()">←</button>
       <div id="timer" class="${timerClass}">${timerText}</div>
       <div id="sh-right">${rightHTML}</div>
-      ${volHTML()}
+      ${muteHTML()}
     </div>
     <div id="sb">
       <div id="gw">${gobanHTML(s,tsume)}</div>
@@ -532,14 +528,11 @@ function playMoveSound(){const a=SOUNDS[Math.floor(Math.random()*SOUNDS.length)]
 
 // Musique de fond
 const BGM=new Audio('sounds/BGM.mp3');
-BGM.loop=true;
+BGM.loop=true;BGM.volume=0.15;
 let muted=false;
-let bgmVol=parseFloat(localStorage.getItem('bgmVol')||'0.3');
-BGM.volume=bgmVol;
-function volIcon(){return muted?'🔇':'🎵';}
-function toggleMute(){muted=!muted;BGM.muted=muted;document.querySelectorAll('.vol-icon').forEach(b=>b.textContent=volIcon());}
-function setVolume(v){bgmVol=parseFloat(v);BGM.volume=bgmVol;BGM.muted=false;muted=false;localStorage.setItem('bgmVol',bgmVol);document.querySelectorAll('.vol-icon').forEach(b=>b.textContent=volIcon());document.querySelectorAll('.vol-slider').forEach(s=>{if(s!==document.activeElement)s.value=bgmVol;});}
-function volHTML(){return`<span class="vol-wrap"><button class="vol-icon" onclick="toggleMute()">${volIcon()}</button><input class="vol-slider" type="range" min="0" max="1" step="0.01" value="${bgmVol}" oninput="setVolume(this.value)" onchange="setVolume(this.value)"></span>`;}
+function muteIcon(){return muted?'🔇':'🎵';}
+function toggleMute(){muted=!muted;BGM.muted=muted;document.querySelectorAll('.mute-btn').forEach(b=>b.textContent=muteIcon());}
+function muteHTML(){return`<button class="mute-btn" onclick="toggleMute()">${muteIcon()}</button>`;}
 function startBGM(){BGM.play().catch(()=>{});document.removeEventListener('click',startBGM);document.removeEventListener('touchstart',startBGM);}
 document.addEventListener('click',startBGM);
 document.addEventListener('touchstart',startBGM);
