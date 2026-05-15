@@ -609,6 +609,7 @@ fetch('tsume.json')
   .then(d=>{
     data=d;
     const pid=getHashId();
+    history.replaceState(null,'',window.location.pathname);
     if(pid){const t=data.find(t=>t.id==pid);if(t){openStudy(t.id,'training',[]);return;}}
     renderHome();
   })
