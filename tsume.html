@@ -524,7 +524,7 @@ let animating=false;
 
 // Sons de déplacement (volume max, indépendant du mute)
 const SOUNDS=[1,2,3,4].map(n=>{const a=new Audio(`sounds/SON_${n}.mp3`);a.preload='auto';return a;});
-function playMoveSound(){const a=SOUNDS[Math.floor(Math.random()*SOUNDS.length)];a.currentTime=0;a.play().catch(()=>{});}
+function playMoveSound(){const a=SOUNDS[Math.floor(Math.random()*SOUNDS.length)].cloneNode();a.play().catch(()=>{});}
 
 // Musique de fond
 const BGM=new Audio('sounds/BGM.mp3');
