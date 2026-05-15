@@ -186,7 +186,7 @@ def parse_kif(filepath):
 
 # ── Main ───────────────────────────────────────────────────────────────────
 def main():
-    kif_files = sorted(KIF_DIR.rglob("*.kif"))
+    kif_files = sorted(KIF_DIR.rglob("*.kif"), key=lambda p: (p.parent.name, p.name))
     total = len(kif_files)
 
     if total == 0:
