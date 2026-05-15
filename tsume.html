@@ -535,13 +535,22 @@ const BGM=new Audio('sounds/BGM.mp3');
 BGM.loop=true;
 let muted=false;
 let bgmVol=parseFloat(localStorage.getItem('bgmVol')||'0.3');
-BGM.volume=bgmVol;
+let bgmGain=null;
 function volIcon(){return muted?'🔇':'🎵';}
-function toggleMute(){muted=!muted;BGM.muted=muted;document.querySelectorAll('.vol-icon').forEach(b=>b.textContent=volIcon());}
-function setVolume(v){bgmVol=parseFloat(v);BGM.volume=bgmVol;BGM.muted=false;muted=false;localStorage.setItem('bgmVol',bgmVol);document.querySelectorAll('.vol-icon').forEach(b=>b.textContent=volIcon());document.querySelectorAll('.vol-slider').forEach(s=>s.value=bgmVol);}
-function volHTML(){return`<span class="vol-wrap"><button class="vol-icon" onclick="toggleMute()">${volIcon()}</button><input class="vol-slider" type="range" min="0" max="1" step="0.01" value="${bgmVol}" oninput="setVolume(this.value)"></span>`;}
-// Démarre la BGM au premier geste utilisateur (politique autoplay)
-function startBGM(){BGM.play().catch(()=>{});document.removeEventListener('click',startBGM);document.removeEventListener('touchstart',startBGM);}
+function toggleMute(){muted=!muted;if(bgmGain)bgmGain.gain.value=muted?0:bgmVol;document.querySelectorAll('.vol-icon').forEach(b=>b.textContent=volIcon());}
+function setVolume(v){bgmVol=parseFloat(v);muted=false;if(bgmGain)bgmGain.gain.value=bgmVol;localStorage.setItem('bgmVol',bgmVol);document.querySelectorAll('.vol-icon').forEach(b=>b.textContent=volIcon());document.querySelectorAll('.vol-slider').forEach(s=>{if(s!==document.activeElement)s.value=bgmVol;});}
+function volHTML(){return`<span class="vol-wrap"><button class="vol-icon" onclick="toggleMute()">${volIcon()}</button><input class="vol-slider" type="range" min="0" max="1" step="0.01" value="${bgmVol}" oninput="setVolume(this.value)" onchange="setVolume(this.value)"></span>`;}
+// Démarre la BGM au premier geste — crée l'AudioContext ici pour iOS
+function startBGM(){
+  try{
+    const actx=new(window.AudioContext||window.webkitAudioContext)();
+    const src=actx.createMediaElementSource(BGM);
+    bgmGain=actx.createGain();bgmGain.gain.value=muted?0:bgmVol;
+    src.connect(bgmGain);bgmGain.connect(actx.destination);
+  }catch(e){}
+  BGM.play().catch(()=>{});
+  document.removeEventListener('click',startBGM);document.removeEventListener('touchstart',startBGM);
+}
 document.addEventListener('click',startBGM);
 document.addEventListener('touchstart',startBGM);
 
