@@ -11,8 +11,9 @@ import json
 from pathlib import Path
 
 # ── Configuration ──────────────────────────────────────────────────────────
-KIF_DIR = Path("/Users/fabienloi/Downloads/tsume/8K Tsume Problems/")
-OUTPUT  = Path.home() / "Library/Mobile Documents/iCloud~dk~simonbs~Scriptable/Documents/tsume.json"
+KIF_DIR   = Path("/Users/fabienloi/Downloads/tsume/8K Tsume Problems/")
+OUTPUT    = Path.home() / "Library/Mobile Documents/iCloud~dk~simonbs~Scriptable/Documents/tsume.json"
+OUTPUT_3  = Path.home() / "Library/Mobile Documents/iCloud~dk~simonbs~Scriptable/Documents/tsume_3.json"
 
 # ── Tables de correspondance ───────────────────────────────────────────────
 KANJI_NUM = {
@@ -268,13 +269,19 @@ def main():
     with open(OUTPUT, 'w', encoding='utf-8') as f:
         json.dump(tsume_list, f, ensure_ascii=False, separators=(',', ':'))
 
+    pool_3 = [t for t in tsume_list if len(t['moves']) == 3]
+    with open(OUTPUT_3, 'w', encoding='utf-8') as f:
+        json.dump(pool_3, f, ensure_ascii=False, separators=(',', ':'))
+
     total_variants = sum(len(t.get('variants', [])) for t in tsume_list)
     size_mb = OUTPUT.stat().st_size / 1_000_000
+    size_3_mb = OUTPUT_3.stat().st_size / 1_000_000
     print()
     print(f"✅ {len(tsume_list)} tsume exportés ({total_variants} variantes)")
     if skipped:
         print(f"🚫 {skipped} problèmes invalides ignorés")
-    print(f"📦 Taille : {size_mb:.1f} Mo")
+    print(f"📦 tsume.json   : {size_mb:.1f} Mo")
+    print(f"📦 tsume_3.json : {size_3_mb:.1f} Mo  ({len(pool_3)} problèmes en 3手)")
     if errors:
         print(f"⚠️  {len(errors)} erreurs :")
         for name, err in errors:

@@ -19,12 +19,9 @@ if (FM.fileExists(STATE_PATH)) {
 function saveState(s) { FM.writeString(STATE_PATH, JSON.stringify(s)) }
 
 // ── Tsume ────────────────────────────────────────────────────────────────────
-const TSUME_PATH = FM.joinPath(BASE, "tsume.json")
+const TSUME_PATH = FM.joinPath(BASE, "tsume_3.json")
 await FM.downloadFileFromiCloud(TSUME_PATH)
-const ALL_TSUME = JSON.parse(FM.readString(TSUME_PATH))
-
-// Filtre sur les problèmes en 3 coups uniquement
-const TSUME_POOL = ALL_TSUME.filter(t => t.moves.length === 3)
+const TSUME_POOL = JSON.parse(FM.readString(TSUME_PATH))
 
 // Priorité aux problèmes pas encore vus ; réinitialise si tout a été vu
 let unseen = TSUME_POOL.filter(t => !state.seen.includes(t.id))
