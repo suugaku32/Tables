@@ -44,10 +44,10 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 
 #sb{overflow-y:auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:30px;}
 
-#goban{display:grid;border:2px solid #666;background:#2a1800;}
-.cell{border:1px solid #4a3820;display:flex;align-items:center;justify-content:center;}
-.cell.ht{background:rgba(255,200,0,0.18);}
-.cell.hf{background:rgba(80,140,255,0.15);}
+#goban{display:grid;background:#0d1117;border:1px solid rgba(255,255,255,0.12);border-radius:3px;}
+.cell{border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;}
+.cell.ht{background:rgba(255,196,0,0.16);}
+.cell.hf{background:rgba(100,149,255,0.12);}
 .glbl{font-size:10px;color:var(--dim);display:flex;align-items:center;justify-content:center;}
 
 .hands{display:flex;gap:8px;width:100%;max-width:420px;}
@@ -162,10 +162,10 @@ const PSET=new Set(['to','nkyou','nkei','ngin','uma','ryuu']);
 
 function psvg(piece,player,size){
   const k=PKANJI[piece]||'?',pr=PSET.has(piece);
-  const fill=player==='sente'?'#f0e8d0':'#c8c0b0',tf=pr?'#c0392b':'#1a0a00';
-  const rot=player==='gote'?`rotate(180,${size/2},${size/2})`:'';
-  const s=size,m=s*0.08,path=`M${s/2},${m} L${s-m},${s*0.3} L${s-m},${s-m} L${m},${s-m} L${m},${s*0.3}Z`;
-  return`<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><g transform="${rot}"><path d="${path}" fill="${fill}" stroke="#666" stroke-width="0.8"/><text x="${s/2}" y="${s*0.73}" text-anchor="middle" font-size="${s*0.44}px" fill="${tf}" font-family="serif" font-weight="bold">${k}</text></g></svg>`;
+  const color=player==='sente'?(pr?'#ff6b6b':'#e8e8e8'):(pr?'#cc5555':'#505050');
+  const fs=Math.round(size*0.64);
+  const rot=player==='gote'?'display:inline-block;transform:rotate(180deg);':'';
+  return`<span style="font-size:${fs}px;color:${color};${rot}line-height:1;font-weight:700;font-family:'Hiragino Mincho ProN','Noto Serif JP',serif;user-select:none">${k}</span>`;
 }
 window._pfb=function(img,p,pl,s){
   const w=document.createElement('span');
@@ -229,14 +229,13 @@ function makeThumbnail(tsume){
   let out=`<svg width="${cols*cs}" height="${rows*cs}" viewBox="0 0 ${cols*cs} ${rows*cs}">`;
   for(let r=min_row;r<=max_row;r++)for(let c=min_col;c<=max_col;c++){
     const x=(c-min_col)*cs,y=(r-min_row)*cs;
-    out+=`<rect x="${x}" y="${y}" width="${cs}" height="${cs}" fill="#3a2000" stroke="#543" stroke-width="0.4"/>`;
+    out+=`<rect x="${x}" y="${y}" width="${cs}" height="${cs}" fill="#0d1117" stroke="rgba(255,255,255,0.08)" stroke-width="0.4"/>`;
     const cell=board[r]?.[c];
     if(cell){
       const k=PKANJI[cell.piece]||'?',pr=PSET.has(cell.piece);
-      const fill=cell.player==='sente'?'#f0e8d0':'#b0a898',tf=pr?'#c03':'#100';
+      const fill=cell.player==='sente'?(pr?'#ff6b6b':'#e8e8e8'):(pr?'#cc5555':'#505050');
       const rot=cell.player==='gote'?`rotate(180,${x+cs/2},${y+cs/2})`:'';
-      const m2=cs*0.08;
-      out+=`<g transform="${rot}"><path d="M${x+cs/2},${y+m2} L${x+cs-m2},${y+cs*0.3} L${x+cs-m2},${y+cs-m2} L${x+m2},${y+cs-m2} L${x+m2},${y+cs*0.3}Z" fill="${fill}" stroke="#555" stroke-width="0.3"/><text x="${x+cs/2}" y="${y+cs*0.75}" text-anchor="middle" font-size="${cs*0.55}px" fill="${tf}" font-family="serif">${k}</text></g>`;
+      out+=`<g transform="${rot}"><text x="${x+cs/2}" y="${y+cs*0.78}" text-anchor="middle" font-size="${cs*0.62}px" fill="${fill}" font-family="serif" font-weight="bold">${k}</text></g>`;
     }
   }
   return out+'</svg>';
