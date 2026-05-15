@@ -565,7 +565,12 @@ function resetAll(){
 // ── INIT ──────────────────────────────────────────────────────────────────
 fetch('tsume.json')
   .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-  .then(d=>{data=d;renderHome();})
+  .then(d=>{
+    data=d;
+    const pid=new URLSearchParams(window.location.search).get('id');
+    if(pid){const t=data.find(t=>t.id==pid);if(t){openStudy(t.id,'training',[]);return;}}
+    renderHome();
+  })
   .catch(e=>{
     document.getElementById('app').innerHTML=`<div style="padding:24px"><h2 style="color:var(--accent);margin-bottom:8px">Erreur de chargement</h2><p style="color:var(--dim);font-size:13px">${e.message}</p></div>`;
   });
