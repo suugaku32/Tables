@@ -283,6 +283,12 @@ function renderHome(){
           <div class="mode-sub">${due?`${due} carte${due>1?'s':''} à réviser`:'Aucune carte due aujourd\'hui'}</div>
         </div>
       </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="goto-input" type="number" min="1" max="${data.length}" placeholder="N° du problème…"
+          style="flex:1;padding:12px 14px;background:var(--surface);border:2px solid var(--surface2);border-radius:10px;color:var(--text);font-size:15px;outline:none"
+          onkeydown="if(event.key==='Enter')gotoNum()">
+        <button onclick="gotoNum()" style="padding:12px 18px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:600">→</button>
+      </div>
       <div id="home-stats">
         <div class="hstat"><span class="hstat-val c-red">${due}</span><span class="hstat-label">À réviser</span></div>
         <div class="hstat"><span class="hstat-val c-blue">${rated-mastered}</span><span class="hstat-label">En cours</span></div>
@@ -290,6 +296,13 @@ function renderHome(){
         <div class="hstat"><span class="hstat-val" style="color:var(--dim)">${data.length}</span><span class="hstat-label">Total</span></div>
       </div>
     </div>`;
+}
+
+function gotoNum(){
+  const v=parseInt(document.getElementById('goto-input')?.value);
+  const t=data.find(t=>t.id===v);
+  if(!t){const el=document.getElementById('goto-input');if(el){el.style.borderColor='var(--accent)';setTimeout(()=>el.style.borderColor='var(--surface2)',800);}return;}
+  openStudy(t.id,'training',[]);
 }
 
 // ── TRAINING ──────────────────────────────────────────────────────────────
