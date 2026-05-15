@@ -566,12 +566,18 @@ function resetAll(){
 document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
 document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
 
+function getHashId(){return new URLSearchParams(window.location.hash.slice(1)).get('id');}
+window.addEventListener('hashchange',()=>{
+  const pid=getHashId();
+  if(pid&&data.length){const t=data.find(t=>t.id==pid);if(t)openStudy(t.id,'training',[]);}
+});
+
 // ── INIT ──────────────────────────────────────────────────────────────────
 fetch('tsume.json')
   .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
   .then(d=>{
     data=d;
-    const pid=new URLSearchParams(window.location.search).get('id');
+    const pid=getHashId();
     if(pid){const t=data.find(t=>t.id==pid);if(t){openStudy(t.id,'training',[]);return;}}
     renderHome();
   })
