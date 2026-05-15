@@ -17,9 +17,5 @@ const tsume = ALL_TSUME[idx]
 
 const url = "https://fabius32.github.io/Tables/tsume.html?id=" + tsume.id
 
-if (config.runsInApp) {
-  await Safari.openInApp(url, true)
-} else {
-  Script.setShortcutOutput(url)
-}
+Safari.open(url)
 Script.complete()
