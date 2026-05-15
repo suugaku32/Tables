@@ -496,7 +496,19 @@ function stepNav(d){
     animating=true;
     flyPiece(st.states[ns],()=>{
       animating=false;st.step=ns;
-      if(st.shown&&ns===st.states.length-1)showFSRSButtons();
+      if(ns===st.states.length-1){
+        if(!st.shown){
+          elapsed=Date.now()-t0;
+          if(tickID){clearInterval(tickID);tickID=null;}
+          const id=st.tsume.id;
+          if(!bestTimes[id]||elapsed<bestTimes[id]){bestTimes[id]=elapsed;saveT();}
+          st.shown=true;
+          const te=document.getElementById('timer');
+          if(te){te.textContent=fmtMs(elapsed);te.className='stopped';}
+          const sw=document.getElementById('sol-wrap');if(sw)sw.innerHTML='';
+        }
+        showFSRSButtons();
+      }
     });
   }else{
     st.step=ns;updateGoban();
