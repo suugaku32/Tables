@@ -8,8 +8,8 @@
 :root{--bg:#1a1a2e;--surface:#16213e;--surface2:#0f3460;--accent:#e94560;--gold:#f5a623;--green:#27ae60;--blue:#2980b9;--text:#eaeaea;--dim:#888;--cell:44px;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;}
-body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;max-width:500px;margin:0 auto;touch-action:manipulation;height:100dvh;overflow:hidden;}
-#app{height:100%;display:flex;flex-direction:column;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;max-width:500px;margin:0 auto;touch-action:manipulation;}
+#app{min-height:100%;display:flex;flex-direction:column;}
 
 /* ── HOME ── */
 #home-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--surface2);}
@@ -48,7 +48,7 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 #sh-right{flex:1;text-align:right;font-size:11px;color:var(--dim);line-height:1.5;}
 #queue-badge{background:var(--surface2);border-radius:12px;padding:2px 8px;font-size:12px;font-weight:600;color:var(--text);}
 
-#sb{flex:1;overflow:hidden;padding:8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+#sb{flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);}
 
 #goban{display:grid;background:rgba(255,255,255,0.03);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.18);border-radius:6px;}
 .cell{border:1px solid rgba(255,255,255,1);display:flex;align-items:center;justify-content:center;}
@@ -75,7 +75,7 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 #sol-wrap{width:100%;max-width:420px;}
 #sol-btn{width:100%;padding:14px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:600;}
 
-#fsrs{width:100%;max-width:420px;background:var(--bg);padding:6px 0 calc(env(safe-area-inset-bottom,0px) + 6px);border-top:1px solid var(--surface2);margin-top:auto;}
+#fsrs{width:100%;max-width:420px;position:sticky;bottom:0;background:var(--bg);padding:6px 0 calc(env(safe-area-inset-bottom,0px) + 6px);z-index:10;border-top:1px solid var(--surface2);}
 .frow{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
 .fb{padding:10px 4px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;}
 .fi{font-size:10px;font-weight:400;opacity:.8;}
@@ -532,7 +532,7 @@ function playMoveSound(){const a=SOUNDS[Math.floor(Math.random()*SOUNDS.length)]
 
 // Musique de fond
 const BGM=new Audio('sounds/BGM.mp3');
-BGM.loop=true;BGM.volume=0.075;
+BGM.loop=true;BGM.volume=0.3;
 let muted=false;
 function toggleMute(){muted=!muted;BGM.muted=muted;document.querySelectorAll('.mute-btn').forEach(b=>b.classList.toggle('muted',muted));}
 function muteHTML(){return`<button class="mute-btn${muted?' muted':''}" onclick="toggleMute()">🎵</button>`;}
