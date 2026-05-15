@@ -441,7 +441,12 @@ const ROW_K=['一','二','三','四','五','六','七','八','九'];
 function gobanHTML(state,tsume){
   const{board,lastTo,moveFrom}=state,{bbox}=tsume;
   if(!bbox)return'';
-  const{min_row,max_row,min_col,max_col}=bbox;
+  // Étendre le bbox pour couvrir toutes les destinations de coups
+  let{min_row,max_row,min_col,max_col}={...bbox};
+  for(const s of (st?.states||[])){
+    if(s.lastTo){const[r,c]=s.lastTo;min_row=Math.max(0,Math.min(min_row,r-1));max_row=Math.min(8,Math.max(max_row,r+1));min_col=Math.max(0,Math.min(min_col,c-1));max_col=Math.min(8,Math.max(max_col,c+1));}
+    if(s.moveFrom){const[r,c]=s.moveFrom;min_row=Math.max(0,Math.min(min_row,r));max_row=Math.min(8,Math.max(max_row,r));min_col=Math.max(0,Math.min(min_col,c));max_col=Math.min(8,Math.max(max_col,c));}
+  }
   const rows=max_row-min_row+1,cols=max_col-min_col+1;
   // Taille adaptative au viewport
   const avail=Math.min((window.innerWidth||390),500)-70;

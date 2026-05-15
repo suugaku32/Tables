@@ -22,6 +22,11 @@ KANJI_NUM = {
     '十五': 15, '十六': 16, '十七': 17, '十八': 18,
 }
 
+COL_NUM = {'１': 1, '２': 2, '３': 3, '４': 4, '５': 5,
+           '６': 6, '７': 7, '８': 8, '９': 9}
+ROW_IDX = {'一': 0, '二': 1, '三': 2, '四': 3, '五': 4,
+           '六': 5, '七': 6, '八': 7, '九': 8}
+
 PIECE_NAMES = {
     '歩': 'fu',   '香': 'kyou', '桂': 'kei',  '銀': 'gin',
     '金': 'kin',  '角': 'kaku', '飛': 'hi',   '玉': 'gyoku', '王': 'gyoku',
@@ -83,13 +88,22 @@ def parse_board(lines):
     return board
 
 
-def bounding_box(board):
+def bounding_box(board, moves=None):
     rows, cols = [], []
     for r in range(9):
         for c in range(9):
             if board[r][c]:
                 rows.append(r)
                 cols.append(c)
+    # Include move origin and destination squares
+    for m in (moves or []):
+        if m.get('from_row', -1) >= 0:
+            rows.append(m['from_row'])
+            cols.append(m['from_col'])
+        label = m.get('move', '')
+        if len(label) >= 2 and label[0] in COL_NUM and label[1] in ROW_IDX:
+            rows.append(ROW_IDX[label[1]])
+            cols.append(9 - COL_NUM[label[0]])
     if not rows:
         return 0, 8, 0, 8
     return max(0, min(rows)-1), min(8, max(rows)+1), max(0, min(cols)-1), min(8, max(cols)+1)
@@ -202,14 +216,14 @@ def parse_kif(filepath):
         elif move_section and (re.match(r'\s*\d+', line) or PATTERN_HENKO.match(line)):
             move_lines.append(line)
 
+    main_moves, variants = parse_moves(move_lines)
+    data['moves'] = main_moves
+
     if len(board_lines) == 9:
         board = parse_board(board_lines)
         data['board'] = board
-        min_r, max_r, min_c, max_c = bounding_box(board)
+        min_r, max_r, min_c, max_c = bounding_box(board, main_moves)
         data['bbox'] = {'min_row': min_r, 'max_row': max_r, 'min_col': min_c, 'max_col': max_c}
-
-    main_moves, variants = parse_moves(move_lines)
-    data['moves'] = main_moves
     if variants:
         data['variants'] = variants
 
