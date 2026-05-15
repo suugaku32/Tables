@@ -52,6 +52,10 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 .cell{border:1px solid rgba(255,255,255,1);display:flex;align-items:center;justify-content:center;}
 .cell.ht{background:rgba(255,196,0,0.22);box-shadow:inset 0 0 8px rgba(255,196,0,0.3);}
 .cell.hf{background:rgba(100,149,255,0.18);box-shadow:inset 0 0 8px rgba(100,149,255,0.25);}
+.cell.sel{background:rgba(0,255,120,0.25);box-shadow:inset 0 0 10px rgba(0,255,120,0.5);}
+.cell.err{background:rgba(255,50,50,0.5)!important;transition:background 0s;}
+.hp{cursor:pointer;border-radius:5px;transition:background .15s;}
+.hp.sel{background:rgba(0,255,120,0.2);outline:2px solid rgba(0,255,120,0.7);}
 .glbl{font-size:10px;color:var(--dim);display:flex;align-items:center;justify-content:center;}
 
 .hands{display:flex;gap:8px;width:100%;max-width:420px;}
@@ -337,7 +341,7 @@ function openStudy(id,mode,queue){
   if(tickID){clearInterval(tickID);tickID=null;}
   elapsed=0;t0=Date.now();
   const mf=st?.moveFilter;
-  st={tsume,states:buildStates(tsume),step:0,card:progress[id]||fsrs.blank(),shown:false,mode,queue,moveFilter:mf};
+  st={tsume,states:buildStates(tsume),step:0,card:progress[id]||fsrs.blank(),shown:false,mode,queue,moveFilter:mf,sel:null};
   if(mode==='review'){
     tickID=setInterval(()=>{elapsed=Date.now()-t0;const el=document.getElementById('timer');if(el)el.textContent=fmtMs(elapsed);},100);
   }
@@ -401,7 +405,7 @@ function renderStudy(){
 function handHTML(h,player){
   const label=player==='sente'?'先手':'後手';
   let inner='';
-  for(const p of HORDER){const n=h[p]||0;if(n>0)inner+=`<div class="hp">${pieceHTML({piece:p,player},26)}${n>1?`<span class="hpc">${n}</span>`:''}</div>`;}
+  for(const p of HORDER){const n=h[p]||0;if(n>0){const click=player==='sente'?`onclick="handClick('${p}')" data-piece="${p}"`:'';inner+=`<div class="hp" ${click}>${pieceHTML({piece:p,player},26)}${n>1?`<span class="hpc">${n}</span>`:''}</div>`;}}
   if(!inner)inner='<span style="color:#555;font-size:11px">なし</span>';
   return`<div class="hbox"><div class="hl">${label}の持ち駒</div><div class="hpieces">${inner}</div></div>`;
 }
@@ -428,7 +432,7 @@ function gobanHTML(state,tsume){
   for(let r=min_row;r<=max_row;r++)for(let c=min_col;c<=max_col;c++){
     const isTo=lastTo&&lastTo[0]===r&&lastTo[1]===c;
     const isFrom=moveFrom&&moveFrom[0]===r&&moveFrom[1]===c;
-    g+=`<div class="cell${isTo?' ht':''}${isFrom?' hf':''}" data-r="${r}" data-c="${c}" style="width:${cs}px;height:${cs}px">${pieceHTML(board[r]?.[c],ps)}</div>`;
+    g+=`<div class="cell${isTo?' ht':''}${isFrom?' hf':''}" data-r="${r}" data-c="${c}" style="width:${cs}px;height:${cs}px" onclick="cellClick(${r},${c})">${pieceHTML(board[r]?.[c],ps)}</div>`;
   }
   g+='</div>';
 
@@ -440,6 +444,7 @@ function gobanHTML(state,tsume){
 }
 
 function showSol(){
+  if(st.sel){st.sel=null;clearSel();}
   elapsed=Date.now()-t0;
   if(tickID){clearInterval(tickID);tickID=null;}
   const id=st.tsume.id;
@@ -536,6 +541,7 @@ function applyMoveToDOM(s){
 
 function stepNav(d){
   if(animating)return;
+  if(st.sel){st.sel=null;clearSel();}
   const ns=st.step+d;
   if(ns<0||ns>=st.states.length)return;
   if(d===1){
@@ -592,6 +598,85 @@ function goHome(){
 function resetAll(){
   if(!confirm('Réinitialiser toute la progression ?'))return;
   progress={};bestTimes={};save();saveT();renderHome();
+}
+
+// ── INTERACTIVE PLAY ──────────────────────────────────────────────────────
+function clearSel(){
+  document.querySelectorAll('.cell.sel,.hp.sel').forEach(el=>el.classList.remove('sel'));
+}
+function setSel(){
+  clearSel();
+  if(!st?.sel)return;
+  if(st.sel.hand){
+    document.querySelectorAll(`.hp[data-piece="${st.sel.piece}"]`).forEach(el=>el.classList.add('sel'));
+  }else{
+    const c=document.querySelector(`[data-r="${st.sel.r}"][data-c="${st.sel.c}"]`);
+    if(c)c.classList.add('sel');
+  }
+}
+function cellClick(r,c){
+  if(animating||!st||st.shown)return;
+  if(st.step%2!==0||st.step>=st.states.length-1)return;
+  const piece=st.states[st.step].board[r]?.[c];
+  if(st.sel&&!st.sel.hand&&st.sel.r===r&&st.sel.c===c){st.sel=null;clearSel();return;}
+  if(!st.sel){
+    if(piece&&piece.player==='sente'){st.sel={r,c};setSel();}
+  }else{
+    if(piece&&piece.player==='sente'){st.sel={r,c};setSel();}
+    else tryMove(r,c);
+  }
+}
+function handClick(p){
+  if(animating||!st||st.shown)return;
+  if(st.step%2!==0||st.step>=st.states.length-1)return;
+  if(st.sel?.hand&&st.sel.piece===p){st.sel=null;clearSel();return;}
+  st.sel={hand:true,piece:p};setSel();
+}
+function tryMove(toR,toC){
+  const next=st.states[st.step+1];if(!next)return;
+  const expFrom=next.moveFrom,expTo=next.lastTo;
+  let fromOk=false;
+  if(st.sel.hand){
+    fromOk=expFrom===null&&next.board[expTo?.[0]]?.[expTo?.[1]]?.piece===st.sel.piece;
+  }else{
+    fromOk=expFrom&&expFrom[0]===st.sel.r&&expFrom[1]===st.sel.c;
+  }
+  const toOk=expTo&&expTo[0]===toR&&expTo[1]===toC;
+  st.sel=null;clearSel();
+  if(fromOk&&toOk){
+    playCorrectMove();
+  }else{
+    const cell=document.querySelector(`[data-r="${toR}"][data-c="${toC}"]`);
+    if(cell){cell.classList.add('err');setTimeout(()=>cell.classList.remove('err'),400);}
+  }
+}
+function playCorrectMove(){
+  animating=true;
+  const ns=st.states[st.step+1];
+  flyPiece(ns,()=>{
+    applyMoveToDOM(ns);st.step++;animating=false;
+    if(st.step>=st.states.length-1){
+      elapsed=Date.now()-t0;
+      if(tickID){clearInterval(tickID);tickID=null;}
+      const id=st.tsume.id;
+      if(!bestTimes[id]||elapsed<bestTimes[id]){bestTimes[id]=elapsed;saveT();}
+      st.shown=true;
+      const te=document.getElementById('timer');if(te){te.textContent=fmtMs(elapsed);te.className='stopped';}
+      const sw=document.getElementById('sol-wrap');if(sw)sw.innerHTML='';
+      showFSRSButtons();
+    }else{
+      setTimeout(autoPlayGote,700);
+    }
+  });
+}
+function autoPlayGote(){
+  if(animating||st.step>=st.states.length-1)return;
+  animating=true;
+  const ns=st.states[st.step+1];
+  flyPiece(ns,()=>{
+    applyMoveToDOM(ns);st.step++;animating=false;
+    if(st.step>=st.states.length-1){st.shown=true;showFSRSButtons();}
+  });
 }
 
 // Bloquer pinch-to-zoom sur iOS Safari
