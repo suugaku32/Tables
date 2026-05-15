@@ -543,7 +543,7 @@ document.addEventListener('touchstart',startBGM);
 
 // Pièce volante : anime SANS reconstruire le DOM
 function flyPiece(nextState,cb){
-  if(!nextState.moveFrom||!nextState.lastTo){applyMoveToDOM(nextState);cb();return;}
+  if(!nextState.moveFrom||!nextState.lastTo){playMoveSound();applyMoveToDOM(nextState);cb();return;}
   const[fR,fC]=nextState.moveFrom,[tR,tC]=nextState.lastTo;
   const piece=nextState.board[tR]?.[tC];
   const fromCell=document.querySelector(`[data-r="${fR}"][data-c="${fC}"]`);
