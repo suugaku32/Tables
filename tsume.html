@@ -283,7 +283,7 @@ function generateKIF(tsume){
     .map(p=>(BK[p]||p)+(obj[p]>1?NK[obj[p]]||obj[p]:''))
     .join('　')||'なし';
 
-  let k='#KIF version=2.0 encoding=UTF-8\n';
+  let k='# ---- Kifu for Windows ----\n';
   if(tsume.author) k+=`*作者：${tsume.author}\n`;
   if(tsume.source) k+=`*発表誌：${tsume.source}\n`;
   k+=`後手の持駒：${hand(tsume.gote_hand||{})}\n`;
@@ -304,14 +304,14 @@ function generateKIF(tsume){
   for(const m of tsume.moves){
     const n=String(m.num).padStart(4);
     const from=m.from_col>=0?`(${9-m.from_col}${m.from_row+1})`:'';
-    k+=`${n} ${m.move}${from}\n`;
+    k+=`${n} ${m.move}${from}        ( 0:00/00:00:00)\n`;
   }
-  k+=`${String(tsume.moves.length+1).padStart(4)} 投了\n`;
+  k+=`${String(tsume.moves.length+1).padStart(4)} 投了        ( 0:00/00:00:00)\n`;
   return k;
 }
 
 function shareKIF(tsume){
-  const kif='﻿'+generateKIF(tsume); // BOM UTF-8
+  const kif=generateKIF(tsume);
   const fname=(tsume.filename||`tsume_${tsume.id}.kif`);
   const blob=new Blob([kif],{type:'text/plain;charset=utf-8'});
   const file=new File([blob],fname,{type:'text/plain'});
