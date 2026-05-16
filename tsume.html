@@ -77,7 +77,7 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 #sol-wrap{width:100%;max-width:420px;}
 #sol-btn{width:100%;padding:14px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:600;}
 
-#fsrs{width:100%;max-width:420px;position:sticky;bottom:0;background:var(--bg);padding:6px 0 calc(env(safe-area-inset-bottom,0px) + 6px);z-index:10;border-top:1px solid var(--surface2);}
+#fsrs{width:100%;max-width:420px;padding:6px 0 calc(env(safe-area-inset-bottom,0px) + 6px);}
 .frow{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
 .fb{padding:10px 4px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;}
 .fi{font-size:10px;font-weight:400;opacity:.8;}
@@ -721,12 +721,17 @@ function showFSRSButtons(){
   st.fsrsReady=true;
   if(document.getElementById('fsrs'))return;
   const {card}=st,ivls=fsrs.preview(card);
-  const sb=document.getElementById('sb');if(!sb)return;
   const div=document.createElement('div');
   div.id='fsrs';
   div.innerHTML=`<button id="replay-btn" onclick="replayAnimation()" style="width:100%;padding:9px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;font-size:13px;cursor:pointer;margin-bottom:8px">↺ もう一度見る</button>${(card.step||0)<3?`<div style="text-align:center;font-size:12px;color:var(--dim);margin-bottom:4px"><ruby>卒業<rt>そつぎょう</rt></ruby>まであと${3-(card.step||0)}<ruby>段階<rt>だんかい</rt></ruby></div>`:''}<div class="frow"><button class="fb again" onclick="rate(1)"><ruby>再挑戦<rt>さいちょうせん</rt></ruby><span class="fi">${ivls[0]}</span></button><button class="fb hard" onclick="rate(2)"><ruby>難<rt>むずか</rt></ruby>しい<span class="fi">${ivls[1]}</span></button><button class="fb good" onclick="rate(3)"><ruby>良<rt>よ</rt></ruby>い<span class="fi">${ivls[2]}</span></button><button class="fb easy" onclick="rate(4)"><ruby>簡単<rt>かんたん</rt></ruby><span class="fi">${ivls[3]}</span></button></div>`;
-  sb.appendChild(div);
-  setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}),50);
+  // Insérer après #hw (mains) dans right-col pour éviter tout redimensionnement du goban
+  const hw=document.getElementById('hw');
+  const rc=document.getElementById('right-col');
+  if(hw&&hw.nextSibling&&rc){rc.insertBefore(div,hw.nextSibling);}
+  else if(rc){rc.appendChild(div);}
+  else{const sb=document.getElementById('sb');if(sb)sb.appendChild(div);}
+  const mnav=document.getElementById('mnav');
+  if(mnav)mnav.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 function replayAnimation(){
