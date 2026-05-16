@@ -89,8 +89,7 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 #modal-code{width:100%;height:100px;background:var(--bg);border:1px solid var(--surface2);border-radius:8px;color:var(--text);font-size:11px;padding:8px;font-family:monospace;resize:none;word-break:break-all;}
 .modal-row{display:flex;gap:8px;}
 .modal-btn{flex:1;padding:11px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;}
-.mute-btn{background:none;border:none;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;position:relative;display:inline-flex;}
-.mute-btn.muted::after{content:'';position:absolute;left:50%;top:50%;width:100%;height:2px;background:rgba(255,80,80,0.9);transform:translate(-50%,-50%) rotate(-45deg);border-radius:1px;pointer-events:none;}
+.mute-btn{background:none;border:none;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;}
 </style>
 </head>
 <body>
@@ -713,17 +712,35 @@ let animating=false;
 const SOUNDS=[1,2,3,4].map(n=>{const a=new Audio(`sounds/SON_${n}.mp3`);a.preload='auto';return a;});
 function playMoveSound(){const a=SOUNDS[Math.floor(Math.random()*SOUNDS.length)].cloneNode();a.play().catch(()=>{});}
 
-// Musique de fond
-const BGM=new Audio('sounds/BGM.mp3');
-BGM.loop=true;BGM.volume=0.3;
-let muted=false;
-function toggleMute(){muted=!muted;BGM.muted=muted;document.querySelectorAll('.mute-btn').forEach(b=>b.classList.toggle('muted',muted));}
-function muteHTML(){return`<button class="mute-btn${muted?' muted':''}" onclick="toggleMute()">🎵</button>`;}
-function startBGM(){BGM.play().catch(()=>{});document.removeEventListener('click',startBGM);document.removeEventListener('touchstart',startBGM);}
+// Musique de fond — cycle : 0=mute, 1=BGM1, 2=BGM2
+const BGMS=[new Audio('sounds/BGM.mp3'),new Audio('sounds/BGM2.mp3')];
+BGMS.forEach(b=>{b.loop=true;b.volume=0.3;});
+let bgmMode=0; // 0=mute, 1=BGM1, 2=BGM2
+const BGM_ICONS=['🔇','🎵','🎶'];
+function currentBGM(){return bgmMode>0?BGMS[bgmMode-1]:null;}
+function cycleBGM(){
+  const prev=currentBGM();
+  if(prev){prev.pause();prev.currentTime=0;}
+  bgmMode=(bgmMode+1)%3;
+  const next=currentBGM();
+  if(next)next.play().catch(()=>{});
+  document.querySelectorAll('.mute-btn').forEach(b=>b.textContent=BGM_ICONS[bgmMode]);
+}
+function muteHTML(){return`<button class="mute-btn" onclick="cycleBGM()">${BGM_ICONS[bgmMode]}</button>`;}
+function startBGM(){
+  if(bgmMode===0)bgmMode=1;
+  currentBGM()?.play().catch(()=>{});
+  document.querySelectorAll('.mute-btn').forEach(b=>b.textContent=BGM_ICONS[bgmMode]);
+  document.removeEventListener('click',startBGM);
+  document.removeEventListener('touchstart',startBGM);
+}
 document.addEventListener('click',startBGM);
 document.addEventListener('touchstart',startBGM);
 
-document.addEventListener('visibilitychange',()=>{if(document.hidden){BGM.pause();}else if(!muted){BGM.play().catch(()=>{});}});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){currentBGM()?.pause();}
+  else{currentBGM()?.play().catch(()=>{});}
+});
 
 // Pièce volante : anime SANS reconstruire le DOM
 function flyPiece(nextState,cb){
