@@ -402,7 +402,7 @@ async function applyImport(){
       for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
       const TODAY=Math.floor(Date.now()/86400000);
       const ST=['learning','review','relearning'];
-      let o=1;
+      progress={};let o=1;
       while(o+9<buf.length){
         const id=buf[o]|(buf[o+1]<<8);
         const sr=buf[o+2];
@@ -422,7 +422,7 @@ async function applyImport(){
       for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
       const TODAY=Math.floor(Date.now()/86400000);
       const ST=['learning','review','relearning'];
-      let o=1;
+      progress={};let o=1;
       while(o+6<buf.length){
         const id=buf[o]|(buf[o+1]<<8);
         const sr=buf[o+2];
@@ -449,10 +449,10 @@ async function applyImport(){
         json=new TextDecoder().decode(all);
       }catch{json=decodeURIComponent(escape(bin));}
       const d=JSON.parse(json);
-      if(d.p){for(const[id,a]of Object.entries(d.p)){
+      if(d.p){progress={};for(const[id,a]of Object.entries(d.p)){
         progress[id]={state:a[0],step:a[1],reps:a[2],lapses:a[3],stability:a[4],difficulty:a[5],due:a[6]};
       }}
-      if(d.b)Object.assign(bestTimes,d.b);
+      if(d.b){bestTimes={};Object.assign(bestTimes,d.b);}
     }
     save();saveT();closeModal();renderHome();
   }catch(e){
