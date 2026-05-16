@@ -315,7 +315,8 @@ function generateKIF(tsume){
   for(const m of tsume.moves){
     const n=String(m.num).padStart(4);
     const from=m.from_col>=0?`(${9-m.from_col}${m.from_row+1})`:'';
-    k+=`${n} ${m.move}${from}( 0:00/00:00:00)`+NL;
+    const sep=m.from_col>=0?'':' ';
+    k+=`${n} ${m.move}${from}${sep}( 0:00/00:00:00)`+NL;
   }
   k+=`${String(tsume.moves.length+1).padStart(4)} 投了       ( 0:00/00:00:00)`+NL;
   k+=`まで${tsume.moves.length}手で先手の勝ち`+NL;
