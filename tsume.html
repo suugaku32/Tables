@@ -326,7 +326,7 @@ function generateKIF(tsume){
 function shareKIF(tsume){
   const kif=generateKIF(tsume);
   const fname=(tsume.filename||`tsume_${tsume.id}.kif`).replace(/\.kif$/i,'.txt');
-  const blob=new Blob([kif],{type:'text/plain;charset=utf-8'});
+  const blob=new Blob(['﻿',kif],{type:'text/plain;charset=utf-8'});
   const file=new File([blob],fname,{type:'text/plain'});
   if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
     navigator.share({files:[file],title:`詰将棋 No.${tsume.id}`}).catch(()=>{});
