@@ -333,9 +333,8 @@ function copyKIF(tsume,btn){
 // ── HOME ──────────────────────────────────────────────────────────────────
 function closeModal(){const m=document.getElementById('modal-overlay');if(m)m.remove();}
 
-// Format binaire v1 : 1 octet header + 7 octets/carte, base64url sans padding
-// [state:2][step:2][reps:4] | lapses | due_delta_j (signé) | stability_j | diff*10
-// → 1 carte ≈ 11 chars, 5 cartes ≈ 50 chars, 20 cartes ≈ 190 chars
+// Format binaire v2 : 1 octet header + 10 octets/carte, base64url sans padding
+// ID(2) | state+step(1) | reps(1) | lapses(1) | due_delta_j signé(1) | stability*10 uint16(2) | difficulty*1000 uint16(2)
 function genCode(){
   const TODAY=Math.floor(Date.now()/86400000);
   const SC={learning:0,review:1,relearning:2};
@@ -343,19 +342,22 @@ function genCode(){
   for(const[id,c]of Object.entries(progress)){
     if(c.state==='new')continue;
     const dd=Math.max(-127,Math.min(127,Math.floor(new Date(c.due||0).getTime()/86400000)-TODAY));
+    const stab=Math.max(0,Math.min(65535,Math.round((c.stability||0)*10)));
+    const diff=Math.max(0,Math.min(65535,Math.round((c.difficulty||5)*1000)));
     cards.push({id:parseInt(id),s:SC[c.state]??1,step:Math.min(c.step||0,3),
-      reps:Math.min(c.reps||0,15),lapses:Math.min(c.lapses||0,255),dd,
-      stab:Math.max(0,Math.min(255,Math.round(c.stability||0))),
-      diff:Math.max(10,Math.min(100,Math.round((c.difficulty||5)*10)))});
+      reps:Math.min(c.reps||0,255),lapses:Math.min(c.lapses||0,255),dd,stab,diff});
   }
   cards.sort((a,b)=>a.id-b.id);
-  const buf=new Uint8Array(1+cards.length*7);buf[0]=1;
+  const buf=new Uint8Array(1+cards.length*10);buf[0]=2;
   let o=1;
   for(const c of cards){
     buf[o++]=c.id&0xff;buf[o++]=(c.id>>8)&0xff;
-    buf[o++]=(c.s<<6)|(c.step<<4)|c.reps;
-    buf[o++]=c.lapses;buf[o++]=c.dd<0?c.dd+256:c.dd;
-    buf[o++]=c.stab;buf[o++]=c.diff;
+    buf[o++]=(c.s<<6)|(c.step<<4);
+    buf[o++]=c.reps;
+    buf[o++]=c.lapses;
+    buf[o++]=c.dd<0?c.dd+256:c.dd;
+    buf[o++]=c.stab&0xff;buf[o++]=(c.stab>>8)&0xff;
+    buf[o++]=c.diff&0xff;buf[o++]=(c.diff>>8)&0xff;
   }
   let s='';for(let i=0;i<buf.length;i++)s+=String.fromCharCode(buf[i]);
   return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -395,8 +397,29 @@ async function applyImport(){
   try{
     const pad=raw.length%4?'='.repeat(4-raw.length%4):'';
     const bin=atob(raw.replace(/-/g,'+').replace(/_/g,'/')+pad);
-    if(bin.charCodeAt(0)===1){
-      // format binaire v1
+    const ver=bin.charCodeAt(0);
+    if(ver===2){
+      // format binaire v2 : 10 octets/carte, haute précision
+      const buf=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
+      const TODAY=Math.floor(Date.now()/86400000);
+      const ST=['learning','review','relearning'];
+      let o=1;
+      while(o+9<buf.length){
+        const id=buf[o]|(buf[o+1]<<8);
+        const sr=buf[o+2];
+        const dd=buf[o+5]>127?buf[o+5]-256:buf[o+5];
+        const stab=(buf[o+6]|(buf[o+7]<<8))/10;
+        const diff=(buf[o+8]|(buf[o+9]<<8))/1000;
+        progress[String(id)]={
+          state:ST[(sr>>6)&3]||'review',step:(sr>>4)&3,reps:buf[o+3],lapses:buf[o+4],
+          stability:stab,difficulty:diff,
+          due:new Date((TODAY+dd)*86400000).toISOString()
+        };
+        o+=10;
+      }
+    } else if(ver===1){
+      // rétrocompatibilité v1 : 7 octets/carte
       const buf=new Uint8Array(bin.length);
       for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
       const TODAY=Math.floor(Date.now()/86400000);
