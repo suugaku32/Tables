@@ -83,6 +83,12 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 .fb.good{background:var(--green);color:#fff;}.fb.easy{background:var(--blue);color:#fff;}
 
 #loading{display:flex;align-items:center;justify-content:center;height:80vh;font-size:16px;color:var(--dim);}
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+#modal-box{background:var(--surface);border-radius:16px;padding:20px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;}
+#modal-box h2{font-size:16px;font-weight:700;}
+#modal-code{width:100%;height:100px;background:var(--bg);border:1px solid var(--surface2);border-radius:8px;color:var(--text);font-size:11px;padding:8px;font-family:monospace;resize:none;word-break:break-all;}
+.modal-row{display:flex;gap:8px;}
+.modal-btn{flex:1;padding:11px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;}
 .mute-btn{background:none;border:none;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;position:relative;display:inline-flex;}
 .mute-btn.muted::after{content:'';position:absolute;left:50%;top:50%;width:100%;height:2px;background:rgba(255,80,80,0.9);transform:translate(-50%,-50%) rotate(-45deg);border-radius:1px;pointer-events:none;}
 </style>
@@ -265,6 +271,61 @@ function getStatus(id){
 const fmtMs=ms=>{const s=Math.floor(ms/1000),m=Math.floor(s/60);return`${m}:${String(s%60).padStart(2,'0')}.${Math.floor((ms%1000)/100)}`;};
 
 // ── HOME ──────────────────────────────────────────────────────────────────
+function closeModal(){const m=document.getElementById('modal-overlay');if(m)m.remove();}
+
+function genCode(){
+  const d={p:{},b:bestTimes};
+  for(const[id,c]of Object.entries(progress)){
+    if(c.state!=='new')d.p[id]=[c.state,c.step||0,c.reps,c.lapses,
+      Math.round((c.stability||0)*100)/100,Math.round((c.difficulty||0)*100)/100,c.due||0];
+  }
+  return btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+}
+
+function showExport(){
+  const code=genCode();
+  const ov=document.createElement('div');ov.id='modal-overlay';ov.onclick=e=>{if(e.target===ov)closeModal();};
+  ov.innerHTML=`<div id="modal-box">
+    <h2><ruby>進捗<rt>しんちょく</rt></ruby>コード</h2>
+    <textarea id="modal-code" readonly>${code}</textarea>
+    <div class="modal-row">
+      <button class="modal-btn" style="background:var(--accent);color:#fff" onclick="navigator.clipboard.writeText('${code.replace(/'/g,"\\'")}').then(()=>this.textContent='✓ コピー済み')"><ruby>コピー<rt></rt></ruby></button>
+      <button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal()"><ruby>閉<rt>と</rt></ruby>じる</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('modal-code').select();
+}
+
+function showImport(){
+  const ov=document.createElement('div');ov.id='modal-overlay';ov.onclick=e=>{if(e.target===ov)closeModal();};
+  ov.innerHTML=`<div id="modal-box">
+    <h2><ruby>コードを読<rt>よ</rt></ruby>み<ruby>込<rt>こ</rt></ruby>む</h2>
+    <textarea id="modal-code" placeholder="コードをここに貼り付けてください…"></textarea>
+    <div class="modal-row">
+      <button class="modal-btn" style="background:var(--green);color:#fff" onclick="applyImport()"><ruby>読<rt>よ</rt></ruby>み<ruby>込<rt>こ</rt></ruby>む</button>
+      <button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal()"><ruby>閉<rt>と</rt></ruby>じる</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+
+function applyImport(){
+  const raw=document.getElementById('modal-code')?.value.trim();
+  if(!raw)return;
+  try{
+    const d=JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if(d.p){for(const[id,a]of Object.entries(d.p)){
+      progress[id]={state:a[0],step:a[1],reps:a[2],lapses:a[3],stability:a[4],difficulty:a[5],due:a[6]};
+    }}
+    if(d.b)Object.assign(bestTimes,d.b);
+    save();saveT();closeModal();renderHome();
+  }catch(e){
+    const ta=document.getElementById('modal-code');
+    if(ta){ta.style.borderColor='var(--accent)';setTimeout(()=>ta.style.borderColor='',1000);}
+  }
+}
+
 function renderHome(){
   const due=data.filter(t=>getStatus(t.id)==='due').length;
   const mastered=data.filter(t=>getStatus(t.id)==='mastered').length;
@@ -298,6 +359,10 @@ function renderHome(){
         <div class="hstat"><span class="hstat-val c-blue">${rated-mastered}</span><span class="hstat-label"><ruby>学習中<rt>がくしゅうちゅう</rt></ruby></span></div>
         <div class="hstat"><span class="hstat-val c-green">${mastered}</span><span class="hstat-label"><ruby>習得済<rt>しゅうとくず</rt></ruby>み</span></div>
         <div class="hstat"><span class="hstat-val" style="color:var(--dim)">${data.length}</span><span class="hstat-label"><ruby>合計<rt>ごうけい</rt></ruby></span></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="showExport()" style="flex:1;padding:11px;background:var(--surface);border:1px solid var(--surface2);border-radius:10px;color:var(--text);font-size:13px;cursor:pointer"><ruby>進捗<rt>しんちょく</rt></ruby>を<ruby>書<rt>か</rt></ruby>き<ruby>出<rt>だ</rt></ruby>す</button>
+        <button onclick="showImport()" style="flex:1;padding:11px;background:var(--surface);border:1px solid var(--surface2);border-radius:10px;color:var(--text);font-size:13px;cursor:pointer"><ruby>進捗<rt>しんちょく</rt></ruby>を<ruby>読<rt>よ</rt></ruby>み<ruby>込<rt>こ</rt></ruby>む</button>
       </div>
     </div>`;
 }
