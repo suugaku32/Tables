@@ -17,7 +17,7 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 #home-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--surface2);}
 #home-nav h1{font-size:20px;font-weight:700;letter-spacing:1px;}
 .nbtn{background:var(--surface2);color:var(--text);border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;}
-#home-body{padding:20px 16px;display:flex;flex-direction:column;gap:14px;}
+#home-body{padding:16px;display:flex;flex-direction:column;gap:12px;}
 .mode-card{background:var(--surface);border-radius:14px;padding:20px;cursor:pointer;display:flex;align-items:center;gap:16px;border:2px solid transparent;transition:border-color .15s;}
 .move-btn{background:var(--surface);border:2px solid var(--surface2);border-radius:14px;padding:18px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;color:var(--text);transition:border-color .15s;}
 .move-btn:active{border-color:var(--blue);}
@@ -98,15 +98,18 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
   body{max-width:100%;}
   #app{max-width:1100px;margin:0 auto;}
   /* Home : grille 2 colonnes */
-  #home-body{display:grid;grid-template-columns:1fr 1fr;align-items:start;}
-  #home-stats,#home-body>div:last-child{grid-column:1/-1;}
+  #home-body{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:12px;padding:24px 28px;}
+  #home-stats,#home-body>div:last-child,.full-row{grid-column:1/-1;}
   /* Study : goban à gauche, contrôles à droite colonne fixe */
-  #sb{flex-direction:row;align-items:flex-start;overflow-y:hidden;padding:12px;gap:16px;}
-  #gw{flex:1;position:sticky;top:0;}
-  #right-col{display:flex;flex-direction:column;width:300px;flex-shrink:0;overflow-y:auto;gap:8px;
-    padding-bottom:calc(env(safe-area-inset-bottom,0px)+12px);}
+  #sb{flex-direction:row;align-items:flex-start;overflow-y:hidden;padding:16px;gap:20px;}
+  #gw{flex:1;position:sticky;top:0;display:flex;align-items:flex-start;justify-content:center;}
+  #right-col{display:flex;flex-direction:column;width:300px;flex-shrink:0;overflow-y:auto;gap:10px;
+    padding:16px;background:var(--surface);border-radius:12px;
+    padding-bottom:calc(env(safe-area-inset-bottom,0px)+16px);}
   #right-col .hands,#right-col #mnav,#right-col #sol-wrap,#right-col #fsrs{max-width:none;width:100%;}
   #fsrs{position:static;border-top:none;padding-top:0;}
+  .move-btn{padding:20px 22px;}
+  .move-btn-title{font-size:24px;}
 }
 </style>
 </head>
@@ -483,7 +486,7 @@ function renderHome(){
           <div class="mode-sub">${due?`${due}<ruby>枚<rt>まい</rt></ruby><ruby>復習<rt>ふくしゅう</rt></ruby>あり`:'<ruby>今日<rt>きょう</rt></ruby>の<ruby>復習<rt>ふくしゅう</rt></ruby>はありません'}</div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div class="full-row" style="display:flex;gap:8px;align-items:center">
         <input id="goto-input" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="${data.length}" placeholder="問題番号…"
           style="flex:1;padding:12px 14px;background:var(--surface);border:2px solid var(--surface2);border-radius:10px;color:var(--text);font-size:15px;outline:none"
           onkeydown="if(event.key==='Enter')gotoNum()">
@@ -533,7 +536,7 @@ function showMoveSelect(){
       <span></span>
     </div>
     <div id="home-body">
-      <div style="font-size:13px;color:var(--dim);margin-bottom:4px"><ruby>手数<rt>てかず</rt></ruby>を<ruby>選<rt>えら</rt></ruby>んでください：</div>
+      <div class="full-row" style="font-size:13px;color:var(--dim)"><ruby>手数<rt>てかず</rt></ruby>を<ruby>選<rt>えら</rt></ruby>んでください：</div>
       ${counts.map(n=>{
         const total=data.filter(t=>validTsume(t)&&t.moves.length===n).length;
         return`<button class="move-btn" onclick="startTraining(${n})">
