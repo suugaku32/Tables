@@ -273,28 +273,57 @@ const fmtMs=ms=>{const s=Math.floor(ms/1000),m=Math.floor(s/60);return`${m}:${St
 // ── HOME ──────────────────────────────────────────────────────────────────
 function closeModal(){const m=document.getElementById('modal-overlay');if(m)m.remove();}
 
-function genCode(){
+async function compress(str){
+  const cs=new CompressionStream('gzip');
+  const w=cs.writable.getWriter();
+  w.write(new TextEncoder().encode(str));
+  w.close();
+  const chunks=[];
+  const r=cs.readable.getReader();
+  for(;;){const{done,value}=await r.read();if(done)break;chunks.push(value);}
+  let len=0;for(const c of chunks)len+=c.length;
+  const all=new Uint8Array(len);let off=0;for(const c of chunks){all.set(c,off);off+=c.length;}
+  let s='';for(let i=0;i<all.length;i++)s+=String.fromCharCode(all[i]);
+  return btoa(s);
+}
+
+async function decompress(b64){
+  const bin=atob(b64);
+  const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+  const ds=new DecompressionStream('gzip');
+  const w=ds.writable.getWriter();w.write(u8);w.close();
+  const chunks=[];const r=ds.readable.getReader();
+  for(;;){const{done,value}=await r.read();if(done)break;chunks.push(value);}
+  let len=0;for(const c of chunks)len+=c.length;
+  const all=new Uint8Array(len);let off=0;for(const c of chunks){all.set(c,off);off+=c.length;}
+  return new TextDecoder().decode(all);
+}
+
+async function genCode(){
   const d={p:{},b:bestTimes};
   for(const[id,c]of Object.entries(progress)){
     if(c.state!=='new')d.p[id]=[c.state,c.step||0,c.reps,c.lapses,
       Math.round((c.stability||0)*100)/100,Math.round((c.difficulty||0)*100)/100,c.due||0];
   }
-  return btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+  return await compress(JSON.stringify(d));
 }
 
-function showExport(){
-  const code=genCode();
+async function showExport(){
   const ov=document.createElement('div');ov.id='modal-overlay';ov.onclick=e=>{if(e.target===ov)closeModal();};
   ov.innerHTML=`<div id="modal-box">
     <h2><ruby>進捗<rt>しんちょく</rt></ruby>コード</h2>
-    <textarea id="modal-code" readonly>${code}</textarea>
+    <textarea id="modal-code" readonly><ruby>生成中<rt>せいせいちゅう</rt></ruby>…</textarea>
     <div class="modal-row">
-      <button class="modal-btn" style="background:var(--accent);color:#fff" onclick="navigator.clipboard.writeText('${code.replace(/'/g,"\\'")}').then(()=>this.textContent='✓ コピー済み')"><ruby>コピー<rt></rt></ruby></button>
+      <button id="modal-copy-btn" class="modal-btn" style="background:var(--accent);color:#fff" disabled><ruby>コピー<rt></rt></ruby></button>
       <button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal()"><ruby>閉<rt>と</rt></ruby>じる</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
-  document.getElementById('modal-code').select();
+  const code=await genCode();
+  const ta=document.getElementById('modal-code');
+  if(ta){ta.value=code;ta.select();}
+  const btn=document.getElementById('modal-copy-btn');
+  if(btn){btn.disabled=false;btn.onclick=()=>navigator.clipboard.writeText(code).then(()=>btn.textContent='✓ コピー済み');}
 }
 
 function showImport(){
@@ -310,11 +339,14 @@ function showImport(){
   document.body.appendChild(ov);
 }
 
-function applyImport(){
+async function applyImport(){
   const raw=document.getElementById('modal-code')?.value.trim();
   if(!raw)return;
   try{
-    const d=JSON.parse(decodeURIComponent(escape(atob(raw))));
+    let json;
+    try{json=await decompress(raw);}
+    catch{json=decodeURIComponent(escape(atob(raw)));}
+    const d=JSON.parse(json);
     if(d.p){for(const[id,a]of Object.entries(d.p)){
       progress[id]={state:a[0],step:a[1],reps:a[2],lapses:a[3],stability:a[4],difficulty:a[5],due:a[6]};
     }}
