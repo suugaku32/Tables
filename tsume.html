@@ -100,11 +100,11 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
   /* Home : grille 2 colonnes */
   #home-body{display:grid;grid-template-columns:1fr 1fr;align-items:start;}
   #home-stats,#home-body>div:last-child{grid-column:1/-1;}
-  /* Study : goban à gauche, contrôles à droite */
-  #sb{flex-direction:row;align-items:flex-start;overflow-y:hidden;padding:12px;}
-  #gw{flex-shrink:0;position:sticky;top:0;}
-  #right-col{display:flex;flex-direction:column;flex:1;overflow-y:auto;gap:8px;
-    padding-bottom:calc(env(safe-area-inset-bottom,0px)+12px);min-width:0;}
+  /* Study : goban à gauche, contrôles à droite colonne fixe */
+  #sb{flex-direction:row;align-items:flex-start;overflow-y:hidden;padding:12px;gap:16px;}
+  #gw{flex:1;position:sticky;top:0;}
+  #right-col{display:flex;flex-direction:column;width:300px;flex-shrink:0;overflow-y:auto;gap:8px;
+    padding-bottom:calc(env(safe-area-inset-bottom,0px)+12px);}
   #right-col .hands,#right-col #mnav,#right-col #sol-wrap,#right-col #fsrs{max-width:none;width:100%;}
   #fsrs{position:static;border-top:none;padding-top:0;}
 }
@@ -351,34 +351,14 @@ function copyKIF(tsume,btn){
 // ── HOME ──────────────────────────────────────────────────────────────────
 function closeModal(){const m=document.getElementById('modal-overlay');if(m)m.remove();}
 
-// Format binaire v2 : 1 octet header + 10 octets/carte, base64url sans padding
-// ID(2) | state+step(1) | reps(1) | lapses(1) | due_delta_j signé(1) | stability*10 uint16(2) | difficulty*1000 uint16(2)
+// Export lossless : JSON brut encodé en base64 — aucune perte de précision
 function genCode(){
-  const TODAY=Math.floor(Date.now()/86400000);
-  const SC={learning:0,review:1,relearning:2};
-  const cards=[];
+  const d={p:{},b:bestTimes};
   for(const[id,c]of Object.entries(progress)){
     if(c.state==='new')continue;
-    const dd=Math.max(-127,Math.min(127,Math.floor(new Date(c.due||0).getTime()/86400000)-TODAY));
-    const stab=Math.max(0,Math.min(65535,Math.round((c.stability||0)*10)));
-    const diff=Math.max(0,Math.min(65535,Math.round((c.difficulty||5)*1000)));
-    cards.push({id:parseInt(id),s:SC[c.state]??1,step:Math.min(c.step||0,3),
-      reps:Math.min(c.reps||0,255),lapses:Math.min(c.lapses||0,255),dd,stab,diff});
+    d.p[id]=[c.state,c.step||0,c.reps||0,c.lapses||0,c.stability||0,c.difficulty||0,c.due||0];
   }
-  cards.sort((a,b)=>a.id-b.id);
-  const buf=new Uint8Array(1+cards.length*10);buf[0]=2;
-  let o=1;
-  for(const c of cards){
-    buf[o++]=c.id&0xff;buf[o++]=(c.id>>8)&0xff;
-    buf[o++]=(c.s<<6)|(c.step<<4);
-    buf[o++]=c.reps;
-    buf[o++]=c.lapses;
-    buf[o++]=c.dd<0?c.dd+256:c.dd;
-    buf[o++]=c.stab&0xff;buf[o++]=(c.stab>>8)&0xff;
-    buf[o++]=c.diff&0xff;buf[o++]=(c.diff>>8)&0xff;
-  }
-  let s='';for(let i=0;i<buf.length;i++)s+=String.fromCharCode(buf[i]);
-  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  return btoa(unescape(encodeURIComponent(JSON.stringify(d))));
 }
 
 function showExport(){
@@ -676,10 +656,19 @@ function gobanHTML(state,tsume){
     if(s.moveFrom){const[r,c]=s.moveFrom;min_row=Math.max(0,Math.min(min_row,r));max_row=Math.min(8,Math.max(max_row,r));min_col=Math.max(0,Math.min(min_col,c));max_col=Math.min(8,Math.max(max_col,c));}
   }
   const rows=max_row-min_row+1,cols=max_col-min_col+1;
-  // Taille adaptative au viewport
-  const availW=Math.min((window.innerWidth||390),500)-70;
-  const availH=(window.innerHeight||700)-220;
-  const cs=Math.min(48,Math.max(24,Math.min(Math.floor(availW/cols),Math.floor(availH/rows))));
+  // Taille adaptative : paysage/large = goban plein espace, portrait = compact
+  const W=window.innerWidth||390,H=window.innerHeight||700;
+  const isWide=(W>=800)||(W>H&&H>=350);
+  let cs;
+  if(isWide){
+    const availW=W-300-60; // colonne droite 300px + marges
+    const availH=H-70;     // header + marges
+    cs=Math.max(40,Math.min(160,Math.min(Math.floor(availW/cols),Math.floor(availH/rows))));
+  }else{
+    const availW=Math.min(W,500)-70;
+    const availH=H-220;
+    cs=Math.min(48,Math.max(24,Math.min(Math.floor(availW/cols),Math.floor(availH/rows))));
+  }
   const ps=Math.round(cs*0.84);
 
   // Labels colonnes (9→1 de gauche à droite)
