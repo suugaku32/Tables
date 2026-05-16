@@ -330,14 +330,6 @@ function copyKIF(tsume,btn){
   });
 }
 
-function shareKIF(tsume){
-  const kif=generateKIF(tsume);
-  const fname=(tsume.filename||`tsume_${tsume.id}.kif`).replace(/\.kif$/i,'.txt');
-  const blob=new Blob(['﻿',kif],{type:'text/plain;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=fname;a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
 
 // ── HOME ──────────────────────────────────────────────────────────────────
 function closeModal(){const m=document.getElementById('modal-overlay');if(m)m.remove();}
@@ -609,7 +601,6 @@ function renderStudy(){
           :''}
         <div style="display:flex;gap:8px;margin-top:6px">
           <button onclick="restartProblem()" style="flex:1;padding:10px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:13px;cursor:pointer">↺ やり<ruby>直<rt>なお</rt></ruby>す</button>
-          <button onclick="shareKIF(st.tsume)" title="KIFを保存" style="padding:10px 14px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:15px;cursor:pointer">📤</button>
           <button onclick="copyKIF(st.tsume,this)" title="KIFをコピー" style="padding:10px 14px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:15px;cursor:pointer">📋</button>
         </div>
       </div>
