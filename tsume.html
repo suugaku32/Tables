@@ -273,57 +273,47 @@ const fmtMs=ms=>{const s=Math.floor(ms/1000),m=Math.floor(s/60);return`${m}:${St
 // ── HOME ──────────────────────────────────────────────────────────────────
 function closeModal(){const m=document.getElementById('modal-overlay');if(m)m.remove();}
 
-async function compress(str){
-  const cs=new CompressionStream('gzip');
-  const w=cs.writable.getWriter();
-  w.write(new TextEncoder().encode(str));
-  w.close();
-  const chunks=[];
-  const r=cs.readable.getReader();
-  for(;;){const{done,value}=await r.read();if(done)break;chunks.push(value);}
-  let len=0;for(const c of chunks)len+=c.length;
-  const all=new Uint8Array(len);let off=0;for(const c of chunks){all.set(c,off);off+=c.length;}
-  let s='';for(let i=0;i<all.length;i++)s+=String.fromCharCode(all[i]);
-  return btoa(s);
-}
-
-async function decompress(b64){
-  const bin=atob(b64);
-  const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
-  const ds=new DecompressionStream('gzip');
-  const w=ds.writable.getWriter();w.write(u8);w.close();
-  const chunks=[];const r=ds.readable.getReader();
-  for(;;){const{done,value}=await r.read();if(done)break;chunks.push(value);}
-  let len=0;for(const c of chunks)len+=c.length;
-  const all=new Uint8Array(len);let off=0;for(const c of chunks){all.set(c,off);off+=c.length;}
-  return new TextDecoder().decode(all);
-}
-
-async function genCode(){
-  const d={p:{},b:bestTimes};
+// Format binaire v1 : 1 octet header + 7 octets/carte, base64url sans padding
+// [state:2][step:2][reps:4] | lapses | due_delta_j (signé) | stability_j | diff*10
+// → 1 carte ≈ 11 chars, 5 cartes ≈ 50 chars, 20 cartes ≈ 190 chars
+function genCode(){
+  const TODAY=Math.floor(Date.now()/86400000);
+  const SC={learning:0,review:1,relearning:2};
+  const cards=[];
   for(const[id,c]of Object.entries(progress)){
-    if(c.state!=='new')d.p[id]=[c.state,c.step||0,c.reps,c.lapses,
-      Math.round((c.stability||0)*100)/100,Math.round((c.difficulty||0)*100)/100,c.due||0];
+    if(c.state==='new')continue;
+    const dd=Math.max(-127,Math.min(127,Math.floor(new Date(c.due||0).getTime()/86400000)-TODAY));
+    cards.push({id:parseInt(id),s:SC[c.state]??1,step:Math.min(c.step||0,3),
+      reps:Math.min(c.reps||0,15),lapses:Math.min(c.lapses||0,255),dd,
+      stab:Math.max(0,Math.min(255,Math.round(c.stability||0))),
+      diff:Math.max(10,Math.min(100,Math.round((c.difficulty||5)*10)))});
   }
-  return await compress(JSON.stringify(d));
+  cards.sort((a,b)=>a.id-b.id);
+  const buf=new Uint8Array(1+cards.length*7);buf[0]=1;
+  let o=1;
+  for(const c of cards){
+    buf[o++]=c.id&0xff;buf[o++]=(c.id>>8)&0xff;
+    buf[o++]=(c.s<<6)|(c.step<<4)|c.reps;
+    buf[o++]=c.lapses;buf[o++]=c.dd<0?c.dd+256:c.dd;
+    buf[o++]=c.stab;buf[o++]=c.diff;
+  }
+  let s='';for(let i=0;i<buf.length;i++)s+=String.fromCharCode(buf[i]);
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 
-async function showExport(){
+function showExport(){
+  const code=genCode();
   const ov=document.createElement('div');ov.id='modal-overlay';ov.onclick=e=>{if(e.target===ov)closeModal();};
   ov.innerHTML=`<div id="modal-box">
     <h2><ruby>進捗<rt>しんちょく</rt></ruby>コード</h2>
-    <textarea id="modal-code" readonly><ruby>生成中<rt>せいせいちゅう</rt></ruby>…</textarea>
+    <textarea id="modal-code" readonly>${code}</textarea>
     <div class="modal-row">
-      <button id="modal-copy-btn" class="modal-btn" style="background:var(--accent);color:#fff" disabled><ruby>コピー<rt></rt></ruby></button>
+      <button class="modal-btn" style="background:var(--accent);color:#fff" onclick="navigator.clipboard.writeText(document.getElementById('modal-code').value).then(()=>this.textContent='✓ コピー済み')">コピー</button>
       <button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal()"><ruby>閉<rt>と</rt></ruby>じる</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
-  const code=await genCode();
-  const ta=document.getElementById('modal-code');
-  if(ta){ta.value=code;ta.select();}
-  const btn=document.getElementById('modal-copy-btn');
-  if(btn){btn.disabled=false;btn.onclick=()=>navigator.clipboard.writeText(code).then(()=>btn.textContent='✓ コピー済み');}
+  document.getElementById('modal-code').select();
 }
 
 function showImport(){
@@ -343,14 +333,46 @@ async function applyImport(){
   const raw=document.getElementById('modal-code')?.value.trim();
   if(!raw)return;
   try{
-    let json;
-    try{json=await decompress(raw);}
-    catch{json=decodeURIComponent(escape(atob(raw)));}
-    const d=JSON.parse(json);
-    if(d.p){for(const[id,a]of Object.entries(d.p)){
-      progress[id]={state:a[0],step:a[1],reps:a[2],lapses:a[3],stability:a[4],difficulty:a[5],due:a[6]};
-    }}
-    if(d.b)Object.assign(bestTimes,d.b);
+    const pad=raw.length%4?'='.repeat(4-raw.length%4):'';
+    const bin=atob(raw.replace(/-/g,'+').replace(/_/g,'/')+pad);
+    if(bin.charCodeAt(0)===1){
+      // format binaire v1
+      const buf=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
+      const TODAY=Math.floor(Date.now()/86400000);
+      const ST=['learning','review','relearning'];
+      let o=1;
+      while(o+6<buf.length){
+        const id=buf[o]|(buf[o+1]<<8);
+        const sr=buf[o+2];
+        const dd=buf[o+4]>127?buf[o+4]-256:buf[o+4];
+        progress[String(id)]={
+          state:ST[(sr>>6)&3]||'review',step:(sr>>4)&3,reps:sr&0xf,lapses:buf[o+3],
+          stability:buf[o+5],difficulty:buf[o+6]/10,
+          due:new Date((TODAY+dd)*86400000).toISOString()
+        };
+        o+=7;
+      }
+    } else {
+      // rétrocompatibilité : gzip ou base64 brut
+      let json;
+      try{
+        const ds=new DecompressionStream('gzip');
+        const w=ds.writable.getWriter();
+        const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+        w.write(u8);w.close();
+        const chunks=[];const r=ds.readable.getReader();
+        for(;;){const{done,value}=await r.read();if(done)break;chunks.push(value);}
+        let len=0;for(const c of chunks)len+=c.length;
+        const all=new Uint8Array(len);let off2=0;for(const c of chunks){all.set(c,off2);off2+=c.length;}
+        json=new TextDecoder().decode(all);
+      }catch{json=decodeURIComponent(escape(bin));}
+      const d=JSON.parse(json);
+      if(d.p){for(const[id,a]of Object.entries(d.p)){
+        progress[id]={state:a[0],step:a[1],reps:a[2],lapses:a[3],stability:a[4],difficulty:a[5],due:a[6]};
+      }}
+      if(d.b)Object.assign(bestTimes,d.b);
+    }
     save();saveT();closeModal();renderHome();
   }catch(e){
     const ta=document.getElementById('modal-code');
