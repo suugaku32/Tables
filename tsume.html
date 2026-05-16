@@ -283,9 +283,17 @@ function generateKIF(tsume){
     .map(p=>(BK[p]||p)+(obj[p]>1?NK[obj[p]]||obj[p]:''))
     .join('　')||'なし';
 
+  const now=new Date();
+  const dt=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
   const NL='\r\n';
-  let k='#KIF version=2.0 encoding=UTF-8'+NL;
+  let k='# ----  ぴよ将棋 棋譜ファイル  ----'+NL;
+  k+='棋戦：詰将棋'+NL;
+  k+='戦型：'+NL;
+  k+=`開始日時：${dt}`+NL;
+  k+=`終了日時：${dt}`+NL;
   k+='手合割：詰将棋'+NL;
+  k+='先手：'+NL;
+  k+='後手：'+NL;
   if(tsume.author) k+=`*作者：${tsume.author}`+NL;
   if(tsume.source) k+=`*発表誌：${tsume.source}`+NL;
   k+=`後手の持駒：${hand(tsume.gote_hand||{})}`+NL;
@@ -303,13 +311,14 @@ function generateKIF(tsume){
   k+='+---------------------------+'+NL;
   k+=`先手の持駒：${hand(tsume.sente_hand||{})}`+NL;
   k+='先手番'+NL;
-  k+='手数----指手----消費時間--'+NL;
+  k+='手数----指手---------消費時間--'+NL;
   for(const m of tsume.moves){
     const n=String(m.num).padStart(4);
     const from=m.from_col>=0?`(${9-m.from_col}${m.from_row+1})`:'';
-    k+=`${n} ${m.move}${from}        ( 0:00/00:00:00)`+NL;
+    k+=`${n} ${m.move}${from}( 0:00/00:00:00)`+NL;
   }
-  k+=`${String(tsume.moves.length+1).padStart(4)} 投了        ( 0:00/00:00:00)`+NL;
+  k+=`${String(tsume.moves.length+1).padStart(4)} 投了       ( 0:00/00:00:00)`+NL;
+  k+=`まで${tsume.moves.length}手で先手の勝ち`+NL;
   return k;
 }
 
