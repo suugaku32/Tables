@@ -323,6 +323,13 @@ function generateKIF(tsume){
   return k;
 }
 
+function copyKIF(tsume,btn){
+  navigator.clipboard.writeText(generateKIF(tsume)).then(()=>{
+    const orig=btn.textContent;btn.textContent='✓';
+    setTimeout(()=>btn.textContent=orig,1500);
+  });
+}
+
 function shareKIF(tsume){
   const kif=generateKIF(tsume);
   const fname=(tsume.filename||`tsume_${tsume.id}.kif`).replace(/\.kif$/i,'.txt');
@@ -602,7 +609,8 @@ function renderStudy(){
           :''}
         <div style="display:flex;gap:8px;margin-top:6px">
           <button onclick="restartProblem()" style="flex:1;padding:10px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:13px;cursor:pointer">↺ やり<ruby>直<rt>なお</rt></ruby>す</button>
-          <button onclick="shareKIF(st.tsume)" title="KIFを共有" style="padding:10px 14px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:15px;cursor:pointer">📤</button>
+          <button onclick="shareKIF(st.tsume)" title="KIFを保存" style="padding:10px 14px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:15px;cursor:pointer">📤</button>
+          <button onclick="copyKIF(st.tsume,this)" title="KIFをコピー" style="padding:10px 14px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:15px;cursor:pointer">📋</button>
         </div>
       </div>
       ${shown&&st.fsrsReady!==false?`<div id="fsrs">
