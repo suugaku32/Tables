@@ -312,7 +312,7 @@ function generateKIF(tsume){
 
 function shareKIF(tsume){
   const kif=generateKIF(tsume);
-  const fname=(tsume.filename||`tsume_${tsume.id}.kif`).replace(/\.kif$/i,'.kifu');
+  const fname=(tsume.filename||`tsume_${tsume.id}.kif`).replace(/\.kif$/i,'.txt');
   const blob=new Blob([kif],{type:'text/plain;charset=utf-8'});
   const file=new File([blob],fname,{type:'text/plain'});
   if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
