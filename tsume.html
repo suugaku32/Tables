@@ -661,9 +661,9 @@ function gobanHTML(state,tsume){
   const isWide=(W>=800)||(W>H&&H>=350);
   let cs;
   if(isWide){
-    const availW=W-300-60; // colonne droite 300px + marges
-    const availH=H-70;     // header + marges
-    cs=Math.max(40,Math.min(160,Math.min(Math.floor(availW/cols),Math.floor(availH/rows))));
+    const availW=Math.min(W,1100)-300-60; // max-width:1100px sur #app, colonne droite 300px + marges
+    const availH=H-70;
+    cs=Math.max(40,Math.min(72,Math.min(Math.floor(availW/cols),Math.floor(availH/rows))));
   }else{
     const availW=Math.min(W,500)-70;
     const availH=H-220;
@@ -708,6 +708,10 @@ function showSol(){
     flyPiece(ns,()=>{applyMoveToDOM(ns);setTimeout(()=>playStep(i+1),700);});
   }
   setTimeout(()=>playStep(1),500);
+}
+
+function solWrapShownHTML(){
+  return `<div style="display:flex;gap:8px;margin-top:6px"><button onclick="restartProblem()" style="flex:1;padding:10px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:13px;cursor:pointer">↺ やり<ruby>直<rt>なお</rt></ruby>す</button><button onclick="copyKIF(st.tsume,this)" title="KIFをコピー" style="padding:10px 14px;background:var(--surface2);color:var(--dim);border:none;border-radius:10px;font-size:15px;cursor:pointer">📋</button></div>`;
 }
 
 function showFSRSButtons(){
@@ -842,7 +846,7 @@ function stepNav(d){
           st.shown=true;
           const te=document.getElementById('timer');
           if(te){te.textContent=fmtMs(elapsed);te.className='stopped';}
-          const sw=document.getElementById('sol-wrap');if(sw)sw.innerHTML='';
+          const sw=document.getElementById('sol-wrap');if(sw)sw.innerHTML=solWrapShownHTML();
         }
         showFSRSButtons();
       }
@@ -947,7 +951,7 @@ function playCorrectMove(){
       if(!bestTimes[id]||elapsed<bestTimes[id]){bestTimes[id]=elapsed;saveT();}
       st.shown=true;
       const te=document.getElementById('timer');if(te){te.textContent=fmtMs(elapsed);te.className='stopped';}
-      const sw=document.getElementById('sol-wrap');if(sw)sw.innerHTML='';
+      const sw=document.getElementById('sol-wrap');if(sw)sw.innerHTML=solWrapShownHTML();
       showFSRSButtons();
     }else{
       setTimeout(autoPlayGote,700);
