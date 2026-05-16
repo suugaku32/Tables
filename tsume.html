@@ -285,7 +285,7 @@ function generateKIF(tsume){
 
   const now=new Date();
   const dt=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-  const NL='\r\n';
+  const NL='\n';
   let k='# ----  ぴよ将棋 棋譜ファイル  ----'+NL;
   k+='棋戦：詰将棋'+NL;
   k+='戦型：'+NL;
