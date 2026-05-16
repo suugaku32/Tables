@@ -283,12 +283,14 @@ function generateKIF(tsume){
     .map(p=>(BK[p]||p)+(obj[p]>1?NK[obj[p]]||obj[p]:''))
     .join('　')||'なし';
 
-  let k='#KIF version=2.0 encoding=UTF-8\n';
-  if(tsume.author) k+=`*作者：${tsume.author}\n`;
-  if(tsume.source) k+=`*発表誌：${tsume.source}\n`;
-  k+=`後手の持駒：${hand(tsume.gote_hand||{})}\n`;
-  k+='  ９ ８ ７ ６ ５ ４ ３ ２ １\n';
-  k+='+---------------------------+\n';
+  const NL='\r\n';
+  let k='#KIF version=2.0 encoding=UTF-8'+NL;
+  k+='手合割：詰将棋'+NL;
+  if(tsume.author) k+=`*作者：${tsume.author}`+NL;
+  if(tsume.source) k+=`*発表誌：${tsume.source}`+NL;
+  k+=`後手の持駒：${hand(tsume.gote_hand||{})}`+NL;
+  k+='  ９ ８ ７ ６ ５ ４ ３ ２ １'+NL;
+  k+='+---------------------------+'+NL;
   for(let r=0;r<9;r++){
     let row='|';
     for(let c=0;c<9;c++){
@@ -296,17 +298,18 @@ function generateKIF(tsume){
       row+=cell?(cell.player==='gote'?'v':' ')+(BK[cell.piece]||'？')
                :' ・';
     }
-    k+=row+'|'+RK[r]+'\n';
+    k+=row+'|'+RK[r]+NL;
   }
-  k+='+---------------------------+\n';
-  k+=`先手の持駒：${hand(tsume.sente_hand||{})}\n`;
-  k+='先手番\n手数----指手----消費時間--\n';
+  k+='+---------------------------+'+NL;
+  k+=`先手の持駒：${hand(tsume.sente_hand||{})}`+NL;
+  k+='先手番'+NL;
+  k+='手数----指手----消費時間--'+NL;
   for(const m of tsume.moves){
     const n=String(m.num).padStart(4);
     const from=m.from_col>=0?`(${9-m.from_col}${m.from_row+1})`:'';
-    k+=`${n} ${m.move}${from}        ( 0:00/00:00:00)\n`;
+    k+=`${n} ${m.move}${from}        ( 0:00/00:00:00)`+NL;
   }
-  k+=`${String(tsume.moves.length+1).padStart(4)} 投了        ( 0:00/00:00:00)\n`;
+  k+=`${String(tsume.moves.length+1).padStart(4)} 投了        ( 0:00/00:00:00)`+NL;
   return k;
 }
 
