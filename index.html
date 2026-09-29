@@ -60,6 +60,10 @@
   header { width: 100%; max-width: 620px; display: flex; flex-wrap: wrap;
            align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
   h1 { font-size: 1.3rem; }
+  header { flex-wrap: nowrap; }
+  header h1 { flex: 1; text-align: center; white-space: nowrap; font-size: clamp(.95rem, 4.2vw, 1.3rem); }
+  header .btn { white-space: nowrap; padding: 7px 12px; }
+  @media (max-width: 370px) { header h1 .t { display: none; } }
   .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
   .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--card); }
@@ -116,6 +120,26 @@
   }
   body.mobile #keypad { display: grid; }
   body.mobile.done #keypad { display: none; }
+  body.home #game, body.home #keypad { display: none !important; }
+  body:not(.home) #home { display: none; }
+  body.mobile.home { padding-bottom: 24px; }
+
+  /* Accueil */
+  #home { width: 100%; max-width: 440px; min-height: 80vh; display: flex; flex-direction: column;
+          justify-content: center; align-items: stretch; gap: 14px; text-align: center; }
+  #home h1 { font-size: clamp(1.7rem, 7vw, 2.3rem); }
+  #home .lead { color: var(--muted); margin-bottom: 8px; }
+  .choice { display: flex; align-items: center; gap: 14px; text-align: left; width: 100%;
+            border: 2px solid var(--line); background: var(--card); color: var(--ink); border-radius: 14px;
+            padding: 16px; font: inherit; cursor: pointer; }
+  .choice .ico { font-size: 2rem; }
+  .choice b { display: block; font-size: 1.1rem; }
+  .choice span.d { color: var(--muted); font-size: .9rem; }
+  .choice.on { border-color: var(--sel); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sel) 25%, transparent); }
+  #start { font-size: 1.2rem; padding: 14px; border-radius: 14px; margin-top: 8px; }
+  #best { color: var(--muted); font-size: .9rem; min-height: 1.2em; }
+  #game { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
   #keypad button {
     border: 1px solid var(--line); background: var(--key); color: var(--ink); border-radius: 10px;
     font: inherit; font-size: 1.45rem; font-weight: 600; height: 50px; cursor: pointer; touch-action: manipulation;
@@ -124,16 +148,26 @@
   #keypad .k-ok { background: var(--btn); color: var(--btn-ink); font-size: 1.1rem; }
 </style>
 </head>
-<body>
-<header>
+<body class="home">
+<section id="home">
   <h1>✖️ Table de Pythagore</h1>
-  <div class="controls">
-    <div class="seg" id="mode">
-      <button data-mode="timed" class="on">⏱ Chrono</button>
-      <button data-mode="free">Sans temps</button>
-    </div>
-    <button class="btn" id="new">Nouvelle table</button>
+  <p class="lead">Remplis la table de multiplication, les nombres sont mélangés !</p>
+  <div id="mode">
+    <button class="choice" data-mode="timed"><span class="ico">⏱</span><span><b>Avec temps</b><span class="d">Le chrono démarre à la première réponse</span></span></button>
   </div>
+  <div id="mode2">
+    <button class="choice" data-mode="free"><span class="ico">🐢</span><span><b>Sans temps</b><span class="d">Prends ton temps, pas de chrono</span></span></button>
+  </div>
+  <button class="btn" id="start">Commencer ▶</button>
+  <div id="best"></div>
+  <p class="hint" style="display:block"><a href="archive/jeux-de-calcul.html" style="color:inherit">Anciens jeux (archive)</a></p>
+</section>
+
+<section id="game">
+<header>
+  <button class="btn ghost" id="back">← Accueil</button>
+  <h1 id="game-title">✖️ Table</h1>
+  <button class="btn" id="new">↻ Nouvelle</button>
 </header>
 
 <div id="status">
@@ -147,7 +181,7 @@
 
 <p class="hint">Clique sur une case puis tape la réponse. Quand tout est rempli, Entrée pour corriger. Entrée / Tab ou les flèches pour changer de case, Retour arrière pour effacer.</p>
 
-<p class="hint"><a href="archive/jeux-de-calcul.html" style="color:inherit">Anciens jeux (archive)</a></p>
+</section>
 
 <div id="keypad">
   <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
@@ -347,6 +381,10 @@
   document.addEventListener('keydown', e => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key;
+    if (document.body.classList.contains('home')) {
+      if (k === 'Enter') { e.preventDefault(); start(); }
+      return;
+    }
     if (/^[0-9]$/.test(k)) type(k);
     else if (k === 'Backspace' || k === 'Delete') erase();
     else if (k === 'Enter' || (k === 'Tab' && !e.shiftKey)) next();
@@ -375,23 +413,44 @@
   };
   window.addEventListener('resize', setKpHeight);
 
-  // Modes
-  const modeEl = document.getElementById('mode');
-  const paintMode = () => modeEl.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
-  modeEl.addEventListener('click', e => {
-    const b = e.target.closest('button');
-    if (!b || b.dataset.mode === mode) return;
+  // Accueil
+  const choices = document.querySelectorAll('.choice');
+  const paintMode = () => choices.forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  choices.forEach(b => b.addEventListener('click', () => {
     mode = b.dataset.mode;
     store.set('pyth-mode', mode);
     paintMode();
-    build();
-  });
+  }));
 
+  const showBest = () => {
+    const best = Number(store.get('pyth-best')) || 0;
+    document.getElementById('best').textContent = best ? `Record sans faute : ${fmt(best)}` : '';
+  };
+
+  function start() {
+    document.getElementById('game-title').innerHTML = mode === 'timed'
+      ? '⏱<span class="t"> Avec temps</span>' : '🐢<span class="t"> Sans temps</span>';
+    document.body.classList.remove('home');
+    window.scrollTo(0, 0);
+    build();
+    setKpHeight();
+  }
+
+  function goHome() {
+    clearInterval(tick);
+    finished = true;
+    document.body.classList.add('home');
+    document.body.classList.remove('done');
+    showBest();
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById('start').addEventListener('click', start);
+  document.getElementById('back').addEventListener('click', goHome);
   document.getElementById('new').addEventListener('click', build);
 
   paintMode();
-  build();
-  setKpHeight();
+  showBest();
 })();
 </script>
 </body>
