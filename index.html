@@ -1,2489 +1,397 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Jeux de calcul ×</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent; user-select: none; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Table de Pythagore</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --card: #ffffff;
+    --ink: #1f2430;
+    --muted: #6b7280;
+    --line: #d9d4c7;
+    --head: #e8e2d4;
+    --head-hl: #ffd98a;
+    --sel: #3b82f6;
+    --cross: #fff4d6;
+    --ok: #16a34a;
+    --ok-bg: #dcfce7;
+    --ko: #dc2626;
+    --ko-bg: #fee2e2;
+    --btn: #1f2430;
+    --btn-ink: #ffffff;
+    --key: #ffffff;
+    --key-press: #e5e7eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161c;
+      --card: #1d2029;
+      --ink: #eceef3;
+      --muted: #9aa1ad;
+      --line: #333845;
+      --head: #272b36;
+      --head-hl: #7a5b12;
+      --sel: #60a5fa;
+      --cross: #2a2717;
+      --ok: #4ade80;
+      --ok-bg: #12321f;
+      --ko: #f87171;
+      --ko-bg: #3a1618;
+      --btn: #eceef3;
+      --btn-ink: #14161c;
+      --key: #272b36;
+      --key-press: #3a3f4d;
+    }
+  }
 
-    html, body { width: 100%; height: 100%; overflow: hidden;
-      font-family: 'Arial Rounded MT Bold', 'Nunito', Arial, sans-serif;
-      background: #0d1b2a; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--ink); }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 16px 24px;
+    user-select: none; -webkit-user-select: none;
+  }
+  body.mobile { padding-bottom: calc(var(--kp-h, 240px) + 16px); }
 
-    /* ── HUD ── */
-    #hud {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 16px 7px;
-      background: rgba(255,255,255,0.05);
-      flex-shrink: 0; gap: 6px;
-    }
-    .hud-item { color: white; font-size: clamp(0.85rem, 3.5vw, 1.4rem); font-weight: bold; white-space: nowrap; }
-    #hud-score  { color: #ffd700; }
-    #hud-level  { color: #a0c4ff; }
-    #hud-streak { color: #ff9f43; }
+  header { width: 100%; max-width: 620px; display: flex; flex-wrap: wrap;
+           align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  h1 { font-size: 1.3rem; }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-    .hud-btn {
-      background: none; border: 2px solid rgba(255,255,255,0.2);
-      cursor: pointer; border-radius: 50%;
-      width: 40px; height: 40px; min-width: 40px;
-      font-size: 1.1rem; color: white;
-      display: flex; align-items: center; justify-content: center;
-      transition: border-color 0.2s, opacity 0.2s; opacity: 0.75;
-    }
-    .hud-btn:active { opacity: 1; transform: scale(0.88); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--card); }
+  .seg button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .85rem;
+                padding: 6px 12px; cursor: pointer; }
+  .seg button.on { background: var(--btn); color: var(--btn-ink); }
 
-    #stop-btn {
-      display: none;
-      background: rgba(255,80,80,0.25);
-      border-color: rgba(255,80,80,0.5);
-      font-size: 0.75rem; font-weight: bold;
-      color: #ff6b6b; border-radius: 20px;
-      width: auto; padding: 0 12px;
-      letter-spacing: 0.03em;
-    }
-    #stop-btn:active { background: rgba(255,80,80,0.5); }
+  .btn { border: 0; border-radius: 999px; background: var(--btn); color: var(--btn-ink);
+         font: inherit; font-weight: 600; font-size: .9rem; padding: 7px 14px; cursor: pointer; }
+  .btn:active { transform: scale(.96); }
 
-    /* ── Timer ── */
-    #timer-wrap { padding: 4px 16px 5px; flex-shrink: 0; }
-    #timer-bg   { height: 14px; border-radius: 7px;
-                  background: rgba(255,255,255,0.1); overflow: hidden; }
-    #timer-fill { height: 100%; border-radius: 7px; width: 100%;
-                  background: linear-gradient(90deg, #4facfe, #00f2fe);
-                  transition: background 0.5s; }
+  #status { width: 100%; max-width: 620px; display: flex; justify-content: space-between; align-items: baseline;
+            font-variant-numeric: tabular-nums; margin-bottom: 8px; color: var(--muted); font-size: .95rem; }
+  #timer { font-size: 1.4rem; font-weight: 700; color: var(--ink); }
+  #timer.hidden { visibility: hidden; }
 
-    /* ── Question ── */
-    #question-zone { text-align: center; padding: 8px 20px; flex-shrink: 0; }
-    #question-text {
-      font-size: clamp(1.9rem, 7vw, 3.8rem);
-      font-weight: bold; color: white;
-      text-shadow: 0 0 30px rgba(255,255,255,0.35);
-      letter-spacing: 2px;
-    }
+  #grid {
+    --n: 11;
+    width: 100%; max-width: 620px;
+    display: grid; grid-template-columns: repeat(var(--n), 1fr);
+    gap: 2px; background: var(--line); border: 2px solid var(--line); border-radius: 8px; overflow: hidden;
+  }
+  .c {
+    aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; position: relative;
+    background: var(--card); font-variant-numeric: tabular-nums;
+    font-size: clamp(.8rem, 3.6vw, 1.25rem); font-weight: 600; cursor: pointer;
+  }
+  .c.h { background: var(--head); font-weight: 800; cursor: default; }
+  .c.corner { background: var(--head); font-size: clamp(.9rem, 4vw, 1.4rem); color: var(--muted); }
+  .c.h.hl { background: var(--head-hl); }
+  .c.cross { background: var(--cross); }
+  .c.sel { outline: 3px solid var(--sel); outline-offset: -3px; z-index: 1; }
+  .c.ok { background: var(--ok-bg); color: var(--ok); }
+  .c.ko { background: var(--ko-bg); color: var(--ko); }
+  .c.ko .v { text-decoration: line-through; font-size: .8em; opacity: .8; }
+  .c .fix { position: absolute; bottom: 1px; right: 3px; font-size: .62em; color: var(--ok); font-weight: 800; }
+  .done .c:not(.h) { cursor: default; }
 
-    /* ── Arena ── */
-    #game { width: 100%; height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
-    #arena { flex: 1; position: relative; overflow: hidden; min-height: 0; }
+  #result { width: 100%; max-width: 620px; margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+            background: var(--card); border: 1px solid var(--line); display: none; text-align: center; }
+  #result.show { display: block; }
+  #result .big { font-size: 1.5rem; font-weight: 800; }
+  #result .sub { color: var(--muted); margin-top: 4px; }
 
-    /* ── Bubbles ── */
-    .bubble {
-      position: absolute; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; touch-action: none;
-      font-weight: bold; color: white;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.45);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.35),
-                  inset 0 -6px 16px rgba(0,0,0,0.25),
-                  inset 0 6px 14px rgba(255,255,255,0.35);
-    }
-    .bubble.pop-ok  { animation: pop-ok  0.35s ease-out forwards; pointer-events: none; }
-    .bubble.pop-bad { animation: pop-bad 0.5s  ease-in-out; }
+  .hint { color: var(--muted); font-size: .8rem; margin-top: 10px; text-align: center; max-width: 620px; }
+  body.mobile .hint { display: none; }
 
-    @keyframes pop-ok {
-      0%   { transform: scale(1);    opacity: 1; }
-      40%  { transform: scale(1.55); opacity: 1; }
-      100% { transform: scale(0.05); opacity: 0; }
-    }
-    @keyframes pop-bad {
-      0%   { transform: scale(1)    rotate(0deg);  }
-      20%  { transform: scale(1.08) rotate(-9deg); }
-      40%  { transform: scale(1.08) rotate(9deg);  }
-      60%  { transform: scale(1.04) rotate(-6deg); }
-      80%  { transform: scale(1.04) rotate(6deg);  }
-      100% { transform: scale(1)    rotate(0deg);  }
-    }
-
-    /* ── Overlays ── */
-    .overlay {
-      position: fixed; inset: 0;
-      background: rgba(8,16,35,0.96);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center; padding: 24px 28px; z-index: 200;
-      overflow-y: auto;
-    }
-    .overlay h1 { color: #ffd700; font-size: clamp(1.8rem, 7vw, 3rem); margin-bottom: 14px; }
-    .overlay p  { color: rgba(255,255,255,0.82);
-                  font-size: clamp(0.9rem, 3vw, 1.2rem); line-height: 1.7; margin-bottom: 10px; }
-    .big-num  { font-size: clamp(3.5rem, 13vw, 5.5rem); font-weight: bold; color: #ffd700; margin: 6px 0; }
-    .sub-info { color: #a0c4ff; font-size: clamp(0.85rem, 2.5vw, 1.05rem); margin-top: 8px; }
-
-    .btn-play {
-      margin-top: 18px; padding: 16px 48px;
-      font-size: clamp(1.05rem, 4vw, 1.7rem); font-weight: bold;
-      border: none; border-radius: 50px;
-      background: linear-gradient(135deg, #f093fb, #f5576c);
-      color: white; cursor: pointer;
-      box-shadow: 0 8px 26px rgba(240,87,108,0.45);
-      transition: transform 0.1s;
-    }
-    .btn-play:active { transform: scale(0.93); }
-
-    .btn-back {
-      margin-top: 12px; padding: 10px 28px;
-      font-size: clamp(0.85rem, 2.8vw, 1rem); font-weight: bold;
-      border: 2px solid rgba(255,255,255,0.2); border-radius: 50px;
-      background: transparent; color: rgba(255,255,255,0.55); cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-back:active { background: rgba(255,255,255,0.08); }
-
-    .btn-menu {
-      margin-top: 10px; padding: 12px 32px;
-      font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: bold;
-      border: 2px solid rgba(255,255,255,0.2); border-radius: 50px;
-      background: transparent; color: rgba(255,255,255,0.6); cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-menu:active { background: rgba(255,255,255,0.08); }
-
-    /* ── Main menu cards ── */
-    .menu-cards {
-      display: flex; gap: 16px; margin: 20px 0;
-      flex-wrap: wrap; justify-content: center;
-    }
-    .menu-card {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 22px 28px; border-radius: 20px; cursor: pointer;
-      border: 2px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.06);
-      transition: transform 0.15s, background 0.15s;
-      min-width: 130px;
-    }
-    .menu-card:active { transform: scale(0.95); background: rgba(255,255,255,0.12); }
-    .menu-card-icon { font-size: 2.8rem; margin-bottom: 8px; }
-    .menu-card-title { color: white; font-size: clamp(1rem, 3.5vw, 1.3rem); font-weight: bold; }
-    .menu-card-desc  { color: rgba(255,255,255,0.45); font-size: clamp(0.72rem,2vw,0.85rem); margin-top: 5px; }
-    .menu-card.tables-card { border-color: rgba(79,172,254,0.4); }
-    .menu-card.mental-card { border-color: rgba(240,147,251,0.4); }
-
-    /* ── Mode toggle ── */
-    .mode-toggle {
-      display: flex; gap: 0; margin: 14px 0 4px;
-      border: 2px solid rgba(255,255,255,0.2); border-radius: 50px;
-      overflow: hidden;
-    }
-    .mode-btn {
-      padding: 10px 20px; font-size: clamp(0.82rem, 2.8vw, 1rem);
-      font-weight: bold; border: none; cursor: pointer;
-      background: transparent; color: rgba(255,255,255,0.5);
-      transition: background 0.2s, color 0.2s; white-space: nowrap;
-    }
-    .mode-btn.active {
-      background: linear-gradient(135deg, #4facfe, #00f2fe);
-      color: white;
-    }
-
-    /* ── Table selector ── */
-    .tbl-section { margin: 12px 0 4px; width: 100%; max-width: 400px; }
-    .tbl-section-label {
-      color: rgba(255,255,255,0.45); font-size: clamp(0.72rem,2vw,0.88rem);
-      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
-    }
-    .tbl-grid { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
-    .tbl-btn {
-      width: 42px; height: 42px; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.45); font-size: 0.95rem; font-weight: bold;
-      cursor: pointer; transition: all 0.15s;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .tbl-btn.on {
-      background: linear-gradient(135deg,#4facfe,#00f2fe);
-      border-color: #4facfe; color: white;
-      box-shadow: 0 0 12px rgba(79,172,254,0.45);
-    }
-    .tbl-btn:active { transform: scale(0.88); }
-    .tbl-shortcuts { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
-    .tbl-shortcut {
-      padding: 5px 16px; border-radius: 20px; border: none; cursor: pointer;
-      font-size: 0.8rem; font-weight: bold;
-      background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);
-      transition: background 0.15s;
-    }
-    .tbl-shortcut:active { background: rgba(255,255,255,0.2); }
-    #tbl-warn { color: #ff6b6b; font-size: 0.82rem; margin-top: 6px; display: none; }
-
-    /* ── Mental math mode selector ── */
-    .mental-modes {
-      display: flex; flex-direction: column; gap: 8px;
-      width: 100%; max-width: 360px; margin: 14px 0 6px;
-    }
-    .mmode-btn {
-      display: flex; align-items: center; gap: 14px;
-      padding: 12px 18px; border-radius: 14px;
-      border: 2px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.05);
-      color: rgba(255,255,255,0.55); cursor: pointer;
-      text-align: left; transition: all 0.15s;
-    }
-    .mmode-icon { font-size: 1.6rem; flex-shrink: 0; }
-    .mmode-text { display: flex; flex-direction: column; gap: 2px; }
-    .mmode-title { font-size: clamp(0.9rem,3vw,1.05rem); font-weight: bold; color: inherit; }
-    .mmode-hint  { font-size: 0.75rem; opacity: 0.6; }
-    .mmode-btn.active {
-      border-color: #f093fb;
-      background: rgba(240,147,251,0.12);
-      color: white;
-    }
-    .mmode-btn:active { transform: scale(0.98); }
-
-    /* ── Start-desc ── */
-    .start-desc {
-      font-size: clamp(0.78rem,2.4vw,0.95rem); color: rgba(255,255,255,0.45);
-      margin-top: 8px; line-height: 1.6;
-    }
-
-    /* ── FX ── */
-    .fx-center {
-      position: fixed; pointer-events: none; z-index: 150;
-      font-size: clamp(2.5rem, 8vw, 4rem); top: 50%; left: 50%;
-      animation: fx-rise 0.75s ease-out forwards;
-    }
-    .fx-bonus {
-      position: fixed; pointer-events: none; z-index: 150;
-      color: #00ff88; font-weight: bold; font-size: clamp(1.1rem, 3vw, 1.6rem);
-      animation: fx-rise 0.9s ease-out forwards;
-    }
-    .fx-star {
-      position: fixed; pointer-events: none; z-index: 150;
-      font-size: 1.6rem; animation: fx-star 0.9s ease-out forwards;
-    }
-
-    @keyframes fx-rise {
-      0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.7); }
-      45%  { opacity: 1; transform: translate(-50%, -85%) scale(1.25); }
-      100% { opacity: 0; transform: translate(-50%, -140%) scale(1); }
-    }
-    @keyframes fx-star {
-      0%   { opacity: 1; transform: translate(0,0) scale(1) rotate(0deg); }
-      100% { opacity: 0; transform: translate(var(--dx),var(--dy)) scale(0.3) rotate(360deg); }
-    }
-
-    /* ── Background stars ── */
-    #bg-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-    .bg-star {
-      position: absolute; border-radius: 50%; background: white;
-      animation: twinkle var(--dur) infinite alternate; animation-delay: var(--del);
-    }
-    @keyframes twinkle {
-      from { opacity: 0.07; }
-      to   { opacity: 0.28; transform: scale(1.3); }
-    }
-
-    /* ── Toggle à 3 options (police réduite pour tenir sur mobile) ── */
-    .mode-toggle-3 .mode-btn {
-      padding: 9px 12px;
-      font-size: clamp(0.68rem, 2vw, 0.88rem);
-    }
-
-    /* ── Memory game ── */
-    .menu-card.memory-card { border-color: rgba(67,233,123,0.4); }
-
-    #memory-game {
-      display: none; position: fixed; inset: 0;
-      background: #0d1b2a;
-      flex-direction: column; align-items: center;
-      z-index: 200;
-    }
-    #mem-hud {
-      width: 100%; padding: 10px 16px;
-      background: rgba(255,255,255,0.05);
-      display: flex; justify-content: space-between; align-items: center;
-      gap: 8px; flex-shrink: 0;
-    }
-    #mem-score { color: #ffd700; font-size: clamp(.82rem,3vw,1.05rem); font-weight: bold; }
-    #mem-turn  { color: #a0c4ff; font-size: clamp(.78rem,2.5vw,.95rem); }
-    #mem-grid {
-      flex: 1; display: grid; gap: 8px; padding: 10px;
-      width: 100%; max-width: 800px; align-content: center;
-    }
-    .mc { perspective: 700px; cursor: pointer; aspect-ratio: 3/2; }
-    .mc-inner {
-      width: 100%; height: 100%; position: relative;
-      transform-style: preserve-3d;
-      transition: transform .3s ease; border-radius: 10px;
-    }
-    .mc.flipped .mc-inner { transform: rotateY(180deg); }
-    .mc-back, .mc-front {
-      position: absolute; inset: 0; border-radius: 10px;
-      backface-visibility: hidden;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 900; font-size: 1rem;
-    }
-    .mc-back {
-      background: linear-gradient(135deg, #1a2a4a, #0d1a30);
-      border: 2px solid #1e3a5e; color: #152840;
-    }
-    .mc.q-card .mc-front {
-      background: linear-gradient(135deg, #0f1a35, #0a1225);
-      border: 2px solid #4facfe; color: #4facfe;
-      transform: rotateY(180deg);
-    }
-    .mc.a-card .mc-front {
-      background: linear-gradient(135deg, #0a1f0a, #071508);
-      border: 2px solid #43e97b; color: #43e97b;
-      transform: rotateY(180deg);
-    }
-    .mc.flash-ok .mc-front {
-      border-color: #ffd700; color: #ffd700;
-      background: linear-gradient(135deg, #2a2010, #1a1508);
-      transition: background .15s, border-color .15s, color .15s;
-    }
-    .mc.flash-bad .mc-front {
-      border-color: #e74c3c; color: #e74c3c;
-      background: linear-gradient(135deg, #2e0c09, #1f0806);
-      transition: background .15s, border-color .15s, color .15s;
-    }
-    .mc.gone { opacity: 0; pointer-events: none; transition: opacity .35s; }
-    .mem-size-btn {
-      padding: 7px 14px; border-radius: 20px;
-      border: 2px solid rgba(255,255,255,0.15);
-      background: transparent; color: rgba(255,255,255,0.5);
-      font-size: .88rem; font-weight: bold; cursor: pointer; transition: all .15s;
-    }
-    .mem-size-btn.active {
-      border-color: rgba(67,233,123,0.6); background: rgba(67,233,123,0.1);
-      color: #43e97b;
-    }
-    .mem-size-btn:active { transform: scale(.94); }
-
-    /* ── Mole game ── */
-    .menu-card.mole-card { border-color: rgba(167,139,250,0.45); }
-
-    #mole-game {
-      display: none; position: fixed; inset: 0;
-      background: #0d1b2a; flex-direction: column;
-      align-items: center; z-index: 200;
-    }
-    #mole-hud {
-      width: 100%; padding: 10px 16px;
-      background: rgba(255,255,255,0.05);
-      display: flex; justify-content: space-between; align-items: center;
-      gap: 8px; flex-shrink: 0;
-    }
-    #mole-score-display { color: #ffd700; font-size: clamp(.85rem,3.5vw,1.4rem); font-weight: bold; }
-    #mole-question-zone {
-      text-align: center; padding: 8px 20px 4px; flex-shrink: 0;
-      font-size: clamp(1.5rem, 5.5vw, 2.6rem); font-weight: bold;
-      color: white; letter-spacing: 2px;
-    }
-    #mole-input-display { color: #a78bfa; min-width: 2ch; display: inline-block; }
-    #mole-timer-wrap { padding: 4px 16px 5px; flex-shrink: 0; width: 100%; }
-    #mole-timer-bg   { height: 14px; border-radius: 7px; background: rgba(255,255,255,0.1); overflow: hidden; }
-    #mole-timer-fill { height: 100%; border-radius: 7px; width: 100%;
-      background: linear-gradient(90deg,#a78bfa,#f093fb); transition: background 0.5s; }
-    #mole-arena {
-      flex: 1; display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: clamp(8px,3vw,28px); padding: 8px 16px 6px;
-      width: 100%; max-width: min(820px, 98vw); align-content: center;
-    }
-    .mole-slot {
-      display: flex; flex-direction: column; align-items: center;
-      cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none;
-    }
-    .mole-cap {
-      width: 80%; aspect-ratio: 1 / 0.72; overflow: hidden; position: relative;
-    }
-    .mole-body {
-      position: absolute; top: 0; left: 0; right: 0;
-      transform: translateY(105%);
-      transition: transform 0.28s cubic-bezier(0.34,1.4,0.64,1);
-    }
-    .mole-body.up { transform: translateY(0); }
-    .mole-img { width: 100%; height: auto; display: block; pointer-events: none; }
-    .mole-digit {
-      position: absolute; top: 55%; left: 50%;
-      transform: translate(-50%,-50%);
-      background: white; color: #1e1b4b; font-weight: 900; border-radius: 50%;
-      width: clamp(24px,4vw,54px); height: clamp(24px,4vw,54px);
-      display: flex; align-items: center; justify-content: center;
-      font-size: clamp(0.8rem,1.8vw,1.6rem);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.5); pointer-events: none;
-      border: 2px solid #a78bfa;
-    }
-    .mole-hole {
-      width: 80%; height: clamp(10px,2.5vw,18px);
-      background: radial-gradient(ellipse 80% 100% at 50% 55%, #030810 30%, #0a1525 70%, transparent 100%);
-      border-radius: 50%; margin-top: -3px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.7);
-    }
-    .mole-slot.shake { animation: mole-shake 0.4s ease; }
-    @keyframes mole-shake {
-      0%,100% { transform: translateX(0); }
-      20% { transform: translateX(-8px); }
-      40% { transform: translateX(8px); }
-      60% { transform: translateX(-5px); }
-      80% { transform: translateX(5px); }
-    }
-    .mole-body.tap-ok { animation: mole-tap-ok 0.3s ease; }
-    @keyframes mole-tap-ok {
-      50% { filter: brightness(1.8) saturate(1.5); }
-    }
-    /* 13e trou seul sur sa ligne → centré dans la colonne du milieu */
-    .mole-slot:last-child:nth-child(3n+1) { grid-column: 2; }
-
-    #mole-credit {
-      color: rgba(255,255,255,0.18); font-size: 0.58rem;
-      padding: 1px 8px 3px; flex-shrink: 0; text-align: center;
-    }
-
-    /* ── Portrait phone adjustments ── */
-    @media (orientation: portrait) and (max-width: 600px) {
-      #hud { padding: 8px 12px 6px; }
-      .hud-btn { width: 36px; height: 36px; min-width: 36px; font-size: 1rem; }
-      #question-zone { padding: 6px 14px; }
-      #timer-wrap { padding: 3px 12px 4px; }
-      #timer-bg { height: 12px; }
-      .mode-btn { padding: 9px 14px; }
-      .menu-card { padding: 18px 22px; min-width: 120px; }
-      .menu-card-icon { font-size: 2.2rem; }
-    }
-
-    /* ── Snake game ── */
-    .menu-card.snake-card { border-color: rgba(67,233,123,0.4); }
-
-    #snake-game {
-      display: none; position: fixed; inset: 0;
-      background: #0a1628; flex-direction: column;
-      align-items: center; justify-content: flex-start; z-index: 200;
-    }
-    #snake-hud {
-      width: 100%; padding: 10px 16px;
-      background: rgba(255,255,255,0.05);
-      display: flex; justify-content: space-between; align-items: center;
-      gap: 8px; flex-shrink: 0;
-    }
-    #snake-question { color: white; font-size: clamp(1rem,4.5vw,1.5rem); font-weight: bold; letter-spacing: 1px; }
-    #snake-score    { color: #ffd700; font-size: clamp(.82rem,3vw,1.05rem); font-weight: bold; }
-    #snake-lives    { font-size: clamp(.9rem,3.5vw,1.2rem); letter-spacing: 2px; }
-    #snake-stop-btn {
-      padding: 0 12px; height: 32px; border-radius: 16px;
-      border: 1px solid rgba(255,80,80,0.5);
-      background: rgba(255,80,80,0.25);
-      color: #ff6b6b; font-size: .75rem; font-weight: bold; cursor: pointer;
-    }
-    #snake-canvas { display: block; border: 2px solid rgba(255,255,255,0.08); border-radius: 8px; }
-    #snake-tbl-warn { color: #ff6b6b; font-size: .82rem; margin-top: 6px; display: none; }
-
-  </style>
+  /* Clavier numérique mobile */
+  #keypad {
+    display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    background: var(--bg); border-top: 1px solid var(--line);
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    grid-template-columns: repeat(3, 1fr); gap: 6px;
+  }
+  body.mobile #keypad { display: grid; }
+  body.mobile.done #keypad { display: none; }
+  #keypad button {
+    border: 1px solid var(--line); background: var(--key); color: var(--ink); border-radius: 10px;
+    font: inherit; font-size: 1.45rem; font-weight: 600; height: 50px; cursor: pointer; touch-action: manipulation;
+  }
+  #keypad button:active { background: var(--key-press); }
+  #keypad .k-ok { background: var(--btn); color: var(--btn-ink); font-size: 1.1rem; }
+</style>
 </head>
 <body>
-
-<audio id="mole-music" src="2026-05-09_11-15-53.mp3" loop preload="auto" style="display:none"></audio>
-<div id="bg-stars"></div>
-
-<!-- ══ MENU PRINCIPAL ══ -->
-<div class="overlay" id="screen-main">
-  <h1>🌟 Jeux de calcul</h1>
-  <div class="menu-cards">
-    <div class="menu-card tables-card" onclick="showTables()">
-      <div class="menu-card-icon">✖️</div>
-      <div class="menu-card-title">Tables</div>
-      <div class="menu-card-desc">de × 2 à × 12</div>
+<header>
+  <h1>✖️ Table de Pythagore</h1>
+  <div class="controls">
+    <div class="seg" id="mode">
+      <button data-mode="timed" class="on">⏱ Chrono</button>
+      <button data-mode="free">Sans temps</button>
     </div>
-    <div class="menu-card mental-card" onclick="showMental()">
-      <div class="menu-card-icon">🧮</div>
-      <div class="menu-card-title">Calcul mental</div>
-      <div class="menu-card-desc">+  −  ×</div>
-    </div>
-    <div class="menu-card memory-card" onclick="showMemory()">
-      <div class="menu-card-icon">🃏</div>
-      <div class="menu-card-title">Memory</div>
-      <div class="menu-card-desc">paires × tables</div>
-    </div>
-    <div class="menu-card mole-card" onclick="showMole()">
-      <div class="menu-card-icon">🎯</div>
-      <div class="menu-card-title">Taupes</div>
-      <div class="menu-card-desc">tape les chiffres</div>
-    </div>
-    <div class="menu-card snake-card" onclick="showSnake()">
-      <div class="menu-card-icon">🐍</div>
-      <div class="menu-card-title">Snake ×</div>
-      <div class="menu-card-desc">mange la bonne réponse</div>
-    </div>
+    <button class="btn" id="new">Nouvelle table</button>
   </div>
+</header>
+
+<div id="status">
+  <span id="progress">0 / 100</span>
+  <span id="timer">0:00.0</span>
 </div>
 
-<!-- ══ MENU TABLES ══ -->
-<div class="overlay" id="screen-tables" style="display:none">
-  <h1>✖️ Tables</h1>
-  <div class="mode-toggle">
-    <button class="mode-btn active" id="btn-chrono" onclick="setMode(true)">⏱ Avec chrono</button>
-    <button class="mode-btn"        id="btn-libre"  onclick="setMode(false)">∞ Sans chrono</button>
-  </div>
-  <div class="mode-toggle mode-toggle-3" style="margin-top:6px">
-    <button class="mode-btn active" id="btn-tbl-normal"  onclick="setTableMode('normal')">× Direct</button>
-    <button class="mode-btn"        id="btn-tbl-missing" onclick="setTableMode('missing')">÷ Inversé</button>
-    <button class="mode-btn"        id="btn-tbl-decomp"  onclick="setTableMode('decomp')">= Décompo</button>
-  </div>
+<div id="grid"></div>
 
-  <div class="tbl-section">
-    <div class="tbl-section-label">Tables à pratiquer</div>
-    <div class="tbl-grid" id="tbl-grid"></div>
-    <div class="tbl-shortcuts">
-      <button class="tbl-shortcut" onclick="selectAll()">Tout</button>
-      <button class="tbl-shortcut" onclick="selectNone()">Aucune</button>
-    </div>
-    <div id="tbl-warn">Sélectionne au moins une table !</div>
-  </div>
+<div id="result"></div>
 
-  <p class="start-desc" id="tables-desc"></p>
-  <button class="btn-play" onclick="startTablesGame()">Jouer !</button>
-  <button class="btn-back" onclick="showMain()">← Menu principal</button>
-</div>
+<p class="hint">Clique sur une case puis tape la réponse. Quand tout est rempli, Entrée pour corriger. Entrée / Tab ou les flèches pour changer de case, Retour arrière pour effacer.</p>
 
-<!-- ══ MENU CALCUL MENTAL ══ -->
-<div class="overlay" id="screen-mental" style="display:none">
-  <h1>🧮 Calcul Mental</h1>
+<p class="hint"><a href="archive/jeux-de-calcul.html" style="color:inherit">Anciens jeux (archive)</a></p>
 
-  <div class="mental-modes">
-    <button class="mmode-btn active" id="btn-add" onclick="setMentalMode('addition')">
-      <span class="mmode-icon">➕</span>
-      <span class="mmode-text">
-        <span class="mmode-title">Addition</span>
-        <span class="mmode-hint">ex : 47 + 83 ou 125 + 267</span>
-      </span>
-    </button>
-    <button class="mmode-btn" id="btn-sub" onclick="setMentalMode('soustraction')">
-      <span class="mmode-icon">➖</span>
-      <span class="mmode-text">
-        <span class="mmode-title">Soustraction</span>
-        <span class="mmode-hint">ex : 84 − 37 (résultat toujours positif)</span>
-      </span>
-    </button>
-    <button class="mmode-btn" id="btn-mul" onclick="setMentalMode('mult1x2')">
-      <span class="mmode-icon">✖</span>
-      <span class="mmode-text">
-        <span class="mmode-title">Multiplication</span>
-        <span class="mmode-hint">ex : 7 × 34 (1 chiffre × 2 chiffres)</span>
-      </span>
-    </button>
-  </div>
-
-  <div class="mode-toggle">
-    <button class="mode-btn active" id="btn-chrono2" onclick="setMode(true)">⏱ Avec chrono</button>
-    <button class="mode-btn"        id="btn-libre2"  onclick="setMode(false)">∞ Sans chrono</button>
-  </div>
-
-  <button class="btn-play" onclick="startMentalGame()">Jouer !</button>
-  <button class="btn-back" onclick="showMain()">← Menu principal</button>
-</div>
-
-<!-- ══ MENU MEMORY ══ -->
-<div class="overlay" id="screen-memory" style="display:none">
-  <h1>🃏 Memory ×</h1>
-
-  <div class="mode-toggle">
-    <button class="mode-btn active" id="mbtn-solo" onclick="memSetMode('solo')">Solo</button>
-    <button class="mode-btn"        id="mbtn-duo"  onclick="memSetMode('duo')">2 joueurs</button>
-  </div>
-
-  <div class="tbl-section">
-    <div class="tbl-section-label">Nombre de paires</div>
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px" id="mem-size-wrap"></div>
-  </div>
-
-  <div class="tbl-section">
-    <div class="tbl-section-label">Tables à inclure</div>
-    <div class="tbl-grid" id="mem-tbl-grid"></div>
-  </div>
-
-  <button class="btn-play" onclick="memStart()">Jouer !</button>
-  <button class="btn-back" onclick="showMain()">← Menu principal</button>
-</div>
-
-<!-- ══ MENU SNAKE ══ -->
-<div class="overlay" id="screen-snake" style="display:none">
-  <h1>🐍 Snake ×</h1>
-  <div class="tbl-section">
-    <div class="tbl-section-label">Tables à pratiquer</div>
-    <div class="tbl-grid" id="snake-tbl-grid"></div>
-    <div class="tbl-shortcuts">
-      <button class="tbl-shortcut" onclick="snakeSelectAll()">Tout</button>
-      <button class="tbl-shortcut" onclick="snakeSelectNone()">Aucune</button>
-    </div>
-    <div id="snake-tbl-warn">Sélectionne au moins une table !</div>
-  </div>
-  <p class="start-desc">Dirige le serpent vers le bon résultat. 3 vies — mur ou mauvaise réponse = tu perds une vie !</p>
-  <button class="btn-play" onclick="snakeStart()">Jouer !</button>
-  <button class="btn-back" onclick="showMain()">← Menu principal</button>
-</div>
-
-<!-- ══ FIN MEMORY ══ -->
-<div class="overlay" id="screen-memory-end" style="display:none">
-  <h1 id="mend-title">🎉 Terminé !</h1>
-  <div class="big-num" id="mend-score"></div>
-  <div class="sub-info" id="mend-detail"></div>
-  <button class="btn-play" onclick="memStart()">Rejouer !</button>
-  <button class="btn-menu" onclick="showMain()">Menu principal</button>
-</div>
-
-<!-- ══ MENU TAUPES ══ -->
-<div class="overlay" id="screen-mole" style="display:none">
-  <h1>🎯 Taupes</h1>
-  <div class="mode-toggle">
-    <button class="mode-btn active" id="btn-mole-chrono" onclick="setMoleTimer(true)">⏱ Avec chrono</button>
-    <button class="mode-btn"        id="btn-mole-libre"  onclick="setMoleTimer(false)">∞ Sans chrono</button>
-  </div>
-  <div class="tbl-section">
-    <div class="tbl-section-label">Tables à pratiquer</div>
-    <div class="tbl-grid" id="mole-tbl-grid"></div>
-  </div>
-  <button class="btn-play" onclick="startMoleGame()">Jouer !</button>
-  <button class="btn-back" onclick="showMain()">← Menu principal</button>
-</div>
-
-<!-- ══ GAME OVER ══ -->
-<div class="overlay" id="screen-over" style="display:none">
-  <h1 id="over-title">⏰ Temps écoulé !</h1>
-  <div class="big-num" id="over-score">0</div>
-  <p>bonne<span id="plural-s"></span> réponse<span id="plural-s2"></span></p>
-  <div class="sub-info" id="over-best"></div>
-  <button class="btn-play" onclick="replayGame()">Rejouer !</button>
-  <button class="btn-menu" onclick="showMain()">Menu principal</button>
-</div>
-
-<!-- ══ JEU SNAKE ══ -->
-<div id="snake-game">
-  <div id="snake-hud">
-    <div id="snake-question">? × ? = ?</div>
-    <div id="snake-score">⭐ 0</div>
-    <div id="snake-lives">❤️❤️❤️</div>
-    <button id="snake-mute-btn" class="hud-btn" onclick="snakeMuteToggle()">🔊</button>
-    <button id="snake-stop-btn" onclick="snakeStop()">Fin</button>
-  </div>
-  <canvas id="snake-canvas"></canvas>
-</div>
-
-<!-- ══ JEU MEMORY ══ -->
-<div id="memory-game">
-  <div id="mem-hud">
-    <div id="mem-score">✓ 0 / 0</div>
-    <div id="mem-turn"></div>
-    <button class="hud-btn" style="width:auto;padding:0 12px;border-radius:20px;font-size:.75rem;color:#ff6b6b;border-color:rgba(255,80,80,0.5);background:rgba(255,80,80,0.25)" onclick="memStop()">Fin</button>
-  </div>
-  <div id="mem-grid"></div>
-</div>
-
-<!-- ══ JEU TAUPES ══ -->
-<div id="mole-game">
-  <div id="mole-hud">
-    <div id="mole-score-display">⭐ 0</div>
-    <div id="mole-level-display" style="color:#a0c4ff;font-size:clamp(.82rem,3vw,1.05rem);font-weight:bold">Niveau 1</div>
-    <button id="mole-mute-btn" class="hud-btn" onclick="moleMuteToggle()">🔊</button>
-    <button class="hud-btn" style="width:auto;padding:0 12px;border-radius:20px;font-size:.75rem;color:#ff6b6b;border-color:rgba(255,80,80,0.5);background:rgba(255,80,80,0.25)" onclick="moleStopGame()">Fin</button>
-  </div>
-  <div id="mole-timer-wrap">
-    <div id="mole-timer-bg"><div id="mole-timer-fill"></div></div>
-  </div>
-  <div id="mole-question-zone">
-    <span id="mole-question-text"></span><span id="mole-input-display"></span>
-  </div>
-  <div id="mole-arena"></div>
-  <div id="mole-credit">Image : Petr Kratochvil (domaine public)</div>
-</div>
-
-<!-- ══ JEU ══ -->
-<div id="game">
-  <div id="hud">
-    <div class="hud-item" id="hud-score">⭐ 0</div>
-    <div class="hud-item" id="hud-level">Niveau 1</div>
-    <div class="hud-item" id="hud-streak">× 0</div>
-    <button id="stop-btn"       class="hud-btn" onclick="endGame()">Fin</button>
-    <button id="mute-btn"       class="hud-btn" onclick="toggleMusic()">🔊</button>
-    <button id="fullscreen-btn" class="hud-btn" onclick="toggleFullscreen()">⛶</button>
-  </div>
-  <div id="timer-wrap">
-    <div id="timer-bg"><div id="timer-fill"></div></div>
-  </div>
-  <div id="question-zone">
-    <div id="question-text">? × ? = ?</div>
-  </div>
-  <div id="arena"></div>
+<div id="keypad">
+  <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+  <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+  <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+  <button data-k="del">⌫</button><button data-k="0">0</button><button data-k="ok" class="k-ok">Suivant ➜</button>
 </div>
 
 <script>
-// ── Config ────────────────────────────────────────────────────────────────
-const START_TIME = 25;
-const MAX_TIME   = 38;
-const BASE_BONUS = 5;
-const WRONG_COST = 5;
-const BUBBLE_MIN = 4;
-const BUBBLE_MAX = 8;
-
-function getBubbleCount() {
-  return Math.min(BUBBLE_MAX, BUBBLE_MIN + Math.floor((level - 1) / 2));
-}
-
-const COLORS = [
-  ['#f093fb','#f5576c'], ['#4facfe','#00f2fe'],
-  ['#43e97b','#38f9d7'], ['#fa709a','#fee140'],
-  ['#a18cd1','#fbc2eb'], ['#fda085','#f6d365'],
-  ['#30cfd0','#667eea'], ['#89f7fe','#66a6ff'],
-];
-
-// ── Navigation ────────────────────────────────────────────────────────────
-let gameMode   = 'tables';   // 'tables' | 'addition' | 'soustraction' | 'mult1x2'
-let mentalMode = 'addition';
-
-function showMain() {
-  hide('screen-tables'); hide('screen-mental'); hide('screen-over');
-  hide('screen-memory'); hide('screen-memory-end'); hide('screen-mole'); hide('screen-snake');
-  document.getElementById('memory-game').style.display = 'none';
-  document.getElementById('mole-game').style.display   = 'none';
-  document.getElementById('snake-game').style.display  = 'none';
-  if (snakeRunning) { snakeRunning = false; clearInterval(snakeIntId); snakeIntId = null; }
-  show('screen-main');
-}
-function showTables() {
-  gameMode = 'tables';
-  hide('screen-main');
-  show('screen-tables');
-}
-function showMental() {
-  hide('screen-main');
-  show('screen-mental');
-}
-function show(id) { document.getElementById(id).style.display = 'flex'; }
-function hide(id) { document.getElementById(id).style.display = 'none'; }
-
-// ── Timer mode ────────────────────────────────────────────────────────────
-let noTimer           = false;
-let selectedTableModes = new Set(['normal']); // multi-sélection possible
-
-function setTableMode(mode) {
-  if (selectedTableModes.has(mode)) {
-    if (selectedTableModes.size === 1) return; // au moins 1 mode obligatoire
-    selectedTableModes.delete(mode);
-  } else {
-    selectedTableModes.add(mode);
-  }
-  ['normal','missing','decomp'].forEach(m =>
-    document.getElementById('btn-tbl-'+m).classList.toggle('active', selectedTableModes.has(m)));
-}
-
-function pickTableMode() {
-  const modes = [...selectedTableModes];
-  return modes[Math.floor(Math.random() * modes.length)];
-}
-
-function setMode(withTimer) {
-  noTimer = !withTimer;
-  ['btn-chrono','btn-chrono2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('active', withTimer);
-  });
-  ['btn-libre','btn-libre2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('active', !withTimer);
-  });
-}
-
-// ── Calcul mental mode ────────────────────────────────────────────────────
-function setMentalMode(mode) {
-  mentalMode = mode;
-  ['btn-add','btn-sub','btn-mul'].forEach(id => document.getElementById(id).classList.remove('active'));
-  const map = { addition:'btn-add', soustraction:'btn-sub', mult1x2:'btn-mul' };
-  document.getElementById(map[mode]).classList.add('active');
-}
-
-// ── Fullscreen ────────────────────────────────────────────────────────────
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  } else {
-    document.exitFullscreen();
-  }
-}
-document.addEventListener('fullscreenchange', () => {
-  document.getElementById('fullscreen-btn').textContent =
-    document.fullscreenElement ? '⊡' : '⛶';
-});
-
-// ── Audio ─────────────────────────────────────────────────────────────────
-let _actx = null, musicOn = true;
-let _mStep = 0, _mTimer = null, _lastCollide = 0;
-
-const _BPM_BASE = 90, _BPM_MAX = 148;
-function _currentBeat() {
-  return 60 / Math.min(_BPM_MAX, _BPM_BASE + (level - 1) * 5);
-}
-
-// Mélodie do majeur pentatonique — 6 phrases + coda ≈ 37 s à 90 BPM
-const _MEL = [
-  // ── Phrase A ──────────────────────────────────────
-  [523.25,.5],[659.25,.5],[783.99,1],
-  [659.25,.5],[587.33,.5],[523.25,1],
-  [587.33,.5],[659.25,.5],[783.99,.5],[880,.5],
-  [783.99,2],
-  // ── Phrase B ──────────────────────────────────────
-  [880,.5],[783.99,.5],[659.25,1],
-  [783.99,.5],[659.25,.5],[587.33,1],
-  [659.25,.5],[587.33,.5],[523.25,.5],[587.33,.5],
-  [659.25,2],
-  // ── Phrase A' ─────────────────────────────────────
-  [523.25,.5],[587.33,.5],[659.25,1],
-  [783.99,.5],[659.25,.5],[587.33,1],
-  [523.25,.5],[587.33,.5],[659.25,.5],[783.99,.5],
-  [880,2],
-  // ── Phrase C – registre grave ─────────────────────
-  [392,.5],[440,.5],[523.25,1],
-  [587.33,.5],[523.25,.5],[440,1],
-  [392,.5],[440,.5],[523.25,.5],[587.33,.5],
-  [659.25,2],
-  // ── Phrase D – fluide ─────────────────────────────
-  [659.25,.5],[587.33,.5],[523.25,.5],[587.33,.5],
-  [659.25,1],[783.99,1],
-  [880,.5],[783.99,.5],[659.25,1],
-  [587.33,2],
-  // ── Phrase A'' – retour ───────────────────────────
-  [783.99,.5],[659.25,.5],[587.33,1],
-  [523.25,.5],[587.33,.5],[659.25,1],
-  [783.99,.5],[880,.5],[783.99,.5],[659.25,.5],
-  [783.99,2],
-  // ── Coda ──────────────────────────────────────────
-  [659.25,1],[587.33,.5],[523.25,.5],
-  [587.33,1],[659.25,1],
-  [523.25,6],
-];
-
-function _ac() {
-  try {
-    if (!_actx) _actx = new (window.AudioContext || window.webkitAudioContext)();
-    if (_actx.state === 'suspended') _actx.resume();
-    return _actx;
-  } catch(e) { return null; }
-}
-function _tone(freq, dur, vol, type, when) {
-  const ctx = _ac(); if (!ctx) return;
-  const t = when ?? ctx.currentTime;
-  const osc = ctx.createOscillator(), g = ctx.createGain();
-  osc.connect(g); g.connect(ctx.destination);
-  osc.type = type || 'sine'; osc.frequency.value = freq;
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.01, dur * 0.85));
-  osc.start(t); osc.stop(t + dur);
-}
-function sfxCorrect() {
-  const t = _ac()?.currentTime ?? 0;
-  [[523.25,0],[659.25,.07],[783.99,.14],[1046.5,.21]].forEach(([f,d]) => _tone(f,.25,.18,'sine',t+d));
-}
-function sfxWrong() {
-  const ctx = _ac(); if (!ctx) return;
-  const t = ctx.currentTime, osc = ctx.createOscillator(), g = ctx.createGain();
-  osc.connect(g); g.connect(ctx.destination); osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(220,t); osc.frequency.exponentialRampToValueAtTime(80,t+.4);
-  g.gain.setValueAtTime(.15,t); g.gain.exponentialRampToValueAtTime(.0001,t+.42);
-  osc.start(t); osc.stop(t+.45);
-}
-function sfxMiam() {
-  const ctx = _ac(); if (!ctx) return;
-  const t = ctx.currentTime;
-  [[0, 520, 220], [0.13, 480, 200]].forEach(([dt, f0, f1]) => {
-    const osc = ctx.createOscillator(), g = ctx.createGain();
-    osc.connect(g); g.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(f0, t+dt);
-    osc.frequency.exponentialRampToValueAtTime(f1, t+dt+0.09);
-    g.gain.setValueAtTime(0.28, t+dt);
-    g.gain.exponentialRampToValueAtTime(0.001, t+dt+0.11);
-    osc.start(t+dt); osc.stop(t+dt+0.13);
-    const osc2 = ctx.createOscillator(), g2 = ctx.createGain();
-    osc2.connect(g2); g2.connect(ctx.destination);
-    osc2.type = 'triangle';
-    osc2.frequency.value = f1 * 0.5;
-    g2.gain.setValueAtTime(0.09, t+dt);
-    g2.gain.exponentialRampToValueAtTime(0.001, t+dt+0.1);
-    osc2.start(t+dt); osc2.stop(t+dt+0.12);
-  });
-}
-function sfxLevelUp() {
-  const t = _ac()?.currentTime ?? 0;
-  [[523.25,0],[659.25,.1],[783.99,.2],[1046.5,.3],[1318.5,.4]].forEach(([f,d]) => _tone(f,.3,.18,'triangle',t+d));
-}
-function sfxCollide() {
-  const now = performance.now();
-  if (now - _lastCollide < 120) return;
-  _lastCollide = now;
-  _tone(260 + Math.random()*80, .07, .09, 'sine');
-}
-function _playMelody() {
-  if (!musicOn || !running) return;
-  const [freq, beats] = _MEL[_mStep % _MEL.length];
-  const beat = _currentBeat();
-  _tone(freq, beats*beat*.78, .045, 'triangle');
-  _mStep++;
-  _mTimer = setTimeout(_playMelody, beats*beat*1000);
-}
-function _bgPlay() {
-  const a = document.getElementById('mole-music');
-  a.volume = 0.45;
-  if (musicOn) a.play().catch(() => {});
-}
-function _bgStop() {
-  const a = document.getElementById('mole-music');
-  a.pause(); a.currentTime = 0;
-}
-function _syncMuteIcons() {
-  const icon = musicOn ? '🔊' : '🔇';
-  ['mute-btn','mole-mute-btn','snake-mute-btn'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.textContent = icon;
-  });
-}
-function startMusic() { _bgPlay(); }
-function stopMusic()  { _bgStop(); }
-function toggleMusic() {
-  musicOn = !musicOn;
-  musicOn ? _bgPlay() : _bgStop();
-  _syncMuteIcons();
-}
-
-// ── Table selection ───────────────────────────────────────────────────────
-let selectedTables = new Set([2,3,4,5,6,7,8,9,10]);
-
-function buildTableGrid() {
-  const grid = document.getElementById('tbl-grid');
-  grid.innerHTML = '';
-  for (let n = 2; n <= 12; n++) {
-    const btn = document.createElement('button');
-    btn.className = 'tbl-btn' + (selectedTables.has(n) ? ' on' : '');
-    btn.textContent = n; btn.dataset.n = n;
-    btn.onclick = () => toggleTable(n, btn);
-    grid.appendChild(btn);
-  }
-}
-function toggleTable(n, btn) {
-  if (selectedTables.has(n)) { selectedTables.delete(n); btn.classList.remove('on'); }
-  else                        { selectedTables.add(n);    btn.classList.add('on');    }
-  document.getElementById('tbl-warn').style.display = selectedTables.size === 0 ? 'block' : 'none';
-}
-function selectAll()  {
-  for (let n=2;n<=12;n++) selectedTables.add(n);
-  document.querySelectorAll('.tbl-btn').forEach(b => b.classList.add('on'));
-  document.getElementById('tbl-warn').style.display = 'none';
-}
-function selectNone() {
-  selectedTables.clear();
-  document.querySelectorAll('.tbl-btn').forEach(b => b.classList.remove('on'));
-  document.getElementById('tbl-warn').style.display = 'block';
-}
-buildTableGrid();
-
-// ── Question generation — Tables ──────────────────────────────────────────
-const HARD_TABLES   = new Set([6,7,8,9,11,12]);
-const SCORE_BASE_HARD = 3.0;  // tables 6-9, 11, 12
-const SCORE_BASE_EASY = 1.0;  // tables 2-5, 10
-const SCORE_DECAY   = 0.5;    // ×0.5 après une réponse correcte
-const SCORE_GROW    = 1.4;    // ×1.4 après une erreur
-const SCORE_MIN     = 0.10;   // plancher (paire ne disparaît jamais)
-
-let currentPairs = [];
-let pairScores   = {};  // key "AxB" → score flottant courant
-
-function pairKey(a, b) { return Math.min(a,b) + 'x' + Math.max(a,b); }
-
-function buildPairs() {
-  const sel = selectedTables.size > 0 ? selectedTables : new Set([2,3,4,5,6,7,8,9,10,11,12]);
-  const maxFactor = (!sel.has(11) && !sel.has(12)) ? 10 : 12;
-  const list = [];
-  for (let a = 2; a <= maxFactor; a++) {
-    for (let b = a; b <= maxFactor; b++) {
-      if (!sel.has(a) && !sel.has(b)) continue;
-      const w = (HARD_TABLES.has(a) || HARD_TABLES.has(b)) ? SCORE_BASE_HARD : SCORE_BASE_EASY;
-      list.push({ a, b, w });
-    }
-  }
-  return list;
-}
-
-function initPairScores() {
-  pairScores = {};
-  for (const p of currentPairs) pairScores[pairKey(p.a, p.b)] = p.w;
-}
-
-function pickTablesQuestion() {
-  const total = currentPairs.reduce((s,p) => s + pairScores[pairKey(p.a,p.b)], 0);
-  let r = Math.random() * total;
-  for (const p of currentPairs) {
-    r -= pairScores[pairKey(p.a,p.b)];
-    if (r <= 0) {
-      const [a,b] = Math.random()<.5 ? [p.a,p.b] : [p.b,p.a];
-      return { a, b, ans: p.a*p.b };
-    }
-  }
-  const p = currentPairs[currentPairs.length-1];
-  return { a:p.a, b:p.b, ans:p.a*p.b };
-}
-
-function makeTablesTraps({ a, b, ans }, count) {
-  const need = count - 1, pool = new Set();
-  const cands = [
-    ans+1,ans-1,ans+2,ans-2,
-    a*(b+1),a*(b-1),(a+1)*b,(a-1)*b,
-    a*(b+2),(a+2)*b,a*(b+3),(a+3)*b,
-    ans+a,ans-a,ans+b,ans-b,
-    (a+1)*(b+1),(a-1)*(b+1),(a+2)*(b+1),(a+1)*(b+2),
-  ].filter(v => v>0 && v!==ans);
-  for (const c of cands.sort(()=>Math.random()-.5)) {
-    if (!pool.has(c)) pool.add(c);
-    if (pool.size===need) break;
-  }
-  for (let i=1; pool.size<need; i++) { const v=ans+10+i; if (!pool.has(v)) pool.add(v); }
-  return [...pool];
-}
-
-// ── Mode Inversé : trouver le facteur manquant ────────────────────────────
-function makeMissingTraps(ans, count) {
-  // Candidats : entiers 2-12 hors la bonne réponse, mélangés
-  const pool = [];
-  for (let n = 2; n <= 12; n++) { if (n !== ans) pool.push(n); }
-  pool.sort(() => Math.random() - 0.5);
-  return pool.slice(0, count - 1);
-}
-
-// ── Mode Décompositions : trouver toutes les paires d'un produit ──────────
-function genDecompositions() {
-  // Construit une map produit → paires valides depuis currentPairs
-  const map = {};
-  for (const p of currentPairs) {
-    const k = p.a * p.b;
-    if (!map[k]) map[k] = [];
-    map[k].push(p);
-  }
-  // Garde seulement les produits avec ≥ 2 paires
-  const candidates = Object.values(map).filter(pairs => pairs.length >= 2);
-  if (candidates.length === 0) return null;
-  // Sélection pondérée par score moyen des paires
-  const weighted = candidates.map(pairs => ({
-    pairs,
-    product: pairs[0].a * pairs[0].b,
-    w: pairs.reduce((s, p) => s + (pairScores[pairKey(p.a,p.b)] || 1), 0) / pairs.length,
-  }));
-  const total = weighted.reduce((s, c) => s + c.w, 0);
-  let r = Math.random() * total;
-  for (const c of weighted) { r -= c.w; if (r <= 0) return c; }
-  return weighted[weighted.length - 1];
-}
-
-function makeDecompTraps(product, validPairs, need) {
-  const validSet = new Set(
-    validPairs.flatMap(p => [`${p.a}×${p.b}`, `${p.b}×${p.a}`])
-  );
-  const traps = [], seen = new Set();
-  // Génère des paires (a,b) dont le produit ≠ notre produit
-  for (let tries = 0; traps.length < need && tries < 200; tries++) {
-    const a = Math.floor(Math.random() * 11) + 2;
-    const b = Math.floor(Math.random() * 11) + 2;
-    if (a * b === product) continue;
-    const lbl = `${a}×${b}`;
-    if (!validSet.has(lbl) && !seen.has(lbl)) { seen.add(lbl); traps.push(lbl); }
-  }
-  return traps;
-}
-
-// ── Question generation — Calcul Mental ──────────────────────────────────
-function randInt(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
-
-function genAddition() {
-  if (level <= 3) {
-    const a = randInt(15, 89), b = randInt(11, 89);
-    return { label: `${a} + ${b}`, ans: a+b };
-  } else {
-    const a = randInt(100, 499), b = randInt(50, 299);
-    return { label: `${a} + ${b}`, ans: a+b };
-  }
-}
-
-function genSoustraction() {
-  // Easier: smaller numbers, result always clearly positive
-  const bMax = level<=2 ? 18 : level<=4 ? 32 : 55;
-  const b = randInt(5, bMax);
-  const gap = level<=2 ? 30 : level<=4 ? 60 : 90;
-  const a = randInt(b+5, b+gap);
-  return { label: `${a} − ${b}`, ans: a-b };
-}
-
-function genMult1x2() {
-  const a = randInt(2, 9);
-  const bMax = level<=2 ? 29 : level<=4 ? 59 : 99;
-  const b = randInt(11, bMax);
-  return { label: `${a} × ${b}`, ans: a*b };
-}
-
-function genMentalQuestion() {
-  if (mentalMode === 'addition')     return genAddition();
-  if (mentalMode === 'soustraction') return genSoustraction();
-  return genMult1x2();
-}
-
-function makeMentalTraps(ans, count) {
-  const need = count - 1, pool = new Set();
-  const step = ans<30 ? 1 : ans<100 ? 5 : ans<500 ? 10 : 25;
-  const cands = [];
-  for (let d=step; d<=step*14; d+=step) {
-    cands.push(ans+d);
-    if (ans-d > 0) cands.push(ans-d);
-  }
-  cands.sort(()=>Math.random()-.5);
-  for (const c of cands) {
-    if (c!==ans && !pool.has(c)) pool.add(c);
-    if (pool.size>=need) break;
-  }
-  return [...pool].slice(0,need);
-}
-
-// ── Bubble physics ────────────────────────────────────────────────────────
-let bubbles = [], rafId = null, speedScale = 1;
-
-function spawnBubbles(values) {
-  const arena = document.getElementById('arena');
-  arena.innerHTML = ''; bubbles = [];
-  const R = arena.getBoundingClientRect();
-  const isPortrait = R.height > R.width;
-  const refDim = isPortrait ? R.width*0.9 : Math.min(R.width,R.height);
-  const size   = Math.max(80, refDim*0.22);
-  const elapsed = (performance.now()-gameStartTime)/1000;
-  const tBoost  = Math.min(2.0, 1+elapsed*0.009);
-  // Scaling par taille d'écran : référence 360px (téléphone standard)
-  speedScale = Math.min(R.width, R.height) / 450;
-  const speed   = (2.2+level*0.3)*tBoost*speedScale;
-
-  const quad = [
-    [0,          R.width/2-size, 0,           R.height/2-size],
-    [R.width/2,  R.width-size,   0,           R.height/2-size],
-    [0,          R.width/2-size, R.height/2,  R.height-size  ],
-    [R.width/2,  R.width-size,   R.height/2,  R.height-size  ],
-  ];
-
-  values.forEach((val, i) => {
-    const [xMin,xMax,yMin,yMax] = quad[i%4];
-    const color = COLORS[i%COLORS.length];
-    const el = document.createElement('div');
-    el.className = 'bubble';
-    const label = String(val);
-    const fs = label.length >= 5 ? size*0.19
-             : label.length >= 4 ? size*0.23
-             : label.length >= 3 ? size*0.27
-             : size*0.33;
-    el.style.cssText =
-      `width:${size}px;height:${size}px;font-size:${fs}px;` +
-      `background:radial-gradient(circle at 35% 35%,${color[0]},${color[1]});`;
-    el.textContent = label;
-    const x = xMin+Math.random()*Math.max(1,xMax-xMin);
-    const y = yMin+Math.random()*Math.max(1,yMax-yMin);
-    const a = Math.random()*Math.PI*2;
-    el.style.left = x+'px'; el.style.top = y+'px';
-    arena.appendChild(el);
-    el.addEventListener('pointerdown', e => { e.preventDefault(); handleTap(val, el); });
-    bubbles.push({ el, x, y, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, size, popped:false });
-  });
-}
-
-function tickBubbles() {
-  if (!running) return;
-  const R = document.getElementById('arena').getBoundingClientRect();
-  const W = R.width, H = R.height, n = bubbles.length;
-  const elapsed2 = (performance.now()-gameStartTime)/1000;
-  const maxSpd   = (3.5+level*0.4+elapsed2*0.025)*speedScale;
-
-  for (const b of bubbles) {
-    if (b.popped) continue;
-    b.vx *= 1.00015; b.vy *= 1.00015;
-    const spd = Math.hypot(b.vx,b.vy);
-    if (spd>maxSpd) { b.vx=b.vx/spd*maxSpd; b.vy=b.vy/spd*maxSpd; }
-    b.x+=b.vx; b.y+=b.vy;
-    if (b.x<0)          { b.x=0;          b.vx= Math.abs(b.vx); }
-    if (b.x>W-b.size)   { b.x=W-b.size;   b.vx=-Math.abs(b.vx); }
-    if (b.y<0)          { b.y=0;          b.vy= Math.abs(b.vy); }
-    if (b.y>H-b.size)   { b.y=H-b.size;   b.vy=-Math.abs(b.vy); }
-    b.el.style.left=b.x+'px'; b.el.style.top=b.y+'px';
-  }
-
-  for (let i=0;i<n-1;i++) {
-    for (let j=i+1;j<n;j++) {
-      const a=bubbles[i], b=bubbles[j];
-      if (a.popped||b.popped) continue;
-      const dx=(b.x+b.size/2)-(a.x+a.size/2), dy=(b.y+b.size/2)-(a.y+a.size/2);
-      const d2=dx*dx+dy*dy, min=a.size;
-      if (d2>=min*min||d2===0) continue;
-      const dist=Math.sqrt(d2), nx=dx/dist, ny=dy/dist;
-      const ov=(min-dist)*.5;
-      a.x-=nx*ov; a.y-=ny*ov; b.x+=nx*ov; b.y+=ny*ov;
-      a.x=Math.max(0,Math.min(W-a.size,a.x)); a.y=Math.max(0,Math.min(H-a.size,a.y));
-      b.x=Math.max(0,Math.min(W-b.size,b.x)); b.y=Math.max(0,Math.min(H-b.size,b.y));
-      const dvn=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
-      if (dvn<0) { a.vx+=dvn*nx; a.vy+=dvn*ny; b.vx-=dvn*nx; b.vy-=dvn*ny; sfxCollide(); }
-    }
-  }
-  rafId = requestAnimationFrame(tickBubbles);
-}
-
-// ── Game state ────────────────────────────────────────────────────────────
-let lastGameType = 'bubble'; // 'bubble' | 'mole'
-let running=false, score=0, streak=0, level=1, timeLeft=START_TIME;
-let tickInt=null, currentQ=null, busy=false, gameStartTime=0;
-
-function getBestKey() {
-  const k = gameMode==='tables' ? 'tables' :
-            gameMode==='addition' ? 'mental_add' :
-            gameMode==='soustraction' ? 'mental_sub' : 'mental_mul';
-  return noTimer ? k+'_free' : k+'_timed';
-}
-
-function startTablesGame() {
-  if (selectedTables.size===0) {
-    document.getElementById('tbl-warn').style.display='block'; return;
-  }
-  gameMode = 'tables';
-  currentPairs = buildPairs();
-  initPairScores();
-  hide('screen-tables');
-  _startGame();
-}
-
-function startMentalGame() {
-  gameMode = mentalMode;
-  hide('screen-mental');
-  _startGame();
-}
-
-function replayGame() {
-  hide('screen-over');
-  if (lastGameType === 'mole') { startMoleGame(); return; }
-  if (gameMode==='tables') startTablesGame();
-  else if (gameMode==='snake') snakeStart();
-  else startMentalGame();
-}
-
-function _startGame() {
-  lastGameType = 'bubble';
-  _ac();
-  hide('screen-over');
-  score=0; streak=0; level=1; busy=false;
-  gameStartTime = performance.now();
-  timeLeft = START_TIME;
-  running  = true;
-
-  document.getElementById('timer-wrap').style.display = noTimer ? 'none'  : 'block';
-  document.getElementById('stop-btn').style.display   = 'flex';
-
-  updateHUD();
-  if (tickInt) clearInterval(tickInt);
-  if (!noTimer) tickInt = setInterval(timerTick, 50);
-  startMusic();
-  nextQuestion();
-}
-
-function nextQuestion() {
-  if (rafId) cancelAnimationFrame(rafId);
-  const n = getBubbleCount();
-
-  const tMode = gameMode === 'tables' ? pickTableMode() : null;
-
-  if (gameMode === 'tables' && tMode === 'decomp') {
-    const dq = genDecompositions();
-    if (!dq) { /* fallback ci-dessous */ }
-    else {
-      // Affiche toutes les paires valides + pièges
-      const correctLabels = dq.pairs.map(p =>
-        Math.random() < 0.5 ? `${p.a}×${p.b}` : `${p.b}×${p.a}`
-      );
-      const wrongCount = Math.max(2, n - correctLabels.length);
-      const wrongLabels = makeDecompTraps(dq.product, dq.pairs, wrongCount);
-      const remaining   = new Set(correctLabels);
-      currentQ = { product: dq.product, pairs: dq.pairs, remainingCorrect: remaining, _decomp: true };
-      document.getElementById('question-text').textContent = `${dq.product} = ? × ?`;
-      const vals = [...correctLabels, ...wrongLabels].sort(() => Math.random() - 0.5);
-      spawnBubbles(vals);
-      rafId = requestAnimationFrame(tickBubbles);
-      return;
-    }
-  }
-
-  if (gameMode === 'tables' && (tMode === 'missing' || tMode === 'decomp')) {
-    const q = pickTablesQuestion();
-    const hideFst = Math.random() < 0.5;
-    const hidden = hideFst ? q.a : q.b;
-    const shown  = hideFst ? q.b : q.a;
-    currentQ = { ans: hidden, _q: q };
-    document.getElementById('question-text').textContent =
-      hideFst ? `? × ${shown} = ${q.ans}` : `${shown} × ? = ${q.ans}`;
-    const vals = [hidden, ...makeMissingTraps(hidden, n)].sort(() => Math.random() - 0.5);
-    spawnBubbles(vals);
-    rafId = requestAnimationFrame(tickBubbles);
-    return;
-  }
-
-  // ── Normal (tables direct ou calcul mental) ──
-  let q, traps;
-  if (gameMode === 'tables') {
-    q = pickTablesQuestion();
-    currentQ = { ans: q.ans, _q: q };
-    document.getElementById('question-text').textContent = `${q.a} × ${q.b} = ?`;
-    traps = makeTablesTraps(q, n);
-  } else {
-    q = genMentalQuestion();
-    currentQ = { ans: q.ans };
-    document.getElementById('question-text').textContent = `${q.label} = ?`;
-    traps = makeMentalTraps(q.ans, n);
-  }
-  const vals = [q.ans, ...traps].sort(() => Math.random() - 0.5);
-  spawnBubbles(vals);
-  rafId = requestAnimationFrame(tickBubbles);
-}
-
-function timerTick() {
-  if (!running) return;
-  const drain = 1+(level-1)*0.04;
-  timeLeft -= 0.05*drain;
-  const pct  = Math.max(0,timeLeft/START_TIME*100);
-  const fill = document.getElementById('timer-fill');
-  fill.style.width = pct+'%';
-  fill.style.background =
-    pct>55 ? 'linear-gradient(90deg,#4facfe,#00f2fe)' :
-    pct>25 ? 'linear-gradient(90deg,#f7971e,#ffd200)' :
-             'linear-gradient(90deg,#ff416c,#ff4b2b)';
-  if (timeLeft<=0) endGame();
-}
-
-function handleTap(val, el) {
-  if (!running) return;
-
-  // ── Mode Décompositions : pas de verrou global, plusieurs bonnes réponses ──
-  if (currentQ && currentQ._decomp) {
-    if (el.classList.contains('pop-ok') || el.classList.contains('pop-bad')) return;
-    const lbl = String(val);
-    if (currentQ.remainingCorrect.has(lbl)) {
-      // Bonne paire trouvée
-      el.classList.add('pop-ok');
-      const bub = bubbles.find(b => b.el === el);
-      if (bub) bub.popped = true;
-      currentQ.remainingCorrect.delete(lbl);
-      score++; streak++;
-      // Decay du score de la paire correspondante
-      const foundPair = currentQ.pairs.find(p =>
-        `${p.a}×${p.b}` === lbl || `${p.b}×${p.a}` === lbl);
-      if (foundPair) {
-        const k = pairKey(foundPair.a, foundPair.b);
-        pairScores[k] = Math.max(SCORE_MIN, pairScores[k] * SCORE_DECAY);
-      }
-      const newLevel = Math.floor(score/5)+1;
-      if (newLevel > level) { level=newLevel; spawnFX('🎉 Niveau '+level+' !','#ffd700'); sfxLevelUp(); }
-      else sfxCorrect();
-      if (!noTimer) {
-        const bonus = Math.max(2, BASE_BONUS - Math.floor(level/3));
-        timeLeft = Math.min(MAX_TIME, timeLeft + bonus);
-        showBonusFX('+'+bonus+'s', el);
-      } else showBonusFX('+1', el);
-      showStars(el); updateHUD();
-      if (currentQ.remainingCorrect.size === 0) {
-        // Toutes les paires trouvées → question suivante
-        setTimeout(() => nextQuestion(), 420);
-      }
-    } else {
-      // Mauvaise paire
-      el.classList.add('pop-bad');
-      streak = 0;
-      if (!noTimer) timeLeft = Math.max(0, timeLeft - WRONG_COST);
-      sfxWrong(); spawnFX('💥','#ff6b6b'); updateHUD();
-      setTimeout(() => {
-        if (!running) return;
-        el.classList.remove('pop-bad');
-        void el.offsetWidth; el.style.pointerEvents = '';
-      }, 510);
-    }
-    return;
-  }
-
-  // ── Modes Normal et Inversé ──
-  if (busy) return;
-  busy = true;
-
-  if (+val === currentQ.ans) {
-    el.classList.add('pop-ok');
-    const bub = bubbles.find(b=>b.el===el);
-    if (bub) bub.popped = true;
-    score++; streak++;
-    if (gameMode === 'tables') {
-      const k = pairKey(currentQ._q.a, currentQ._q.b);
-      pairScores[k] = Math.max(SCORE_MIN, pairScores[k] * SCORE_DECAY);
-    }
-    const newLevel = Math.floor(score/5)+1;
-    if (newLevel>level) { level=newLevel; spawnFX('🎉 Niveau '+level+' !','#ffd700'); sfxLevelUp(); }
-    else sfxCorrect();
-    if (noTimer) {
-      showBonusFX('+1', el);
-    } else {
-      const bonus = Math.max(2, BASE_BONUS-Math.floor(level/3));
-      timeLeft = Math.min(MAX_TIME, timeLeft+bonus);
-      showBonusFX('+'+bonus+'s', el);
-    }
-    showStars(el); updateHUD();
-    setTimeout(()=>{ busy=false; nextQuestion(); }, 360);
-
-  } else {
-    el.classList.add('pop-bad');
-    streak = 0;
-    if (!noTimer) timeLeft = Math.max(0,timeLeft-WRONG_COST);
-    if (gameMode === 'tables') {
-      const k = pairKey(currentQ._q.a, currentQ._q.b);
-      const p = currentPairs.find(p => pairKey(p.a,p.b) === k);
-      if (p) pairScores[k] = Math.min(pairScores[k] * SCORE_GROW, p.w * 2);
-    }
-    sfxWrong(); spawnFX('💥','#ff6b6b'); updateHUD();
-    setTimeout(()=>{
-      if (!running) return;
-      busy=false; el.classList.remove('pop-bad');
-      void el.offsetWidth; el.style.pointerEvents='';
-    }, 510);
-  }
-}
-
-function endGame() {
-  running=false; clearInterval(tickInt);
-  if (rafId) cancelAnimationFrame(rafId);
-  stopMusic();
-
-  const key  = getBestKey();
-  const prev = +localStorage.getItem(key)||0;
-  if (score>prev) localStorage.setItem(key,score);
-  const best = Math.max(score,prev);
-
-  document.getElementById('over-title').textContent =
-    noTimer ? '🏁 Partie terminée !' : '⏰ Temps écoulé !';
-  document.getElementById('over-score').textContent = score;
-  document.getElementById('plural-s').textContent   = score>1?'s':'';
-  document.getElementById('plural-s2').textContent  = score>1?'s':'';
-  document.getElementById('over-best').textContent  =
-    score>0 && score>=best ? '🏆 Nouveau record !' : `Record : ${best}`;
-  show('screen-over');
-}
-
-function updateHUD() {
-  document.getElementById('hud-score').textContent  = '⭐ '+score;
-  document.getElementById('hud-level').textContent  = 'Niveau '+level;
-  document.getElementById('hud-streak').textContent = streak>=3 ? '🔥 '+streak : '× '+streak;
-}
-
-// ── Visual effects ────────────────────────────────────────────────────────
-function spawnFX(text,color) {
-  const el=document.createElement('div');
-  el.className='fx-center'; el.style.color=color; el.textContent=text;
-  document.body.appendChild(el); setTimeout(()=>el.remove(),760);
-}
-function showBonusFX(text,bubbleEl) {
-  const r=bubbleEl.getBoundingClientRect();
-  const el=document.createElement('div');
-  el.className='fx-bonus';
-  el.style.left=(r.left+r.width/2)+'px'; el.style.top=(r.top+r.height/2)+'px';
-  el.textContent=text; document.body.appendChild(el); setTimeout(()=>el.remove(),920);
-}
-function showStars(bubbleEl) {
-  const r=bubbleEl.getBoundingClientRect();
-  const cx=r.left+r.width/2, cy=r.top+r.height/2;
-  ['⭐','✨','💫','🌟','⭐','✨'].forEach((s,i)=>{
-    const el=document.createElement('div');
-    el.className='fx-star'; el.textContent=s;
-    el.style.left=cx+'px'; el.style.top=cy+'px';
-    const a=(i/6)*Math.PI*2;
-    el.style.setProperty('--dx',(Math.cos(a)*95)+'px');
-    el.style.setProperty('--dy',(Math.sin(a)*95)+'px');
-    document.body.appendChild(el); setTimeout(()=>el.remove(),920);
-  });
-}
-
-// ════════════════════════════════════════════════════════════════
-//  MEMORY GAME
-// ════════════════════════════════════════════════════════════════
-let memMode     = 'solo';
-let memPairs    = 8;
-let memTables   = new Set([2,3,4,5,6,7,8,9,10]);
-let memCards    = [];
-let memFlipped  = [];
-let memLocked   = false;
-let memFound    = 0;
-let memAttempts = 0;
-let memScores   = [0,0];
-let memPlayer   = 0;
-
-function showMemory() {
-  hide('screen-main');
-  buildMemoryUI();
-  show('screen-memory');
-}
-
-function memSetMode(m) {
-  memMode = m;
-  document.getElementById('mbtn-solo').classList.toggle('active', m==='solo');
-  document.getElementById('mbtn-duo').classList.toggle('active',  m==='duo');
-}
-
-function buildMemoryUI() {
-  // Taille
-  const sw = document.getElementById('mem-size-wrap');
-  sw.innerHTML = '';
-  [6,8,10,12].forEach(n => {
-    const btn = document.createElement('button');
-    btn.className = 'mem-size-btn' + (n===memPairs ? ' active' : '');
-    btn.textContent = n + ' paires';
-    btn.onclick = () => {
-      memPairs = n;
-      sw.querySelectorAll('.mem-size-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    };
-    sw.appendChild(btn);
-  });
-  // Tables
-  const tg = document.getElementById('mem-tbl-grid');
-  tg.innerHTML = '';
-  for (let t=2; t<=12; t++) {
-    const btn = document.createElement('div');
-    btn.className = 'tbl-btn' + (memTables.has(t) ? ' on' : '');
-    btn.textContent = t;
-    btn.onclick = () => {
-      if (memTables.has(t)) {
-        if (memTables.size > 2) { memTables.delete(t); btn.classList.remove('on'); }
-      } else { memTables.add(t); btn.classList.add('on'); }
-    };
-    tg.appendChild(btn);
-  }
-}
-
-function memGenerate() {
-  const tbl = [...memTables].sort((a,b)=>a-b);
-  const pool = [];
-  for (let i=0; i<tbl.length; i++)
-    for (let j=i; j<tbl.length; j++)
-      pool.push({a:tbl[i], b:tbl[j]});
-  for (let i=pool.length-1; i>0; i--) {
-    const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]];
-  }
-  // Dédoublonnage : un seul produit possible par paire de cartes
-  const seenProd = new Set();
-  const chosen = [];
-  for (const p of pool) {
-    if (chosen.length >= memPairs) break;
-    const prod = p.a * p.b;
-    if (!seenProd.has(prod)) { seenProd.add(prod); chosen.push(p); }
-  }
-  let uid=0;
-  const raw=[];
-  chosen.forEach((p,pid) => {
-    raw.push({id:uid++, pairId:pid, type:'q', label:`${p.a} × ${p.b}`, flipped:false, gone:false});
-    raw.push({id:uid++, pairId:pid, type:'a', label:String(p.a*p.b),   flipped:false, gone:false});
-  });
-  for (let i=raw.length-1; i>0; i--) {
-    const j=Math.floor(Math.random()*(i+1)); [raw[i],raw[j]]=[raw[j],raw[i]];
-  }
-  memCards = raw;
-}
-
-function memStart() {
-  memGenerate();
-  memFlipped=[]; memLocked=false; memFound=0; memAttempts=0; memScores=[0,0]; memPlayer=0;
-  hide('screen-memory'); hide('screen-memory-end');
-  memRenderGrid();
-  memUpdateHud();
-  document.getElementById('memory-game').style.display = 'flex';
-}
-
-function memStop() {
-  document.getElementById('memory-game').style.display = 'none';
-  memShowEnd();
-}
-
-function memCols() {
-  const W = window.innerWidth;
-  const n = memCards.length;
-  if (W < 500) return n<=12 ? 3 : 4;
-  if (W < 700) return n<=16 ? 4 : 5;
-  return n<=12 ? 4 : 5;
-}
-
-function memRenderGrid() {
-  const grid = document.getElementById('mem-grid');
-  const c = memCols();
-  grid.style.gridTemplateColumns = `repeat(${c}, 1fr)`;
-  grid.innerHTML = '';
-  for (const card of memCards) {
-    const el = document.createElement('div');
-    el.className = `mc ${card.type}-card`;
-    el.dataset.id = card.id;
-    el.innerHTML = `<div class="mc-inner">
-      <div class="mc-back">✦</div>
-      <div class="mc-front">${card.label}</div>
-    </div>`;
-    el.addEventListener('click', () => memClick(card.id));
-    grid.appendChild(el);
-  }
-  memSetFontSize(c);
-}
-
-function memSetFontSize(c) {
-  const W   = Math.min(window.innerWidth, 800);
-  const gap = (c-1)*8 + 20;
-  const cw  = (W-gap)/c;
-  // 3/2 aspect → height = cw*2/3; font ~25% of width
-  const fs  = Math.max(0.65, Math.min(1.5, cw*0.24));
-  document.querySelectorAll('.mc-front').forEach(el => el.style.fontSize = fs+'rem');
-}
-
-function memCardEl(id) { return document.querySelector(`.mc[data-id="${id}"]`); }
-
-function sfxMemFlip()  { _tone(520, .07, .06, 'sine'); }
-function sfxMemMatch() {
-  const t = _ac()?.currentTime ?? 0;
-  [[392,.0],[523.25,.08],[659.25,.16],[783.99,.24]].forEach(([f,d]) => _tone(f,.22,.14,'sine',t+d));
-}
-function sfxMemWrong() {
-  const t = _ac()?.currentTime ?? 0;
-  _tone(220,.12,.12,'sawtooth',t); _tone(180,.18,.10,'sawtooth',t+.1);
-}
-function sfxMemWin() {
-  const t = _ac()?.currentTime ?? 0;
-  [[523.25,0],[659.25,.1],[783.99,.2],[1046.5,.3],[1318.5,.42],[1046.5,.56],[1318.5,.68]]
-    .forEach(([f,d]) => _tone(f,.28,.15,'triangle',t+d));
-}
-
-function memClick(id) {
-  if (memLocked) return;
-  const card = memCards.find(c=>c.id===id);
-  if (!card || card.flipped || card.gone) return;
-  if (memFlipped.includes(id)) return;
-  sfxMemFlip();
-  card.flipped = true;
-  memCardEl(id).classList.add('flipped');
-  memFlipped.push(id);
-  if (memFlipped.length===2) { memLocked=true; memAttempts++; setTimeout(memEvaluate, 700); }
-}
-
-function memEvaluate() {
-  const [id1,id2] = memFlipped;
-  const c1=memCards.find(c=>c.id===id1), c2=memCards.find(c=>c.id===id2);
-  if (c1.pairId===c2.pairId) {
-    sfxMemMatch();
-    [id1,id2].forEach(id => memCardEl(id).classList.add('flash-ok'));
-    setTimeout(()=>{
-      [id1,id2].forEach(id=>{
-        memCards.find(c=>c.id===id).gone=true;
-        const el=memCardEl(id);
-        el.classList.add('gone'); el.classList.remove('flash-ok');
-      });
-      memFound++;
-      if (memMode==='duo') memScores[memPlayer]++;
-      memFlipped=[]; memLocked=false;
-      memUpdateHud();
-      if (memFound===memCards.length/2) setTimeout(memShowEnd,500);
-    }, 500);
-  } else {
-    sfxMemWrong();
-    [id1,id2].forEach(id => memCardEl(id).classList.add('flash-bad'));
-    setTimeout(()=>{
-      [id1,id2].forEach(id=>{
-        memCards.find(c=>c.id===id).flipped=false;
-        const el=memCardEl(id);
-        el.classList.remove('flipped','flash-bad');
-      });
-      if (memMode==='duo') memPlayer=1-memPlayer;
-      memFlipped=[]; memLocked=false;
-      memUpdateHud();
-    }, 900);
-  }
-}
-
-function memUpdateHud() {
-  const n=memCards.length/2;
-  if (memMode==='solo') {
-    document.getElementById('mem-score').textContent=`✓ ${memFound}/${n}  •  ${memAttempts} essais`;
-    document.getElementById('mem-turn').textContent='';
-  } else {
-    document.getElementById('mem-score').innerHTML=
-      `<span style="color:#4facfe">J1 : ${memScores[0]}</span>  •  <span style="color:#f093fb">J2 : ${memScores[1]}</span>`;
-    document.getElementById('mem-turn').textContent=`Tour : Joueur ${memPlayer+1}`;
-  }
-}
-
-function memShowEnd() {
-  document.getElementById('memory-game').style.display='none';
-  sfxMemWin();
-  const n=memCards.length/2;
-  if (memMode==='solo') {
-    const key=`mem_best_${n}`, prev=parseInt(localStorage.getItem(key))||Infinity;
-    const record=memAttempts<prev;
-    if (record) localStorage.setItem(key, memAttempts);
-    document.getElementById('mend-title').textContent='🎉 Terminé !';
-    document.getElementById('mend-score').textContent=memAttempts+' essais';
-    document.getElementById('mend-detail').innerHTML=
-      `${n} paires trouvées` + (record ? '<br>🌟 Nouveau record !' : `<br>Ton record : ${prev} essais`);
-  } else {
-    const w=memScores[0]>memScores[1]?'Joueur 1':memScores[1]>memScores[0]?'Joueur 2':null;
-    document.getElementById('mend-title').textContent=w?`🏆 ${w} gagne !`:'🤝 Égalité !';
-    document.getElementById('mend-score').innerHTML=
-      `<span style="color:#4facfe">${memScores[0]}</span> – <span style="color:#f093fb">${memScores[1]}</span>`;
-    document.getElementById('mend-detail').textContent=`${n} paires en ${memAttempts} essais.`;
-  }
-  show('screen-memory-end');
-}
-
-// ════════════════════════════════════════════════════════════════
-//  SNAKE GAME
-// ════════════════════════════════════════════════════════════════
-let snakeTables  = new Set([2,3,4,5,6,7,8,9,10]);
-let snakeRunning = false;
-let snakeBody    = [];        // [{x,y}, …]  head = [0]
-let snakeDir     = {x:1,y:0};
-let snakeNextDir = {x:1,y:0};
-let snakeDigits   = [];  // [{val:0-9, x, y}] — 10 chiffres toujours présents
-let snakeAnsDigits= [];  // chiffres de la réponse à manger dans l'ordre, ex [5,6]
-let snakeAnsIdx   = 0;   // prochain chiffre à manger
-let snakeScore   = 0;
-let snakeLives   = 3;
-let snakeQ       = null;      // {a,b,ans}
-let snakeIntId   = null;
-let snakeSpeed   = 300;
-
-const SNAKE_CS = 32;
-
-// ── Navigation ────────────────────────────────────────────────
-function showSnake() {
-  hide('screen-main');
-  _buildSnakeTblGrid();
-  show('screen-snake');
-}
-
-function _buildSnakeTblGrid() {
-  const g = document.getElementById('snake-tbl-grid');
-  g.innerHTML = '';
-  for (let n = 2; n <= 12; n++) {
-    const btn = document.createElement('button');
-    btn.className = 'tbl-btn' + (snakeTables.has(n) ? ' on' : '');
-    btn.textContent = n;
-    btn.onclick = () => {
-      if (snakeTables.has(n)) { snakeTables.delete(n); btn.classList.remove('on'); }
-      else { snakeTables.add(n); btn.classList.add('on'); }
-      document.getElementById('snake-tbl-warn').style.display =
-        snakeTables.size === 0 ? 'block' : 'none';
-    };
-    g.appendChild(btn);
-  }
-}
-
-function snakeSelectAll() {
-  for (let n=2; n<=12; n++) snakeTables.add(n);
-  document.querySelectorAll('#snake-tbl-grid .tbl-btn').forEach(b => b.classList.add('on'));
-  document.getElementById('snake-tbl-warn').style.display = 'none';
-}
-function snakeSelectNone() {
-  snakeTables.clear();
-  document.querySelectorAll('#snake-tbl-grid .tbl-btn').forEach(b => b.classList.remove('on'));
-  document.getElementById('snake-tbl-warn').style.display = 'block';
-}
-
-// ── Start / Stop ──────────────────────────────────────────────
-function snakeStart() {
-  if (snakeTables.size === 0) {
-    document.getElementById('snake-tbl-warn').style.display = 'block'; return;
-  }
-  gameMode = 'snake';
-  running  = false;          // stop bubble game if running
-  if (tickInt) { clearInterval(tickInt); tickInt = null; }
-  hide('screen-snake'); hide('screen-over');
-  _ac();
-
-  const sg = document.getElementById('snake-game');
-  sg.style.display = 'flex';
-
-  // Size canvas after layout
-  requestAnimationFrame(() => {
-    snakeResizeCanvas();
-    const {cols, rows} = snakeGrid();
-    const cx = Math.floor(cols/2), cy = Math.floor(rows/2);
-    snakeBody    = [{x:cx,y:cy}];
-    snakeDir     = {x:1,y:0};
-    snakeNextDir = {x:1,y:0};
-    snakeScore   = 0;
-    snakeLives   = 3;
-    snakeSpeed   = 300;
-    snakeRunning = true;
-    _syncMuteIcons(); _bgPlay();
-    snakeNewQ(true); // true = placer les chiffres au départ uniquement
-    snakeDraw();
-    if (snakeIntId) clearInterval(snakeIntId);
-    snakeIntId = setInterval(snakeTick, snakeSpeed);
-  });
-}
-
-function snakeStop() { snakeOver(true); }
-
-function snakeResizeCanvas() {
-  const canvas = document.getElementById('snake-canvas');
-  const hud    = document.getElementById('snake-hud');
-  const availW = Math.min(window.innerWidth,  13 * SNAKE_CS);
-  const availH = Math.min(window.innerHeight - hud.offsetHeight, 22 * SNAKE_CS);
-  canvas.width  = Math.floor(availW / SNAKE_CS) * SNAKE_CS;
-  canvas.height = Math.floor(availH / SNAKE_CS) * SNAKE_CS;
-}
-
-// ── Grid ──────────────────────────────────────────────────────
-function snakeGrid() {
-  const canvas = document.getElementById('snake-canvas');
-  return { cols: canvas.width / SNAKE_CS, rows: canvas.height / SNAKE_CS };
-}
-
-// ── Question & digits ─────────────────────────────────────────
-function snakeNewQ(placeDigits = false) {
-  const tbls = [...snakeTables];
-  const a = tbls[Math.floor(Math.random() * tbls.length)];
-  const b = 2 + Math.floor(Math.random() * 11);
-  snakeQ = { a, b, ans: a * b };
-  snakeAnsDigits = String(a * b).split('').map(Number);
-  snakeAnsIdx = 0;
-  if (placeDigits) snakePlaceDigits();
-  snakeUpdateQ();
-  snakeUpdateHUD();
-}
-
-function snakeUpdateQ() {
-  const {a, b} = snakeQ;
-  const done = snakeAnsDigits.slice(0, snakeAnsIdx).join('');
-  const rem  = snakeAnsDigits.slice(snakeAnsIdx).map(() => '?').join('');
-  document.getElementById('snake-question').textContent = `${a} × ${b} = ${done}${rem}`;
-}
-
-function snakePlaceDigits() {
-  const {cols, rows} = snakeGrid();
-  const occupied = new Set(snakeBody.map(s => `${s.x},${s.y}`));
-  const free = [];
-  for (let x=0; x<cols; x++)
-    for (let y=0; y<rows; y++)
-      if (!occupied.has(`${x},${y}`)) free.push({x,y});
-  for (let i=free.length-1; i>0; i--) {
-    const j = Math.floor(Math.random()*(i+1));
-    [free[i],free[j]] = [free[j],free[i]];
-  }
-  snakeDigits = [];
-  for (let v=0; v<=9; v++) snakeDigits.push({val:v, ...free[v]});
-}
-
-function snakeRespawnDigit(d) {
-  const {cols, rows} = snakeGrid();
-  const occ = new Set([
-    ...snakeBody.map(s => `${s.x},${s.y}`),
-    ...snakeDigits.filter(dd => dd !== d).map(dd => `${dd.x},${dd.y}`)
-  ]);
-  const free = [];
-  for (let x=0; x<cols; x++)
-    for (let y=0; y<rows; y++)
-      if (!occ.has(`${x},${y}`)) free.push({x,y});
-  if (!free.length) return;
-  const pos = free[Math.floor(Math.random()*free.length)];
-  d.x = pos.x; d.y = pos.y;
-}
-
-// ── Game loop ─────────────────────────────────────────────────
-// Décale toutes les positions d'un cran (la queue suit la tête)
-function _snakeShift(nx, ny) {
-  for (let i = snakeBody.length - 1; i > 0; i--) {
-    snakeBody[i].x = snakeBody[i-1].x;
-    snakeBody[i].y = snakeBody[i-1].y;
-  }
-  snakeBody[0].x = nx;
-  snakeBody[0].y = ny;
-}
-
-function snakeTick() {
-  if (!snakeRunning) return;
-  snakeDir = {...snakeNextDir};
-  const {cols,rows} = snakeGrid();
-  const head = snakeBody[0];
-  const nx = head.x + snakeDir.x, ny = head.y + snakeDir.y;
-
-  // Mur : ressort du bord opposé
-  const wx = (nx + cols) % cols;
-  const wy = (ny + rows) % rows;
-  // Self hit — la queue va libérer sa case, on ne la compte pas
-  if (snakeBody.slice(0, -1).some(s => s.x===wx && s.y===wy)) {
-    snakeLoseLife(); return;
-  }
-
-  const eaten = snakeDigits.find(d => d.x===wx && d.y===wy);
-
-  if (eaten && eaten.val === snakeAnsDigits[snakeAnsIdx]) {
-    // Bon chiffre : ajouter un segment permanent avec ce chiffre
-    const last = snakeBody[snakeBody.length - 1];
-    const newSeg = { x: last.x, y: last.y, digit: eaten.val };
-    _snakeShift(wx, wy);
-    snakeBody.push(newSeg);
-    sfxMiam();
-    snakeAnsIdx++;
-    snakeRespawnDigit(eaten);
-    if (snakeAnsIdx >= snakeAnsDigits.length) {
-      snakeScore++;
-      sfxCorrect();
-      snakeSpeed = Math.max(80, snakeSpeed - 10);
-      clearInterval(snakeIntId);
-      snakeIntId = setInterval(snakeTick, snakeSpeed);
-      snakeNewQ();
-      return;
-    } else {
-      snakeUpdateQ();
-    }
-  } else if (eaten) {
-    // Mauvais chiffre — vie perdue, progression remise à zéro
-    _snakeShift(wx, wy);
-    sfxWrong();
-    snakeRespawnDigit(eaten);
-    snakeLives--;
-    snakeUpdateHUD();
-    if (snakeLives<=0) { snakeOver(false); return; }
-  } else {
-    _snakeShift(wx, wy);
-  }
-  snakeDraw();
-}
-
-function snakeLoseLife() {
-  sfxWrong();
-  snakeLives--;
-  snakeAnsIdx = 0;
-  snakeUpdateHUD();
-  snakeUpdateQ();
-  if (snakeLives<=0) { snakeOver(false); return; }
-  const {cols,rows} = snakeGrid();
-  const cx=Math.floor(cols/2), cy=Math.floor(rows/2);
-  snakeBody    = [{x:cx,y:cy}];
-  snakeDir     = {x:1,y:0};
-  snakeNextDir = {x:1,y:0};
-  snakeDraw();
-}
-
-// ── Draw ──────────────────────────────────────────────────────
-function snakeDraw() {
-  const canvas = document.getElementById('snake-canvas');
-  const ctx    = canvas.getContext('2d');
-  const {cols,rows} = snakeGrid();
-  const ox = Math.floor((canvas.width  - cols*SNAKE_CS) / 2);
-  const oy = Math.floor((canvas.height - rows*SNAKE_CS) / 2);
-  const cs = SNAKE_CS;
-
-  ctx.fillStyle = '#0a1628';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = 1;
-  for (let x=0; x<=cols; x++) {
-    ctx.beginPath(); ctx.moveTo(ox+x*cs,oy); ctx.lineTo(ox+x*cs,oy+rows*cs); ctx.stroke();
-  }
-  for (let y=0; y<=rows; y++) {
-    ctx.beginPath(); ctx.moveTo(ox,oy+y*cs); ctx.lineTo(ox+cols*cs,oy+y*cs); ctx.stroke();
-  }
-
-  // Digits (0-9 always on field)
-  for (const d of snakeDigits) {
-    const px=ox+d.x*cs, py=oy+d.y*cs, pad=3;
-    ctx.shadowBlur  = 6;
-    ctx.shadowColor = 'rgba(255,255,255,0.2)';
-    ctx.fillStyle   = 'rgba(255,255,255,0.06)';
-    snakeRR(ctx, px+pad, py+pad, cs-pad*2, cs-pad*2, 5); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle  = 'rgba(255,255,255,0.55)';
-    ctx.font       = `bold ${Math.floor(cs*.44)}px Arial Rounded MT Bold,Arial`;
-    ctx.textAlign  = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(d.val), px+cs/2, py+cs/2);
-  }
-
-  // Snake body
-  snakeBody.forEach((seg,i) => {
-    const px=ox+seg.x*cs, py=oy+seg.y*cs;
-    const pad = i===0 ? 1 : 3;
-    const r   = i===0 ? 8 : 5;
-    if (i===0) {
-      ctx.shadowBlur=14; ctx.shadowColor='#4facfe'; ctx.fillStyle='#4facfe';
-    } else {
-      ctx.shadowBlur=0;
-      ctx.fillStyle = seg.digit !== undefined ? '#2a6aad' : 'rgba(79,172,254,0.75)';
-    }
-    snakeRR(ctx, px+pad, py+pad, cs-pad*2, cs-pad*2, r); ctx.fill();
-    ctx.shadowBlur=0;
-    if (i===0) {
-      // Eyes
-      ctx.fillStyle='white';
-      const ew=2.5,eh=3.5;
-      const ex1=px+cs*.28,ex2=px+cs*.62,ey=py+cs*.32;
-      [[ex1,ey],[ex2,ey]].forEach(([ex,ey2]) => {
-        ctx.beginPath(); ctx.ellipse(ex,ey2,ew,eh,0,0,Math.PI*2); ctx.fill();
-      });
-      ctx.fillStyle='#0a1628';
-      [[ex1+.8,ey+1],[ex2+.8,ey+1]].forEach(([ex,ey2]) => {
-        ctx.beginPath(); ctx.ellipse(ex,ey2,1.4,1.8,0,0,Math.PI*2); ctx.fill();
-      });
-    }
-    // Chiffre ingéré — toujours visible sur le segment correspondant
-    if (i > 0 && seg.digit !== undefined) {
-      ctx.fillStyle = 'white';
-      ctx.font = `bold ${Math.floor(cs*.52)}px Arial Rounded MT Bold,Arial`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(String(seg.digit), px+cs/2, py+cs/2);
-    }
-  });
-}
-
-function snakeRR(ctx, x, y, w, h, r) {
-  r = Math.min(r, w/2, h/2);
-  ctx.beginPath();
-  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
-  ctx.arcTo(x+w,y,x+w,y+r,r); ctx.lineTo(x+w,y+h-r);
-  ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
-  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r);
-  ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
-}
-
-// ── HUD ───────────────────────────────────────────────────────
-function snakeUpdateHUD() {
-  document.getElementById('snake-score').textContent = '⭐ ' + snakeScore;
-  let h=''; for(let i=0;i<3;i++) h += i<snakeLives ? '❤️' : '🖤';
-  document.getElementById('snake-lives').textContent = h;
-}
-
-// ── Game Over ─────────────────────────────────────────────────
-function snakeOver(manual) {
-  snakeRunning = false;
-  clearInterval(snakeIntId); snakeIntId = null;
-  _bgStop();
-  document.getElementById('snake-game').style.display = 'none';
-  if (!manual) sfxWrong();
-  const key='snake_best', prev=+localStorage.getItem(key)||0;
-  if (snakeScore>prev) localStorage.setItem(key,snakeScore);
-  const best=Math.max(snakeScore,prev);
-  document.getElementById('over-title').textContent  = manual ? '🐍 Partie terminée !' : '🐍 Game Over !';
-  document.getElementById('over-score').textContent  = snakeScore;
-  document.getElementById('plural-s').textContent    = snakeScore>1?'s':'';
-  document.getElementById('plural-s2').textContent   = snakeScore>1?'s':'';
-  document.getElementById('over-best').textContent   =
-    snakeScore>0&&snakeScore>=best ? '🏆 Nouveau record !' : `Record : ${best}`;
-  show('screen-over');
-}
-
-// ── Controls ──────────────────────────────────────────────────
-function snakeDpadDir(dx,dy) {
-  if (!snakeRunning) return;
-  if (dx===-snakeDir.x && dy===-snakeDir.y) return;
-  snakeNextDir={x:dx,y:dy};
-}
-function snakeMuteToggle() {
-  musicOn = !musicOn;
-  musicOn ? _bgPlay() : document.getElementById('mole-music').pause();
-  _syncMuteIcons();
-}
-
-document.addEventListener('keydown', e => {
-  if (!snakeRunning) return;
-  const map = {
-    ArrowUp:{x:0,y:-1}, ArrowDown:{x:0,y:1},
-    ArrowLeft:{x:-1,y:0}, ArrowRight:{x:1,y:0},
-    w:{x:0,y:-1}, s:{x:0,y:1}, a:{x:-1,y:0}, d:{x:1,y:0},
-    z:{x:0,y:-1}, q:{x:-1,y:0},
+(() => {
+  const N = 10;
+  const gridEl = document.getElementById('grid');
+  const timerEl = document.getElementById('timer');
+  const progressEl = document.getElementById('progress');
+  const resultEl = document.getElementById('result');
+  const okKey = document.querySelector('#keypad [data-k="ok"]');
+
+  // Mobile uniquement : écran tactile sans souris
+  const isMobile = window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(any-pointer: fine)').matches;
+  if (isMobile) document.body.classList.add('mobile');
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
   };
-  const dir=map[e.key]; if (!dir) return;
-  if (dir.x===-snakeDir.x && dir.y===-snakeDir.y) return;
-  snakeNextDir=dir;
-  if (e.key.startsWith('Arrow')) e.preventDefault();
-});
 
-let _swipeStart=null;
-document.addEventListener('touchstart', e=>{
-  if (!snakeRunning) return;
-  _swipeStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
-},{passive:true});
-document.addEventListener('touchend', e=>{
-  if (!snakeRunning||!_swipeStart) return;
-  const dx=e.changedTouches[0].clientX-_swipeStart.x;
-  const dy=e.changedTouches[0].clientY-_swipeStart.y;
-  _swipeStart=null;
-  if (Math.abs(dx)<18&&Math.abs(dy)<18) return;
-  let dir;
-  if (Math.abs(dx)>Math.abs(dy)) dir=dx>0?{x:1,y:0}:{x:-1,y:0};
-  else dir=dy>0?{x:0,y:1}:{x:0,y:-1};
-  if (dir.x===-snakeDir.x&&dir.y===-snakeDir.y) return;
-  snakeNextDir=dir;
-},{passive:true});
+  let mode = store.get('pyth-mode') === 'free' ? 'free' : 'timed';
+  let rows, cols, answers, cells, sel, startTime, tick, finished;
 
-window.addEventListener('resize',()=>{
-  if (!snakeRunning) return;
-  snakeResizeCanvas(); snakeDraw();
-});
+  const shuffle = a => {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const range = () => Array.from({ length: N }, (_, i) => i + 1);
 
-// ════════════════════════════════════════════════════════════════
-//  MOLE GAME
-// ════════════════════════════════════════════════════════════════
-let moleNoTimer     = false;
-let moleRunning     = false;
-let moleScore       = 0;
-let moleLevel       = 1;
-let moleTimeLeft    = 60;
-let moleTickInt     = null;
-let moleSpawnTimer  = null;
-let moleNextDur     = null;  // durée forcée pour le prochain moleShow (vague initiale)
-let moleCurrentQ    = null;
-let moleInput       = '';
-let moleSlots       = [];
-let moleSelTables   = new Set([2,3,4,5,6,7,8,9,10]);
-let molePairs       = [];
-let molePairScores  = {};
+  const fmt = ms => {
+    const s = ms / 1000;
+    return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
+  };
 
-function sfxMoleCorrect() {
-  const ctx = _ac(); if (!ctx) return;
-  const t = ctx.currentTime;
-  // Arpège brillant type "coin collecté"
-  [[880,.0],[1108,.07],[1319,.13],[1760,.19],[2093,.27]]
-    .forEach(([f,d]) => _tone(f, 0.22, 0.13, 'sine', t + d));
-}
+  function build() {
+    rows = shuffle(range());
+    cols = shuffle(range());
+    answers = Array.from({ length: N }, () => Array(N).fill(''));
+    cells = [];
+    sel = null; startTime = null; finished = false;
+    clearInterval(tick);
+    document.body.classList.remove('done');
+    resultEl.className = ''; resultEl.innerHTML = '';
+    timerEl.textContent = fmt(0);
+    timerEl.classList.toggle('hidden', mode === 'free');
 
-function moleBuildPairs() {
-  const sel = moleSelTables.size > 0 ? moleSelTables : new Set([2,3,4,5,6,7,8,9,10]);
-  const maxFactor = (!sel.has(11) && !sel.has(12)) ? 10 : 12;
-  const list = [];
-  for (let a = 2; a <= maxFactor; a++) {
-    for (let b = a; b <= maxFactor; b++) {
-      if (!sel.has(a) && !sel.has(b)) continue;
-      const w = (HARD_TABLES.has(a) || HARD_TABLES.has(b)) ? SCORE_BASE_HARD : SCORE_BASE_EASY;
-      list.push({ a, b, w });
+    gridEl.innerHTML = '';
+    const corner = document.createElement('div');
+    corner.className = 'c h corner'; corner.textContent = '×';
+    gridEl.appendChild(corner);
+    cols.forEach((v, j) => {
+      const d = document.createElement('div');
+      d.className = 'c h'; d.textContent = v; d.dataset.col = j;
+      gridEl.appendChild(d);
+    });
+    rows.forEach((rv, i) => {
+      const h = document.createElement('div');
+      h.className = 'c h'; h.textContent = rv; h.dataset.row = i;
+      gridEl.appendChild(h);
+      cells.push([]);
+      cols.forEach((cv, j) => {
+        const d = document.createElement('div');
+        d.className = 'c';
+        d.addEventListener('pointerdown', e => { e.preventDefault(); select(i, j); });
+        gridEl.appendChild(d);
+        cells[i].push(d);
+      });
+    });
+    updateProgress();
+    select(0, 0);
+  }
+
+  function select(i, j) {
+    if (finished) return;
+    gridEl.querySelectorAll('.sel, .hl, .cross').forEach(e => e.classList.remove('sel', 'hl', 'cross'));
+    sel = [i, j];
+    gridEl.querySelector(`[data-row="${i}"]`).classList.add('hl');
+    gridEl.querySelector(`[data-col="${j}"]`).classList.add('hl');
+    for (let k = 0; k < N; k++) {
+      if (k < j) cells[i][k].classList.add('cross');
+      if (k < i) cells[k][j].classList.add('cross');
+    }
+    cells[i][j].classList.add('sel');
+    if (isMobile) {
+      const r = cells[i][j].getBoundingClientRect();
+      const kp = document.getElementById('keypad').getBoundingClientRect().top;
+      if (r.bottom > kp - 8 || r.top < 0) cells[i][j].scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
   }
-  return list;
-}
 
-function moleInitPairScores() {
-  molePairScores = {};
-  for (const p of molePairs) molePairScores[pairKey(p.a, p.b)] = p.w;
-}
+  function render(i, j) {
+    cells[i][j].textContent = answers[i][j];
+  }
 
-function molePickQuestion() {
-  const total = molePairs.reduce((s, p) => s + molePairScores[pairKey(p.a, p.b)], 0);
-  let r = Math.random() * total;
-  for (const p of molePairs) {
-    r -= molePairScores[pairKey(p.a, p.b)];
-    if (r <= 0) {
-      const [a, b] = Math.random() < 0.5 ? [p.a, p.b] : [p.b, p.a];
-      return { a, b, ans: p.a * p.b };
+  function startClock() {
+    if (startTime !== null) return;
+    startTime = performance.now();
+    if (mode === 'timed') tick = setInterval(() => { timerEl.textContent = fmt(performance.now() - startTime); }, 100);
+  }
+
+  function filledCount() {
+    return answers.flat().filter(v => v !== '').length;
+  }
+  function updateProgress() {
+    const full = filledCount() === N * N;
+    progressEl.textContent = `${filledCount()} / ${N * N}`;
+    okKey.textContent = full ? 'Terminer ✓' : 'Suivant ➜';
+    if (finished) return;
+    resultEl.className = full ? 'show' : '';
+    resultEl.innerHTML = full
+      ? `<button class="btn" id="check">Terminer et corriger ✓</button>${isMobile ? '' : '<div class="sub">ou appuie sur Entrée</div>'}`
+      : '';
+    if (full) document.getElementById('check').addEventListener('click', finish);
+  }
+
+  function type(d) {
+    if (finished || !sel) return;
+    const [i, j] = sel;
+    if (answers[i][j].length >= 3) return;
+    startClock();
+    answers[i][j] = (answers[i][j] === '0' ? '' : answers[i][j]) + d;
+    render(i, j); updateProgress();
+  }
+
+  function erase() {
+    if (finished || !sel) return;
+    const [i, j] = sel;
+    answers[i][j] = answers[i][j].slice(0, -1);
+    render(i, j); updateProgress();
+  }
+
+  // Case suivante vide (lecture ligne par ligne), sinon case suivante
+  function next() {
+    if (finished || !sel) return;
+    if (filledCount() === N * N) return finish();
+    const start = sel[0] * N + sel[1];
+    for (let s = 1; s <= N * N; s++) {
+      const p = (start + s) % (N * N);
+      if (answers[Math.floor(p / N)][p % N] === '') return select(Math.floor(p / N), p % N);
     }
-  }
-  const p = molePairs[molePairs.length - 1];
-  return { a: p.a, b: p.b, ans: p.a * p.b };
-}
-
-const MOLE_COUNT      = 13;    // grille 3×4 + 1 centré
-const MOLE_MAX_VIS    = 5;     // taupes simultanées max
-const MOLE_INT_BASE   = 1400;  // intervalle initial entre spawns
-const MOLE_START_TIME = 40;    // temps de départ
-
-function showMole() {
-  hide('screen-main');
-  buildMoleTblGrid();
-  show('screen-mole');
-}
-
-function buildMoleTblGrid() {
-  const g = document.getElementById('mole-tbl-grid');
-  g.innerHTML = '';
-  for (let n = 2; n <= 12; n++) {
-    const b = document.createElement('button');
-    b.className = 'tbl-btn' + (moleSelTables.has(n) ? ' on' : '');
-    b.textContent = n;
-    b.onclick = () => {
-      if (moleSelTables.has(n)) {
-        if (moleSelTables.size > 1) { moleSelTables.delete(n); b.classList.remove('on'); }
-      } else { moleSelTables.add(n); b.classList.add('on'); }
-    };
-    g.appendChild(b);
-  }
-}
-
-function setMoleTimer(on) {
-  moleNoTimer = !on;
-  document.getElementById('btn-mole-chrono').classList.toggle('active',  on);
-  document.getElementById('btn-mole-libre').classList.toggle('active',  !on);
-}
-
-function startMoleGame() {
-  lastGameType = 'mole';
-  hide('screen-mole');
-  moleScore = 0; moleLevel = 1; moleTimeLeft = MOLE_START_TIME; moleInput = ''; moleRunning = true;
-  molePairs = moleBuildPairs(); moleInitPairScores();
-
-  const arena = document.getElementById('mole-arena');
-  arena.innerHTML = ''; moleSlots = [];
-  for (let i = 0; i < MOLE_COUNT; i++) {
-    const slot = document.createElement('div');
-    slot.className = 'mole-slot'; slot.dataset.slot = i;
-    slot.innerHTML =
-      '<div class="mole-cap"><div class="mole-body">' +
-      '<img src="3.png" class="mole-img" alt="">' +
-      '<span class="mole-digit">0</span></div></div>' +
-      '<div class="mole-hole"></div>';
-    const bodyEl  = slot.querySelector('.mole-body');
-    const digitEl = slot.querySelector('.mole-digit');
-    slot.addEventListener('click', () => moleClick(i));
-    arena.appendChild(slot);
-    moleSlots.push({ el: slot, bodyEl, digitEl, digit: null, visible: false, hideTimer: null });
+    move(0, 1);
   }
 
-  document.getElementById('mole-timer-wrap').style.display = moleNoTimer ? 'none' : 'block';
-  document.getElementById('mole-game').style.display = 'flex';
-  _syncMuteIcons();
-  _bgPlay();
-  moleUpdateHUD();
-  moleNextQ();
-  // Vague initiale : MOLE_MAX_VIS taupes presque simultanées, durées échelonnées
-  // La 1ère disparaît à moleDur(), la dernière à 2×moleDur()
-  const _baseDur = moleDur();
-  for (let i = 0; i < MOLE_MAX_VIS; i++) {
-    const _dur = Math.round(_baseDur * (1 + i / (MOLE_MAX_VIS - 1)));
-    moleSpawnTimer = setTimeout(() => {
-      if (!moleRunning) return;
-      moleNextDur = _dur;
-      moleSpawn();
-    }, i * 40);
+  function move(di, dj) {
+    if (finished || !sel) return;
+    select((sel[0] + di + N) % N, (sel[1] + dj + N) % N);
   }
-  if (!moleNoTimer) moleTickInt = setInterval(moleTick, 50);
-}
 
-function moleNextQ() {
-  moleInput = '';
-  const q = molePickQuestion();
-  moleCurrentQ = q;
-  moleUpdateQ();
-  moleSpawn();  // spawn immédiat du chiffre attendu si pas déjà visible
-}
+  function finish() {
+    if (finished) return;
+    finished = true;
+    clearInterval(tick);
+    const elapsed = startTime !== null ? performance.now() - startTime : 0;
+    gridEl.querySelectorAll('.sel, .hl, .cross').forEach(e => e.classList.remove('sel', 'hl', 'cross'));
+    document.body.classList.add('done');
 
-
-function moleUnusedDigit(exclude) {
-  // Chiffre non déjà affiché (et différent de exclude si fourni)
-  const used = new Set(moleSlots.filter(s => s.visible).map(s => s.digit));
-  if (exclude !== undefined) used.add(exclude);
-  const avail = [];
-  for (let i = 0; i <= 9; i++) { if (!used.has(i)) avail.push(i); }
-  if (!avail.length) {
-    // Tous les chiffres déjà présents – on accepte un doublon plutôt que bloquer
-    const pool = [];
-    for (let i = 0; i <= 9; i++) { if (i !== exclude) pool.push(i); }
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
-  return avail[Math.floor(Math.random() * avail.length)];
-}
-
-function moleSpawn() {
-  if (!moleRunning) return;
-  // Watchdog : corrige toute désync visible=true / .up absent
-  moleSlots.forEach(slot => {
-    if (slot.visible && !slot.bodyEl.classList.contains('up')) {
-      console.warn('[taupe] désync détectée slot', moleSlots.indexOf(slot), 'digit', slot.digit);
-      slot.visible = false; slot.digit = null;
-      if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
-    }
-  });
-  const visible = moleSlots.filter(s => s.visible).length;
-  if (visible >= MOLE_MAX_VIS) return;
-  const free = moleSlots.filter(s => !s.visible);
-  if (!free.length) return;
-  const slot = free[Math.floor(Math.random() * free.length)];
-
-  if (!moleCurrentQ) { moleShow(slot, moleUnusedDigit()); return; }
-  const ansStr    = String(moleCurrentQ.ans);
-  const nextDigit = ansStr[moleInput.length];
-  if (!nextDigit) { moleShow(slot, moleUnusedDigit()); return; }
-
-  // Vérifie visible ET réellement levée (.up) pour éviter la désync état/DOM
-  const present = moleSlots.some(s =>
-    s.visible &&
-    s.bodyEl.classList.contains('up') &&
-    String(s.digit) === nextDigit
-  );
-
-  const d = present
-    ? moleUnusedDigit(parseInt(nextDigit))
-    : parseInt(nextDigit);
-
-  // Garde NaN : ne pas spawner de valeur invalide
-  if (isNaN(d)) { moleShow(slot, moleUnusedDigit()); return; }
-  moleShow(slot, d);
-}
-
-function moleDur() {
-  // Niveau 1 : 4500 ms → diminue de 300 ms par niveau → plancher 900 ms
-  return Math.max(900, 4500 - (moleLevel - 1) * 300);
-}
-
-function moleShow(slot, digit) {
-  if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
-  slot.digit = digit; slot.visible = true;
-  slot.digitEl.textContent = String(digit);
-  slot.bodyEl.classList.remove('up');
-  void slot.bodyEl.offsetWidth;  // force reflow pour réinitialiser la transition
-  slot.bodyEl.classList.add('up');
-  const dur = (moleNextDur !== null) ? moleNextDur : moleDur();
-  moleNextDur = null;
-  slot.hideTimer = setTimeout(() => moleHide(slot), dur);
-  console.debug('[taupe] show slot', moleSlots.indexOf(slot), 'digit', digit, 'dur', dur);
-}
-
-function moleHide(slot) {
-  console.debug('[taupe] hide slot', moleSlots.indexOf(slot), 'digit', slot.digit);
-  slot.visible = false; slot.digit = null;
-  slot.bodyEl.classList.remove('up');
-  if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
-  if (moleRunning) setTimeout(moleSpawn, Math.max(80, 220 - (moleLevel - 1) * 14));
-}
-
-function moleClick(i) {
-  if (!moleRunning) return;
-  const slot = moleSlots[i];
-  if (!slot.visible) return;
-
-  const ansStr   = String(moleCurrentQ.ans);
-  const tapped   = String(slot.digit);
-  const expected = ansStr[moleInput.length];
-
-  if (tapped === expected) {
-    sfxCorrect();
-    slot.bodyEl.classList.add('tap-ok');
-    setTimeout(() => slot.bodyEl && slot.bodyEl.classList.remove('tap-ok'), 320);
-    clearTimeout(slot.hideTimer); slot.hideTimer = null;
-    moleHide(slot);
-    moleInput += tapped;
-    moleUpdateQ();
-    if (moleInput === ansStr) {
-      moleScore++;
-      // Mise à jour du score de paire (favorise les opérations bien maîtrisées)
-      const k = pairKey(moleCurrentQ.a, moleCurrentQ.b);
-      molePairScores[k] = Math.max(SCORE_MIN, molePairScores[k] * SCORE_DECAY);
-      const newLevel = Math.floor(moleScore / 5) + 1;
-      if (newLevel > moleLevel) {
-        moleLevel = newLevel;
-        spawnFX('🎉 Niveau ' + moleLevel + ' !', '#ffd700');
-        sfxLevelUp();
+    let good = 0;
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const expected = rows[i] * cols[j];
+      const c = cells[i][j];
+      if (Number(answers[i][j]) === expected) {
+        good++; c.classList.add('ok');
       } else {
-        spawnFX('✓', '#43e97b');
-        sfxMoleCorrect();
+        c.classList.add('ko');
+        c.innerHTML = `<span class="v">${answers[i][j]}</span><span class="fix">${expected}</span>`;
       }
-      if (!moleNoTimer) moleTimeLeft = Math.min(90, moleTimeLeft + 5);
-      moleUpdateHUD();
-      setTimeout(() => moleNextQ(), 280);
     }
-  } else {
-    sfxWrong();
-    spawnFX('💥', '#ff6b6b');
-    slot.el.classList.add('shake');
-    setTimeout(() => slot.el.classList.remove('shake'), 420);
-    if (!moleNoTimer) moleTimeLeft = Math.max(0, moleTimeLeft - 3);
-    // Pénalise la paire (sera posée plus souvent)
-    const k = pairKey(moleCurrentQ.a, moleCurrentQ.b);
-    const p = molePairs.find(p => pairKey(p.a, p.b) === k);
-    if (p) molePairScores[k] = Math.min(molePairScores[k] * SCORE_GROW, p.w * 2);
-    moleInput = '';
-    moleUpdateQ();
-    moleUpdateHUD();
+
+    let html = `<div class="big">${good} / ${N * N} ${good === N * N ? '🎉' : ''}</div>`;
+    if (mode === 'timed') {
+      timerEl.textContent = fmt(elapsed);
+      const t = fmt(elapsed);
+      let sub = `Temps : <b>${t}</b>`;
+      if (good === N * N) {
+        const best = Number(store.get('pyth-best')) || 0;
+        if (!best || elapsed < best) { store.set('pyth-best', String(Math.round(elapsed))); sub += ' — nouveau record !'; }
+        else sub += ` — record : ${fmt(best)}`;
+      }
+      html += `<div class="sub">${sub}</div>`;
+    }
+    if (good < N * N) html += `<div class="sub">${N * N - good} erreur${N * N - good > 1 ? 's' : ''} : la bonne réponse est en vert dans la case.</div>`;
+    resultEl.innerHTML = html;
+    resultEl.className = 'show';
+    resultEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
-}
 
-function moleUpdateQ() {
-  const ansStr = String(moleCurrentQ.ans);
-  document.getElementById('mole-question-text').textContent =
-    `${moleCurrentQ.a} × ${moleCurrentQ.b} = `;
-  document.getElementById('mole-input-display').innerHTML =
-    ansStr.split('').map((_, idx) =>
-      idx < moleInput.length
-        ? `<span style="color:#43e97b">${moleInput[idx]}</span>`
-        : `<span style="opacity:0.35">_</span>`
-    ).join('');
-}
-
-function moleTick() {
-  if (!moleRunning) return;
-  // Watchdog (moleTick) : corrige les désync visible/DOM
-  moleSlots.forEach(slot => {
-    if (slot.visible && !slot.bodyEl.classList.contains('up')) {
-      console.warn('[taupe] désync tick slot', moleSlots.indexOf(slot), 'digit', slot.digit);
-      slot.visible = false; slot.digit = null;
-      if (slot.hideTimer) { clearTimeout(slot.hideTimer); slot.hideTimer = null; }
-      setTimeout(moleSpawn, 50);
-    }
+  // Clavier physique (ordinateur)
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key;
+    if (/^[0-9]$/.test(k)) type(k);
+    else if (k === 'Backspace' || k === 'Delete') erase();
+    else if (k === 'Enter' || (k === 'Tab' && !e.shiftKey)) next();
+    else if (k === 'ArrowRight') move(0, 1);
+    else if (k === 'ArrowLeft' || (k === 'Tab' && e.shiftKey)) move(0, -1);
+    else if (k === 'ArrowDown') move(1, 0);
+    else if (k === 'ArrowUp') move(-1, 0);
+    else return;
+    e.preventDefault();
   });
-  const drain = 1.6 + (moleLevel - 1) * 0.07;   // accélère avec les niveaux
-  moleTimeLeft -= 0.05 * drain;
-  const pct  = Math.max(0, moleTimeLeft / MOLE_START_TIME * 100);
-  const fill = document.getElementById('mole-timer-fill');
-  fill.style.width = pct + '%';
-  fill.style.background =
-    pct > 55 ? 'linear-gradient(90deg,#a78bfa,#f093fb)' :
-    pct > 25 ? 'linear-gradient(90deg,#f7971e,#ffd200)' :
-               'linear-gradient(90deg,#ff416c,#ff4b2b)';
-  if (moleTimeLeft <= 0) moleEnd();
-}
 
-function moleUpdateHUD() {
-  document.getElementById('mole-score-display').textContent  = '⭐ ' + moleScore;
-  document.getElementById('mole-level-display').textContent  = 'Niveau ' + moleLevel;
-}
+  // Clavier numérique (mobile uniquement)
+  document.getElementById('keypad').addEventListener('pointerdown', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    e.preventDefault();
+    const k = b.dataset.k;
+    if (k === 'del') erase();
+    else if (k === 'ok') next();
+    else type(k);
+  });
 
-function _moleClearTimers() {
-  clearInterval(moleTickInt);
-  if (moleSpawnTimer) clearTimeout(moleSpawnTimer);
-  moleSlots.forEach(s => { if (s.hideTimer) clearTimeout(s.hideTimer); });
-}
+  const setKpHeight = () => {
+    const h = document.getElementById('keypad').offsetHeight;
+    if (h) document.body.style.setProperty('--kp-h', h + 'px');
+  };
+  window.addEventListener('resize', setKpHeight);
 
-function _moleStopMusic() { _bgStop(); }
+  // Modes
+  const modeEl = document.getElementById('mode');
+  const paintMode = () => modeEl.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  modeEl.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || b.dataset.mode === mode) return;
+    mode = b.dataset.mode;
+    store.set('pyth-mode', mode);
+    paintMode();
+    build();
+  });
 
-function moleMuteToggle() {
-  musicOn = !musicOn;
-  musicOn ? _bgPlay() : document.getElementById('mole-music').pause();
-  _syncMuteIcons();
-}
+  document.getElementById('new').addEventListener('click', build);
 
-function moleEnd() {
-  moleRunning = false;
-  _moleClearTimers();
-  _moleStopMusic();
-  document.getElementById('mole-game').style.display = 'none';
-
-  const key  = 'mole_best' + (moleNoTimer ? '_free' : '');
-  const prev = +localStorage.getItem(key) || 0;
-  if (moleScore > prev) localStorage.setItem(key, moleScore);
-  const best = Math.max(moleScore, prev);
-
-  document.getElementById('over-title').textContent = moleNoTimer ? '🏁 Partie terminée !' : '⏰ Temps écoulé !';
-  document.getElementById('over-score').textContent = moleScore;
-  document.getElementById('plural-s').textContent   = moleScore > 1 ? 's' : '';
-  document.getElementById('plural-s2').textContent  = moleScore > 1 ? 's' : '';
-  document.getElementById('over-best').textContent  =
-    moleScore > 0 && moleScore >= best ? '🏆 Nouveau record !' : `Record : ${best}`;
-  show('screen-over');
-}
-
-function moleStopGame() {
-  moleRunning = false;
-  _moleClearTimers();
-  _moleStopMusic();
-  document.getElementById('mole-game').style.display = 'none';
-  showMain();
-}
-
-// ── Mobile height fix ─────────────────────────────────────────────────────
-function fixHeight() { document.getElementById('game').style.height=window.innerHeight+'px'; }
-if (!CSS.supports('height','100dvh')) { fixHeight(); window.addEventListener('resize',fixHeight); }
-
-// ── Background starfield ──────────────────────────────────────────────────
-(function(){
-  const c=document.getElementById('bg-stars');
-  for(let i=0;i<65;i++){
-    const s=document.createElement('div'); s.className='bg-star';
-    const sz=1+Math.random()*2.5;
-    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--del:${Math.random()*5}s;`;
-    c.appendChild(s);
-  }
+  paintMode();
+  build();
+  setKpHeight();
 })();
 </script>
 </body>
