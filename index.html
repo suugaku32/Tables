@@ -115,12 +115,23 @@
   #keypad {
     display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
     background: var(--bg); border-top: 1px solid var(--line);
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    padding: 8px max(12px, calc(50% - 170px)) calc(8px + env(safe-area-inset-bottom));
     grid-template-columns: repeat(3, 1fr); gap: 6px;
   }
   body.mobile #keypad { display: grid; }
   body.mobile.done #keypad { display: none; }
   body.home #game, body.home #keypad { display: none !important; }
+  /* Tablette à l'horizontale : clavier à droite de la table */
+  @media (orientation: landscape) and (min-width: 800px) and (min-height: 500px) {
+    body.mobile:not(.home) { padding-bottom: 16px; padding-right: 330px; }
+    body.mobile #game #grid, body.mobile #game #status, body.mobile #game header, body.mobile #game #result {
+      max-width: min(620px, calc(100vh - 120px)); }
+    body.mobile #keypad {
+      left: auto; right: 16px; top: 50%; bottom: auto; transform: translateY(-50%);
+      width: 300px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; }
+    body.mobile #keypad button { height: min(50px, calc((100vh - 70px) / 4)); }
+    body.mobile #keypad .k-ok { font-size: 1rem; white-space: nowrap; }
+  }
   body:not(.home) #home { display: none; }
   body.mobile.home { padding-bottom: 24px; }
 
@@ -160,7 +171,6 @@
   </div>
   <button class="btn" id="start">Commencer ▶</button>
   <div id="best"></div>
-  <p class="hint" style="display:block"><a href="archive/jeux-de-calcul.html" style="color:inherit">Anciens jeux (archive)</a></p>
 </section>
 
 <section id="game">
